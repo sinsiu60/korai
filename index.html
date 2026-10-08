@@ -74,14 +74,16 @@ h1,h2,h3{line-height:1.3;margin:0}
 .menu-item{display:flex;flex-direction:column;align-items:flex-start;gap:4px;text-align:left;padding:20px;border-radius:18px;border:0;background:#fff;box-shadow:var(--shadow);min-height:130px;transition:transform .1s}
 .menu-item:active{transform:scale(.98)}
 .menu-item .ic{font-size:2rem;line-height:1}
+.menu-item .txt{display:flex;flex-direction:column;gap:2px}
 .menu-item b{font-size:1.2rem;color:var(--navy)}
 .menu-item span{font-size:.88rem;color:var(--muted);line-height:1.45}
 .menu-item.wide{grid-column:1/-1;background:linear-gradient(120deg,#0d2f57,#2f7fd1);color:#fff}
 .menu-item.wide b,.menu-item.wide span{color:#fff}
 .menu-item .badge{background:var(--bad);color:#fff;border-radius:999px;padding:0 9px;font-size:.8rem;font-weight:700}
 .menu-foot{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
-.menu-foot .btn{flex:1}
-@media (max-width:520px){.menu-grid{grid-template-columns:1fr}.menu-item{min-height:0;flex-direction:row;align-items:center;gap:14px}.menu-item .txt{display:flex;flex-direction:column}}
+.menu-foot .btn{flex:1 1 220px}
+@media (max-width:520px){.hero h1{font-size:1.5rem}}
+@media (max-width:520px){.menu-grid{grid-template-columns:1fr}.menu-item{min-height:0;flex-direction:row;align-items:center;gap:14px}}
 
 /* ---------- 질문 은행 ---------- */
 .tabs{display:flex;gap:8px;overflow-x:auto;padding-bottom:6px;margin-bottom:12px}
@@ -479,6 +481,22 @@ h1,h2,h3{line-height:1.3;margin:0}
 <!-- ==================== 결과 리포트 ==================== -->
 <section id="scr-report" class="screen">
   <div class="wrap" id="reportBox"></div>
+</section>
+
+<!-- ==================== 오답노트 ==================== -->
+<section id="scr-wrong" class="screen">
+  <div class="wrap">
+    <div class="topbar"><button class="icon-btn" data-go="menu" aria-label="뒤로">←</button><h2>오답노트</h2></div>
+    <div id="wrongBox"></div>
+  </div>
+</section>
+
+<!-- ==================== 기록 ==================== -->
+<section id="scr-records" class="screen">
+  <div class="wrap">
+    <div class="topbar"><button class="icon-btn" data-go="menu" aria-label="뒤로">←</button><h2>기록</h2></div>
+    <div id="recordsBox"></div>
+  </div>
 </section>
 
 <!-- 모달 -->
@@ -2364,6 +2382,186 @@ function showModel(b) {
     <button class="btn block" style="margin-top:14px" id="modelClose">닫기</button>`);
   $('#modelClose').onclick = closeModal;
 }
+
+/* =====================================================================
+   기록 · 스트릭 · 오답노트 · 업적
+   ===================================================================== */
+function streakNow() {
+  const st = Store.d.streak;
+  const y = today(new Date(Date.now() - 864e5));
+  return st.last === today() || st.last === y ? st.cur : 0;
+}
+
+function recordSession(r) {
+  const D = Store.d, now = today();
+  // 스트릭
+  if (D.streak.last !== now) {
+    const y = today(new Date(Date.now() - 864e5));
+    D.streak.cur = D.streak.last === y ? D.streak.cur + 1 : 1;
+    D.streak.last = now;
+    D.streak.best = Math.max(D.streak.best, D.streak.cur);
+  }
+  D.days[now] = (D.days[now] || 0) + 1;
+  // 오답노트 · 상황카드 클리어
+  let added = 0, grad = 0;
+  for (const b of r.blocks) {
+    const key = b.kind + ':' + b.id, prev = D.wrong[key];
+    if (b.score < CONFIG.wrongNoteUnder) {
+      D.wrong[key] = { kind: b.kind, id: b.id, title: b.title, score: b.score, best: Math.max(b.score, prev ? prev.best : 0), tries: (prev ? prev.tries : 0) + 1, date: r.date };
+      b.wrong = true; if (!prev) added++;
+    } else if (prev) {
+      if (b.score >= CONFIG.wrongNoteClear) { delete D.wrong[key]; D.stats.wrongCleared++; b.graduated = true; grad++; }
+      else { prev.score = b.score; prev.best = Math.max(prev.best, b.score); prev.tries++; prev.date = r.date; }
+    }
+    if (b.kind === 'pt' && b.score >= CONFIG.wrongNoteUnder) D.cleared.cards[b.id] = true;
+  }
+  r.notes = [];
+  if (added) r.notes.push(`📕 ${CONFIG.wrongNoteUnder}점 미만 질문 ${added}개를 오답노트에 담았어요.`);
+  if (grad) r.notes.push(`🎓 오답노트에서 ${grad}개 졸업! (${CONFIG.wrongNoteClear}점 이상)`);
+  if (r.blocks.some(b => b.kind === 'pt')) r.notes.push(`🗂️ 상황카드 클리어 ${Object.keys(D.cleared.cards).length}/${PT_CARDS.length}`);
+  // 세션 기록 (리포트 상세는 최근 20개만)
+  D.sessions.push({ id: r.id, date: r.date, mode: r.mode, retry: r.retry, score: r.score, grade: r.grade, pressure: r.pressure, n: r.blocks.length });
+  if (D.sessions.length > 300) D.sessions.splice(0, D.sessions.length - 300);
+  D.reports[r.id] = r;
+  const ids = Object.keys(D.reports).sort();
+  while (ids.length > 20) delete D.reports[ids.shift()];
+  D.stats.total = (D.stats.total || 0) + 1;
+  // 업적
+  r.newAch = checkAchievements(r);
+  Store.save();
+  r.newAch.forEach((a, i) => setTimeout(() => toast(`${a.icon} 업적 달성! <b>${esc(a.name)}</b>`, 'ach', 3800), 900 + i * 1300));
+}
+
+function checkAchievements(r) {
+  const D = Store.d, as = allAnswers(r);
+  const cond = {
+    first: () => D.sessions.length >= 1,
+    firstS: () => r.grade === 'S',
+    allCards: () => PT_CARDS.every(c => D.cleared.cards[c.id]),
+    streak3: () => D.streak.cur >= 3,
+    streak7: () => D.streak.cur >= 7,
+    noTaboo: () => as.length >= 5 && as.every(a => !a.ev.taboo.length),
+    onTime: () => as.length >= 3 && as.every(a => a.ev.time === 'ok'),
+    hellB: () => r.pressure === 'hell' && r.score >= 65,
+    real: () => r.mode === 'real' && !r.retry,
+    calm: () => r.endTension <= 30,
+    wrong5: () => D.stats.wrongCleared >= 5,
+    bankAll: () => EXP_QUESTIONS.every(q => D.seen[q.id]),
+    s10: () => D.sessions.length >= 10
+  };
+  const got = [];
+  for (const a of ACHIEVEMENTS) {
+    if (!D.ach[a.id] && cond[a.id] && cond[a.id]()) { D.ach[a.id] = r.date; got.push(a); }
+  }
+  return got;
+}
+
+/* ---------- 메인 메뉴 ---------- */
+function renderMenu() {
+  const n = streakNow();
+  $('#streakPill').textContent = n ? `🔥 ${n}일 연속 연습 중` : (Store.d.sessions.length ? '🔥 오늘 연습하고 스트릭을 이어 가세요' : '🔥 첫 연습을 시작해 보세요');
+  const w = Object.keys(Store.d.wrong).length;
+  $('#wrongBadge').textContent = w;
+  $('#wrongBadge').classList.toggle('hidden', !w);
+}
+
+/* ---------- 오답노트 ---------- */
+function renderWrong() {
+  const list = Object.values(Store.d.wrong).sort((a, b) => a.score - b.score);
+  const expItems = list.filter(w => w.kind === 'exp' && EXP_QUESTIONS.some(q => q.id === w.id));
+  if (!list.length) {
+    $('#wrongBox').innerHTML = `<div class="card empty">📕<br>오답노트가 비어 있어요.<br><small>${CONFIG.wrongNoteUnder}점 미만 질문이 자동으로 담기고, 재도전에서 ${CONFIG.wrongNoteClear}점 이상이면 졸업합니다.</small></div>`;
+    return;
+  }
+  $('#wrongBox').innerHTML = `
+    <p class="muted" style="margin-top:0;font-size:.9rem">${CONFIG.wrongNoteUnder}점 미만이었던 질문 ${list.length}개 · 재도전해서 ${CONFIG.wrongNoteClear}점 이상이면 졸업! (지금까지 ${Store.d.stats.wrongCleared}개 졸업)</p>
+    ${expItems.length > 1 ? `<button class="btn block" id="retryAllExp" style="margin-bottom:12px">🔁 경험 질문 ${Math.min(expItems.length, 8)}개 연속 재도전</button>` : ''}
+    <div class="card">${list.map(w => `<div class="wn-item">
+      <span class="mini-g" style="background:${GRADE_COLOR[gradeOf(w.score)]}">${w.score}</span>
+      <div class="t"><b>${esc(w.title)}</b><small>${w.kind === 'pt' ? 'PT 상황카드' : '경험 질문'} · 도전 ${w.tries}회 · 최고 ${w.best}점</small></div>
+      <button class="btn small" data-retry="${w.kind}:${esc(w.id)}">재도전</button></div>`).join('')}</div>`;
+  $$('#wrongBox [data-retry]').forEach(b => b.onclick = () => {
+    const [kind, id] = b.dataset.retry.split(':');
+    if (kind === 'pt') { const card = PT_CARDS.find(c => c.id === id); if (card) startMode('pt', { retry: true, card }); }
+    else { const q = EXP_QUESTIONS.find(x => x.id === id); if (q) startMode('exp', { retry: true, questions: [q] }); }
+  });
+  const all = $('#retryAllExp');
+  if (all) all.onclick = () => startMode('exp', { retry: true, questions: expItems.slice(0, 8).map(w => EXP_QUESTIONS.find(q => q.id === w.id)) });
+}
+SCREEN_ENTER.wrong = renderWrong;
+
+/* ---------- 기록 화면 ---------- */
+function chartSVG(list, W = 640) {
+  const H = 230, L = 34, R = 14, T = 14, B = 30;
+  const x = i => L + (list.length === 1 ? (W - L - R) / 2 : i * (W - L - R) / (list.length - 1));
+  const y = v => T + (100 - v) * (H - T - B) / 100;
+  const bands = CONFIG.grades.filter(([, m]) => m > 0);
+  const pts = list.map((s, i) => [x(i), y(s.score)]);
+  const last = list.length - 1;
+  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="최근 ${list.length}회 면접 점수 추이">
+    ${[0, 50, 100].map(v => `<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" stroke="#e3eaf3" stroke-width="1"/>`).join('')}
+    ${bands.map(([g, m]) => `<line x1="${L}" x2="${W - R}" y1="${y(m)}" y2="${y(m)}" stroke="#c4d2e3" stroke-dasharray="4 4" stroke-width="1"/><text x="${L - 8}" y="${y(m) + 4}" text-anchor="end" font-size="12" font-weight="700" fill="#5b6b80">${g}</text>`).join('')}
+    <line x1="${L}" x2="${W - R}" y1="${y(0)}" y2="${y(0)}" stroke="#9fb1c7" stroke-width="1"/>
+    <polyline points="${pts.map(p => p.join(',')).join(' ')}" fill="none" stroke="#1d5fa8" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+    ${pts.map(([px, py], i) => `<circle cx="${px}" cy="${py}" r="5" fill="#1d5fa8" stroke="#fff" stroke-width="2"/>`).join('')}
+    <text x="${pts[last][0]}" y="${pts[last][1] - 12}" text-anchor="middle" font-size="13" font-weight="800" fill="#14243a">${list[last].score} ${list[last].grade}</text>
+    ${pts.map(([px, py], i) => `<circle class="hit" data-i="${i}" cx="${px}" cy="${py}" r="16" fill="transparent" style="cursor:pointer"/>`).join('')}
+    <text x="${L}" y="${H - 8}" font-size="11" fill="#5b6b80">오래된 기록</text><text x="${W - R}" y="${H - 8}" font-size="11" fill="#5b6b80" text-anchor="end">최근</text>
+  </svg>`;
+}
+
+function renderRecords() {
+  const D = Store.d;
+  const sess = D.sessions;
+  const best = sess.length ? sess.reduce((a, b) => (b.score > a.score ? b : a)) : null;
+  const recent = sess.slice(-20);
+  const days14 = Array.from({ length: 14 }, (_, i) => today(new Date(Date.now() - (13 - i) * 864e5)));
+  const cardsDone = Object.keys(D.cleared.cards).length;
+  $('#recordsBox').innerHTML = `
+    <div class="big-stats">
+      <div class="stat"><b>🔥 ${streakNow()}</b>연속 일수 (최고 ${D.streak.best})</div>
+      <div class="stat"><b>${Object.keys(D.days).length}</b>연습한 날</div>
+      <div class="stat"><b>${sess.length}</b>총 면접</div>
+      <div class="stat"><b>${best ? best.grade + ' ' + best.score : '-'}</b>최고 기록</div>
+    </div>
+    <div class="section-title">최근 14일</div>
+    <div class="card" style="display:flex;gap:4px;justify-content:space-between">
+      ${days14.map(d => `<div title="${d}" style="text-align:center;flex:1;min-width:0"><div style="height:26px;border-radius:7px;background:${D.days[d] ? '#1d5fa8' : '#e6ecf3'};opacity:${D.days[d] ? Math.min(1, .45 + D.days[d] * .2) : 1}"></div><small class="muted" style="font-size:.7rem">${+d.slice(8)}</small></div>`).join('')}
+    </div>
+    <div class="section-title">등급 기록 그래프 <small class="muted" style="font-weight:500">(최근 ${recent.length}회)</small></div>
+    <div class="card chart-box" id="chartBox">${recent.length ? '<div id="chartSvg"></div><div class="chart-tip" id="chartTip"></div>' : '<div class="empty">아직 기록이 없어요. 첫 면접을 완주해 보세요!</div>'}</div>
+    <div class="section-title">상황카드 클리어 <small class="muted" style="font-weight:500">${cardsDone}/${PT_CARDS.length}</small></div>
+    <div class="card"><div class="progress"><div style="width:${cardsDone / PT_CARDS.length * 100}%"></div></div>
+      <div style="margin-top:10px">${PT_CARDS.map(c => `<span class="chip ${D.cleared.cards[c.id] ? 'hit' : ''}" title="${esc(c.title)}">${D.cleared.cards[c.id] ? '✓ ' : ''}${c.id}</span>`).join('')}</div></div>
+    <div class="section-title">업적 <small class="muted" style="font-weight:500">${Object.keys(D.ach).length}/${ACHIEVEMENTS.length}</small></div>
+    <div class="ach-grid">${ACHIEVEMENTS.map(a => `<div class="ach ${D.ach[a.id] ? 'on' : ''}"><div class="ai">${a.icon}</div><b>${esc(a.name)}</b><small>${esc(a.desc)}</small></div>`).join('')}</div>
+    <div class="section-title">면접 기록</div>
+    <div class="card sess-list">${sess.length ? sess.slice().reverse().slice(0, 30).map(x => {
+      const d = new Date(x.date);
+      return `<div class="row" data-rep="${x.id}"><span class="mini-g" style="background:${GRADE_COLOR[x.grade]}">${x.grade}</span>
+        <div style="flex:1"><b>${x.score}점</b> · ${x.retry ? '오답노트 재도전' : MODE_LABEL[x.mode]} <small class="muted">· ${CONFIG.pressure[x.pressure] ? CONFIG.pressure[x.pressure].label : ''} · 질문 ${x.n}개</small><br><small class="muted">${d.getFullYear()}.${d.getMonth() + 1}.${d.getDate()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}</small></div>
+        <span class="muted">${D.reports[x.id] ? '리포트 ›' : ''}</span></div>`;
+    }).join('') : '<div class="empty">기록이 없습니다.</div>'}</div>`;
+  // 그래프 (컨테이너 실제 폭으로 그려 글자 크기 유지) + 툴팁
+  const box = $('#chartBox'), tip = $('#chartTip');
+  if (tip) {
+    $('#chartSvg').innerHTML = chartSVG(recent, Math.max(280, Math.min(900, $('#chartSvg').clientWidth || 600)));
+    const showTip = el => {
+      const s = recent[+el.dataset.i], d = new Date(s.date);
+      const br = box.getBoundingClientRect(), cr = el.getBoundingClientRect();
+      tip.innerHTML = `<b>${s.score}점 · ${s.grade}</b> ${s.retry ? '재도전' : MODE_LABEL[s.mode]}<br>${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+      tip.style.left = (cr.left + cr.width / 2 - br.left) + 'px';
+      tip.style.top = (cr.top + cr.height / 2 - br.top) + 'px';
+      tip.style.opacity = 1;
+    };
+    $$('.hit', box).forEach(c => { c.addEventListener('mouseenter', () => showTip(c)); c.addEventListener('click', () => showTip(c)); c.addEventListener('mouseleave', () => (tip.style.opacity = 0)); });
+  }
+  $$('#recordsBox [data-rep]').forEach(row => row.onclick = () => {
+    const r = Store.d.reports[row.dataset.rep];
+    if (r) { renderReport(r); show('report'); } else toast('오래된 기록이라 상세 리포트가 없어요.');
+  });
+}
+SCREEN_ENTER.records = renderRecords;
 
 /* ---------- 설정 화면 ---------- */
 function renderSettings() {
