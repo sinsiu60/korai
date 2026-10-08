@@ -1,0 +1,1351 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0d2f57">
+<title>코레일 면접 시뮬레이터 · 시우 공방</title>
+<style>
+:root{
+  --navy:#0d2f57; --blue:#1d5fa8; --blue2:#2f7fd1; --sky:#eaf2fb; --sky2:#d7e6f7;
+  --line:#cfdcec; --ink:#14243a; --muted:#5b6b80; --bg:#f3f7fc; --card:#ffffff;
+  --good:#1f8a5c; --warn:#b97f00; --bad:#c83c3c; --gold:#c99a1a;
+  --r:16px; --shadow:0 6px 20px rgba(13,47,87,.10);
+  --font:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR","Segoe UI",sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font-family:var(--font);font-size:18px;line-height:1.6;-webkit-text-size-adjust:100%}
+body{min-height:100vh;min-height:100dvh;overflow-x:hidden}
+button{font:inherit;color:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent}
+textarea,input,select{font:inherit;color:inherit}
+h1,h2,h3{line-height:1.3;margin:0}
+.hidden{display:none!important}
+
+/* ---------- 공통 버튼 ---------- */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:54px;padding:12px 22px;border-radius:14px;border:2px solid transparent;background:var(--blue);color:#fff;font-weight:700;font-size:1.02rem;transition:transform .08s,background .2s,box-shadow .2s;box-shadow:0 3px 0 rgba(13,47,87,.25)}
+.btn:active{transform:translateY(2px);box-shadow:none}
+.btn:disabled{opacity:.45;cursor:not-allowed;transform:none}
+.btn.ghost{background:#fff;color:var(--blue);border-color:var(--sky2);box-shadow:none}
+.btn.navy{background:var(--navy)}
+.btn.danger{background:var(--bad)}
+.btn.good{background:var(--good)}
+.btn.small{min-height:44px;padding:8px 14px;font-size:.92rem}
+.btn.block{width:100%}
+.icon-btn{min-width:48px;min-height:48px;border-radius:12px;border:2px solid var(--sky2);background:#fff;font-size:1.25rem;display:inline-flex;align-items:center;justify-content:center}
+
+/* ---------- 화면 ---------- */
+.screen{display:none;min-height:100vh;min-height:100dvh}
+.screen.active{display:block;animation:fadeIn .35s ease}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.wrap{max-width:980px;margin:0 auto;padding:16px 16px 40px}
+.topbar{display:flex;align-items:center;gap:10px;padding:10px 0 14px}
+.topbar h2{flex:1;font-size:1.3rem}
+.card{background:var(--card);border-radius:var(--r);box-shadow:var(--shadow);padding:18px}
+.muted{color:var(--muted)}
+.chip{display:inline-block;padding:3px 10px;border-radius:999px;font-size:.82rem;font-weight:600;background:var(--sky);color:var(--navy);margin:2px 4px 2px 0;border:1px solid var(--sky2)}
+.chip.hit{background:#e3f4ec;color:#145c3d;border-color:#b8e0cb}
+.chip.miss{background:#f1f3f6;color:#6b7684;border-color:#dfe3e8;text-decoration:line-through;text-decoration-color:#b5bcc6}
+.chip.bad{background:#fbe9e9;color:#9c2b2b;border-color:#f1c6c6}
+.chip.warn{background:#fff4d9;color:#7a5600;border-color:#f0dc9f}
+.chip.who{background:var(--navy);color:#fff;border-color:var(--navy)}
+.ph{background:#fff2b8;border-radius:4px;padding:0 3px;color:#5e4500}
+
+/* ---------- 스플래시 ---------- */
+#scr-splash{background:radial-gradient(circle at 50% 40%,#123d6e,#081d36);color:#fff;display:none;align-items:center;justify-content:center;cursor:pointer}
+#scr-splash.active{display:flex}
+.studio{text-align:center;animation:studioIn 1.9s ease forwards}
+.studio svg{width:120px;height:120px}
+.studio .name{font-size:2.2rem;font-weight:800;letter-spacing:.2em;margin-top:12px}
+.studio .en{font-size:.85rem;letter-spacing:.5em;opacity:.7}
+.studio .skip{margin-top:30px;font-size:.8rem;opacity:.5}
+@keyframes studioIn{0%{opacity:0;transform:scale(.9)}25%{opacity:1;transform:scale(1)}80%{opacity:1}100%{opacity:.0}}
+.studio .gear{transform-origin:60px 60px;animation:spin 3s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ---------- 메인 메뉴 ---------- */
+#scr-menu{background:linear-gradient(180deg,#0d2f57 0,#1d5fa8 300px,var(--bg) 300px)}
+.hero{color:#fff;padding:26px 4px 22px;display:flex;align-items:flex-start;gap:12px}
+.hero .t{flex:1}
+.hero h1{font-size:1.75rem;font-weight:800}
+.hero .sub{opacity:.85;font-size:.92rem;margin-top:6px}
+.hero .icon-btn{background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.25);color:#fff}
+.streak-pill{display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.15);border-radius:999px;padding:4px 12px;margin-top:10px;font-weight:700;font-size:.9rem}
+.menu-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.menu-item{display:flex;flex-direction:column;align-items:flex-start;gap:4px;text-align:left;padding:20px;border-radius:18px;border:0;background:#fff;box-shadow:var(--shadow);min-height:130px;transition:transform .1s}
+.menu-item:active{transform:scale(.98)}
+.menu-item .ic{font-size:2rem;line-height:1}
+.menu-item b{font-size:1.2rem;color:var(--navy)}
+.menu-item span{font-size:.88rem;color:var(--muted);line-height:1.45}
+.menu-item.wide{grid-column:1/-1;background:linear-gradient(120deg,#0d2f57,#2f7fd1);color:#fff}
+.menu-item.wide b,.menu-item.wide span{color:#fff}
+.menu-item .badge{background:var(--bad);color:#fff;border-radius:999px;padding:0 9px;font-size:.8rem;font-weight:700}
+.menu-foot{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
+.menu-foot .btn{flex:1}
+@media (max-width:520px){.menu-grid{grid-template-columns:1fr}.menu-item{min-height:0;flex-direction:row;align-items:center;gap:14px}.menu-item .txt{display:flex;flex-direction:column}}
+
+/* ---------- 질문 은행 ---------- */
+.tabs{display:flex;gap:8px;overflow-x:auto;padding-bottom:6px;margin-bottom:12px}
+.tab{flex:0 0 auto;min-height:46px;padding:8px 16px;border-radius:12px;border:2px solid var(--sky2);background:#fff;font-weight:700;font-size:.95rem;color:var(--muted)}
+.tab.on{background:var(--navy);border-color:var(--navy);color:#fff}
+.bank-item{background:#fff;border-radius:14px;box-shadow:var(--shadow);margin-bottom:12px;overflow:hidden}
+.bank-item summary{padding:16px 18px;cursor:pointer;list-style:none;display:flex;gap:10px;align-items:flex-start}
+.bank-item summary::-webkit-details-marker{display:none}
+.bank-item summary .q{flex:1;font-weight:700}
+.bank-item .body{padding:0 18px 18px;border-top:1px solid var(--sky)}
+.bank-item h4{margin:14px 0 6px;font-size:.9rem;color:var(--blue)}
+.model{white-space:pre-wrap;background:var(--sky);border-radius:12px;padding:12px 14px;font-size:.95rem}
+.tree{list-style:none;padding-left:0;margin:0}
+.tree li{border-left:3px solid var(--sky2);padding:6px 0 6px 12px;margin:6px 0}
+.tree .tree{margin-left:10px}
+.tree .fq{font-weight:600}
+.tree .fm{font-size:.88rem;color:var(--muted);margin-top:2px}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;font-size:.92rem}
+.kv b{color:var(--navy)}
+
+/* ---------- 설정 ---------- */
+.set-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 0;border-bottom:1px solid var(--sky)}
+.set-row:last-child{border-bottom:0}
+.set-row .lbl b{display:block}
+.set-row .lbl small{color:var(--muted);font-size:.82rem}
+.seg{display:inline-flex;background:var(--sky);border-radius:12px;padding:4px;flex-wrap:wrap}
+.seg button{border:0;background:transparent;min-height:42px;min-width:58px;padding:6px 12px;border-radius:9px;font-weight:700;color:var(--muted)}
+.seg button.on{background:#fff;color:var(--navy);box-shadow:0 2px 6px rgba(13,47,87,.15)}
+@media (max-width:560px){.set-row{flex-direction:column;align-items:flex-start}}
+
+/* ---------- 대기실 ---------- */
+#scr-wait{background:linear-gradient(180deg,#dde8f5,#f3f7fc)}
+.waitroom{position:relative;border-radius:20px;overflow:hidden;background:#fff;box-shadow:var(--shadow)}
+.waitroom svg{display:block;width:100%;height:auto}
+.call{font-size:1.35rem;font-weight:800;color:var(--navy);text-align:center;min-height:2.2em;margin:16px 0 4px}
+.call.flash{animation:flash 1s ease 2}
+@keyframes flash{50%{color:var(--bad)}}
+.tip-box{background:#fff;border-left:5px solid var(--blue2);border-radius:12px;padding:12px 16px;margin:12px 0;font-size:.95rem;min-height:3.4em}
+.gauge{position:relative;height:22px;border-radius:999px;background:linear-gradient(90deg,#4caf88,#e3b341 55%,#d64545);overflow:hidden}
+.gauge .cover{position:absolute;top:0;right:0;bottom:0;background:#e6ecf3;transition:width .6s ease}
+.gauge-wrap{display:flex;align-items:center;gap:10px}
+.gauge-wrap .gl{font-weight:700;font-size:.9rem;white-space:nowrap}
+.gauge-wrap .gv{font-weight:800;min-width:2.6em;text-align:right}
+.gauge-wrap .gauge{flex:1}
+.heart{display:inline-block}
+.tense-hi .heart{animation:beat .6s infinite}
+@keyframes beat{0%,100%{transform:scale(1)}30%{transform:scale(1.25)}}
+.wait-actions{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}
+.wait-actions .btn{flex:1;min-width:150px}
+.door{transition:transform 1s ease;transform-origin:left center;transform-box:fill-box}
+.door.open{transform:scaleX(.25)}
+
+/* ---------- 면접장 ---------- */
+#scr-room{background:#e9eff7}
+.room-wrap{max-width:1100px;margin:0 auto;padding:10px 12px 24px}
+.hud{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:6px 0 10px}
+.hud .prog{font-weight:800;color:var(--navy);background:#fff;border-radius:10px;padding:6px 12px;font-size:.95rem}
+.hud .gauge-wrap{flex:1;min-width:200px}
+.stage{position:relative;border-radius:18px;overflow:hidden;background:#cfdcec;box-shadow:var(--shadow)}
+.stage svg{display:block;width:100%;height:auto;max-height:44vh}
+.bubble{position:relative;background:#fff;border-radius:16px;padding:14px 18px;margin:14px 0 12px;box-shadow:var(--shadow);min-height:3.6em;border:2px solid var(--sky2)}
+.bubble::before{content:"";position:absolute;top:-12px;left:var(--arrow,50%);transform:translateX(-50%);border:12px solid transparent;border-top:0;border-bottom-color:var(--sky2)}
+.bubble::after{content:"";position:absolute;top:-9px;left:var(--arrow,50%);transform:translateX(-50%);border:10px solid transparent;border-top:0;border-bottom-color:#fff}
+.bubble .who{font-size:.85rem;font-weight:800;color:var(--blue)}
+.bubble .text{font-size:1.15rem;font-weight:700;margin-top:2px}
+.bubble .replay{position:absolute;right:8px;top:8px;border:0;background:var(--sky);border-radius:10px;min-height:40px;min-width:40px;font-size:1.05rem}
+.bubble.pressure{border-color:#e9a0a0;animation:shake .4s}
+.bubble.pressure::before{border-bottom-color:#e9a0a0}
+@keyframes shake{20%,60%{transform:translateX(-5px)}40%,80%{transform:translateX(5px)}}
+.answer-panel{background:#fff;border-radius:18px;box-shadow:var(--shadow);padding:14px}
+.timer{position:relative;height:16px;border-radius:999px;background:var(--sky);overflow:hidden;margin-bottom:6px}
+.timer .fill{position:absolute;left:0;top:0;bottom:0;background:var(--blue2);width:100%;transition:width .2s linear,background .3s}
+.timer.warn .fill{background:var(--warn)}
+.timer.over .fill{background:var(--bad)}
+.timer-row{display:flex;justify-content:space-between;font-size:.88rem;color:var(--muted);font-weight:700;margin-bottom:8px}
+.answer-box{position:relative}
+#answerText{width:100%;min-height:150px;resize:vertical;border:2px solid var(--sky2);border-radius:14px;padding:12px 14px;font-size:1.05rem;line-height:1.6;background:#fbfdff}
+#answerText:focus{outline:none;border-color:var(--blue2)}
+#answerText:disabled{background:#f2f4f7}
+.interim{min-height:1.4em;font-size:.92rem;color:var(--blue);margin:4px 2px}
+.ans-actions{display:flex;gap:10px;margin-top:8px;flex-wrap:wrap}
+.ans-actions .btn{flex:1;min-width:140px}
+.mic-btn.rec{background:var(--bad);animation:pulse 1.3s infinite}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(200,60,60,.5)}70%{box-shadow:0 0 0 14px rgba(200,60,60,0)}100%{box-shadow:0 0 0 0 rgba(200,60,60,0)}}
+.notice{font-size:.85rem;color:var(--muted);margin-top:6px}
+.memo-ref{background:#fffbea;border:1px dashed #e2c86b;border-radius:12px;padding:10px 12px;margin-bottom:10px;font-size:.9rem}
+.memo-ref summary{cursor:pointer;font-weight:700}
+.memo-ref .m{white-space:pre-wrap;margin-top:6px}
+.vignette{position:fixed;inset:0;pointer-events:none;box-shadow:inset 0 0 0 0 rgba(200,40,40,0);transition:box-shadow .6s;z-index:5}
+.vignette.on{box-shadow:inset 0 0 120px 30px rgba(200,40,40,.35);animation:vig 1s infinite}
+@keyframes vig{50%{box-shadow:inset 0 0 90px 20px rgba(200,40,40,.25)}}
+
+/* 면접관 SVG 표정 */
+.iv .head{transform-box:fill-box;transform-origin:50% 100%;transition:transform .5s ease}
+.iv .eyes{transform-box:fill-box;transform-origin:50% 50%;animation:blink 4.5s infinite;transition:transform .4s}
+.iv:nth-of-type(2) .eyes{animation-delay:1.3s}
+.iv:nth-of-type(3) .eyes{animation-delay:2.6s}
+@keyframes blink{0%,94%,100%{transform:scaleY(1)}96%{transform:scaleY(.1)}}
+.iv .mouth{display:none}
+.iv[data-expr="neutral"] .m-flat,.iv[data-expr="memo"] .m-flat,.iv[data-expr="nod"] .m-smile,.iv[data-expr="tilt"] .m-hmm{display:inline}
+.iv.speaking .mouth{display:none!important}
+.iv.speaking .m-talk{display:inline!important;animation:talk .28s infinite alternate;transform-box:fill-box;transform-origin:50% 50%}
+@keyframes talk{from{transform:scaleY(.35)}to{transform:scaleY(1)}}
+.iv[data-expr="nod"] .head{animation:nod .7s ease 2}
+@keyframes nod{40%{transform:translateY(7px) rotate(0)}}
+.iv[data-expr="tilt"] .head{transform:rotate(-9deg)}
+.iv[data-expr="tilt"] .brow-r{transform:translateY(-5px)}
+.iv[data-expr="memo"] .head{transform:translateY(5px)}
+.iv[data-expr="memo"] .eyes{transform:translateY(4px) scaleY(.7)}
+.iv .brow-r{transition:transform .4s}
+.iv .pen{display:none}
+.iv[data-expr="memo"] .pen{display:inline;animation:write .5s infinite alternate}
+@keyframes write{from{transform:translate(0,0)}to{transform:translate(12px,3px)}}
+.iv .plate-hl{opacity:0;transition:opacity .3s}
+.iv.speaking .plate-hl{opacity:1}
+
+/* ---------- PT 준비실 ---------- */
+.sit-card{background:linear-gradient(135deg,#fff,#f4f8fd);border:2px solid var(--sky2);border-radius:18px;padding:20px;box-shadow:var(--shadow);position:relative;overflow:hidden}
+.sit-card::after{content:"";position:absolute;right:-40px;top:-40px;width:140px;height:140px;border-radius:50%;background:var(--sky)}
+.sit-card .no{font-size:.8rem;font-weight:800;color:var(--blue);letter-spacing:.1em;position:relative;z-index:1}
+.sit-card h3{font-size:1.3rem;margin:6px 0 10px;position:relative;z-index:1;color:var(--navy)}
+.sit-card p{margin:0;position:relative;z-index:1;font-size:1.05rem}
+.sit-card.flip{animation:flipIn .7s ease}
+@keyframes flipIn{from{transform:perspective(800px) rotateY(90deg);opacity:0}to{transform:none;opacity:1}}
+.prep-clock{font-size:2.6rem;font-weight:800;font-variant-numeric:tabular-nums;color:var(--navy);text-align:center}
+.prep-clock.low{color:var(--bad)}
+.memo-grid{display:grid;gap:10px;margin-top:12px}
+.memo-step label{display:flex;align-items:center;gap:8px;font-weight:800;color:var(--navy);font-size:.95rem;margin-bottom:4px}
+.memo-step label .n{display:inline-flex;width:26px;height:26px;border-radius:50%;background:var(--navy);color:#fff;align-items:center;justify-content:center;font-size:.8rem}
+.memo-step label small{font-weight:500;color:var(--muted)}
+.memo-step textarea{width:100%;min-height:64px;border:2px solid var(--sky2);border-radius:12px;padding:8px 12px;resize:vertical;background:#fffef6}
+@media (min-width:860px){.prep-layout{display:grid;grid-template-columns:5fr 6fr;gap:18px;align-items:start}.prep-layout .left{position:sticky;top:12px}}
+
+/* ---------- 모달 ---------- */
+.modal{position:fixed;inset:0;background:rgba(8,24,44,.55);display:flex;align-items:flex-end;justify-content:center;z-index:50;padding:0}
+.modal .sheet{background:#fff;width:100%;max-width:720px;max-height:92vh;overflow:auto;border-radius:22px 22px 0 0;padding:20px 18px calc(20px + env(safe-area-inset-bottom));animation:up .3s ease}
+@media (min-width:720px){.modal{align-items:center;padding:20px}.modal .sheet{border-radius:22px}}
+@keyframes up{from{transform:translateY(40px);opacity:0}to{transform:none;opacity:1}}
+.sheet h3{font-size:1.25rem;margin-bottom:8px;color:var(--navy)}
+.rate-row{margin:14px 0}
+.rate-row .lbl{font-weight:700;margin-bottom:6px}
+.rate{display:flex;gap:8px}
+.rate button{flex:1;min-height:52px;border-radius:12px;border:2px solid var(--sky2);background:#fff;font-weight:800;font-size:1.1rem;color:var(--muted)}
+.rate button.on{background:var(--blue);border-color:var(--blue);color:#fff}
+
+/* ---------- 리포트 ---------- */
+.grade-hero{display:flex;align-items:center;gap:20px;flex-wrap:wrap}
+.grade-badge{width:120px;height:120px;border-radius:28px;display:flex;align-items:center;justify-content:center;font-size:4rem;font-weight:900;color:#fff;background:var(--blue);box-shadow:0 8px 0 rgba(0,0,0,.12);animation:pop .6s cubic-bezier(.2,1.6,.4,1)}
+@keyframes pop{from{transform:scale(.3);opacity:0}to{transform:none;opacity:1}}
+.g-S{background:linear-gradient(135deg,#e2b33c,#b8860b)}
+.g-A{background:linear-gradient(135deg,#2f7fd1,#1d5fa8)}
+.g-B{background:linear-gradient(135deg,#3aa27a,#1f8a5c)}
+.g-C{background:linear-gradient(135deg,#d8a13a,#b97f00)}
+.g-D{background:linear-gradient(135deg,#d66,#a33)}
+.score-big{font-size:2.6rem;font-weight:900;color:var(--navy);line-height:1}
+.stat-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:8px}
+.stat{background:var(--sky);border-radius:12px;padding:8px 12px;font-size:.88rem}
+.stat b{display:block;font-size:1.1rem;color:var(--navy)}
+.sw-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px}
+@media (max-width:640px){.sw-grid{grid-template-columns:1fr}}
+.sw{border-radius:14px;padding:14px}
+.sw.s{background:#e9f6ef}
+.sw.w{background:#fdf2e3}
+.sw h4{margin:0 0 6px}
+.sw ul{margin:0;padding-left:20px}
+.sw li{margin:4px 0}
+.q-res{background:#fff;border-radius:14px;box-shadow:var(--shadow);margin-top:12px;overflow:hidden}
+.q-res summary{list-style:none;cursor:pointer;padding:14px 16px;display:flex;gap:12px;align-items:center}
+.q-res summary::-webkit-details-marker{display:none}
+.q-res .sc{min-width:56px;height:56px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:1.2rem;color:#fff}
+.q-res .qt{flex:1;font-weight:700;font-size:.98rem}
+.q-res .inner{padding:0 16px 16px;border-top:1px solid var(--sky)}
+.ans-block{margin-top:12px;padding:12px;border-radius:12px;background:#f8fafd}
+.ans-block .aq{font-weight:700;font-size:.93rem;color:var(--navy)}
+.ans-block .aa{white-space:pre-wrap;font-size:.92rem;margin:6px 0;color:#333;background:#fff;border-radius:8px;padding:8px 10px;border:1px solid var(--sky)}
+.ans-block .meta{font-size:.84rem}
+.ev-line{margin:3px 0;font-size:.86rem}
+.ev-line b{color:var(--muted);margin-right:4px}
+
+/* ---------- 기록 ---------- */
+.big-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+@media (max-width:640px){.big-stats{grid-template-columns:repeat(2,1fr)}}
+.big-stats .stat{text-align:center;padding:14px 8px}
+.big-stats .stat b{font-size:1.6rem}
+.chart-box{position:relative}
+.chart-box svg{width:100%;height:auto;display:block}
+.chart-tip{position:absolute;pointer-events:none;background:var(--navy);color:#fff;border-radius:10px;padding:6px 10px;font-size:.82rem;white-space:nowrap;transform:translate(-50%,-115%);opacity:0;transition:opacity .15s}
+.ach-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.ach{border-radius:14px;padding:12px;background:#f1f3f6;color:#8a94a3;text-align:center}
+.ach .ai{font-size:1.8rem;filter:grayscale(1);opacity:.5}
+.ach b{display:block;font-size:.92rem}
+.ach small{font-size:.76rem;line-height:1.3;display:block}
+.ach.on{background:linear-gradient(135deg,#fff6db,#ffe9a8);color:#5e4500}
+.ach.on .ai{filter:none;opacity:1}
+.sess-list .row{display:flex;align-items:center;gap:10px;padding:10px 4px;border-bottom:1px solid var(--sky);cursor:pointer}
+.sess-list .row:last-child{border-bottom:0}
+.mini-g{width:38px;height:38px;border-radius:10px;color:#fff;font-weight:900;display:flex;align-items:center;justify-content:center}
+.progress{height:12px;background:var(--sky);border-radius:999px;overflow:hidden}
+.progress>div{height:100%;background:var(--good);border-radius:999px}
+
+/* ---------- 토스트 ---------- */
+#toasts{position:fixed;left:50%;top:14px;transform:translateX(-50%);z-index:100;display:flex;flex-direction:column;gap:8px;width:min(92vw,420px);pointer-events:none}
+.toast{background:var(--navy);color:#fff;border-radius:14px;padding:12px 16px;box-shadow:0 8px 24px rgba(0,0,0,.25);animation:toastIn .35s ease;font-weight:600;font-size:.95rem}
+.toast.ach{background:linear-gradient(120deg,#b8860b,#e2b33c);color:#2b1d00}
+@keyframes toastIn{from{transform:translateY(-20px);opacity:0}to{transform:none;opacity:1}}
+
+.section-title{font-size:1.1rem;color:var(--navy);margin:22px 0 10px;font-weight:800}
+.empty{text-align:center;color:var(--muted);padding:30px 10px}
+.wn-item{display:flex;gap:12px;align-items:center;padding:12px 0;border-bottom:1px solid var(--sky)}
+.wn-item:last-child{border-bottom:0}
+.wn-item .t{flex:1}
+.wn-item .t b{display:block;font-size:.97rem}
+.wn-item .t small{color:var(--muted)}
+</style>
+</head>
+<body>
+
+<!-- ==================== 스플래시 ==================== -->
+<section id="scr-splash" class="screen" aria-label="시우 공방">
+  <div class="studio">
+    <svg viewBox="0 0 120 120" aria-hidden="true">
+      <g class="gear">
+        <path fill="#5fa8ff" d="M60 14l7 2 2 10 7 3 8-6 6 5-6 9 3 7 10 2 1 8-9 4v8l9 4-1 8-10 2-3 7 6 9-6 5-8-6-7 3-2 10-7 2-7-2-2-10-7-3-8 6-6-5 6-9-3-7-10-2-1-8 9-4v-8l-9-4 1-8 10-2 3-7-6-9 6-5 8 6 7-3 2-10z"/>
+        <circle cx="60" cy="60" r="20" fill="#0d2f57"/>
+      </g>
+      <path d="M48 66c4-14 20-14 24 0" stroke="#fff" stroke-width="5" fill="none" stroke-linecap="round"/>
+      <circle cx="60" cy="54" r="5" fill="#fff"/>
+    </svg>
+    <div class="name">시우 공방</div>
+    <div class="en">SIWOO WORKSHOP</div>
+    <div class="skip">화면을 누르면 건너뜁니다</div>
+  </div>
+</section>
+
+<!-- ==================== 메인 메뉴 ==================== -->
+<section id="scr-menu" class="screen">
+  <div class="wrap">
+    <div class="hero">
+      <div class="t">
+        <h1>코레일 면접 시뮬레이터</h1>
+        <div class="sub" id="targetLine"></div>
+        <div class="streak-pill" id="streakPill">🔥 연속 0일</div>
+      </div>
+      <button class="icon-btn" data-go="settings" aria-label="설정">⚙️</button>
+    </div>
+    <div class="menu-grid">
+      <button class="menu-item" data-start="exp"><span class="ic">🗣️</span><span class="txt"><b>경험 면접</b><span>자소서 기반 꼬리질문 + 일반 질문</span></span></button>
+      <button class="menu-item" data-start="pt"><span class="ic">📋</span><span class="txt"><b>PT(상황) 면접</b><span>상황 카드 · 준비 3분 · 발표 2분</span></span></button>
+      <button class="menu-item wide" data-start="real"><span class="ic">🚆</span><span class="txt"><b>실전 모드</b><span>PT 면접 → 경험 면접을 연속으로</span></span></button>
+      <button class="menu-item" data-go="wrong"><span class="ic">📕</span><span class="txt"><b>오답노트 <span class="badge hidden" id="wrongBadge">0</span></b><span>점수 낮았던 질문만 재도전</span></span></button>
+      <button class="menu-item" data-go="records"><span class="ic">📈</span><span class="txt"><b>기록</b><span>등급 그래프 · 스트릭 · 업적</span></span></button>
+    </div>
+    <div class="menu-foot">
+      <button class="btn ghost" data-go="bank">📚 질문 은행 · 모범답변 보기</button>
+      <button class="btn ghost" data-go="settings">⚙️ 설정</button>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== 질문 은행 ==================== -->
+<section id="scr-bank" class="screen">
+  <div class="wrap">
+    <div class="topbar"><button class="icon-btn" data-go="menu" aria-label="뒤로">←</button><h2>질문 은행</h2></div>
+    <div class="tabs" id="bankTabs">
+      <button class="tab on" data-tab="resume">자소서 기반</button>
+      <button class="tab" data-tab="general">일반 질문</button>
+      <button class="tab" data-tab="pt">상황 카드</button>
+      <button class="tab" data-tab="kw">키워드 · 금기어</button>
+    </div>
+    <p class="muted" style="font-size:.88rem;margin:0 0 10px"><span class="ph">노란 표시</span>는 본인의 실제 경험·사실로 채워서 말해야 하는 부분입니다. 데이터는 index.html 상단의 편집 영역에서 직접 고칠 수 있어요.</p>
+    <div id="bankList"></div>
+  </div>
+</section>
+
+<div id="toasts" aria-live="polite"></div>
+
+<!-- =====================================================================
+     ✏️ 편집 영역 — 질문 은행 · 상황 카드 · 키워드
+     ---------------------------------------------------------------------
+     • 키워드: '대표어|동의어1|동의어2' 형식. 띄어쓰기는 무시하고 비교합니다.
+       KW 사전에 있는 이름(예: '보고')을 쓰면 사전의 동의어를 그대로 씁니다.
+     • by: 질문하는 면접관 — 'chair'(위원장) | 'tech'(실무) | 'hr'(인사)
+     • core: 자소서 핵심 내용. 절반 이상 빠지면 "자소서와 연결 약함" 표시.
+     • followUps: 꼬리질문. ifMissing 키워드를 본 답변에서 빠뜨리면 우선 출제,
+       next: 에 넣은 질문은 그 꼬리질문 다음에 이어지는 2단계 꼬리질문입니다.
+     • 모범답변의 [대괄호]는 본인 실제 경험으로 바꿔 말해야 하는 부분입니다.
+     ===================================================================== -->
+<script id="game-data">
+const CONFIG = {
+  title: '코레일 면접 시뮬레이터',
+  studio: '시우 공방',
+  target: '2026 하반기 고졸 제한경쟁채용 · 차량 분야 · 부산경남권',
+  ptPrepSec: 180,          // PT 준비시간(초)
+  ptTalkSec: 120,          // PT 발표시간(초)
+  tooShort: { main: 30, pt: 60, follow: 10 },   // 이보다 짧으면 "너무 짧음"
+  followLimitRatio: 0.6,   // 꼬리질문 제한시간 = 답변시간 × 이 비율 (최소 40초)
+  wrongNoteUnder: 70,      // 이 점수 미만이면 오답노트에 저장
+  wrongNoteClear: 80,      // 재도전에서 이 점수 이상이면 오답노트에서 졸업
+  grades: [ ['S', 90], ['A', 80], ['B', 65], ['C', 50], ['D', 0] ],
+  pressure: {
+    mild: { label: '순한맛', follow: [1, 1], eventRate: 0.05, prefixRate: 0.0 },
+    real: { label: '실전',   follow: [1, 2], eventRate: 0.10, prefixRate: 0.35 },
+    hell: { label: '지옥',   follow: [2, 2], eventRate: 0.25, prefixRate: 0.8 }
+  },
+  defaults: { voice: true, answerTime: 90, pressure: 'real', qCount: 8, autoMic: true }
+};
+
+const INTERVIEWERS = {
+  chair: { name: '위원장',     desc: '차분함 · 마무리 질문 담당',             voice: { pitch: 0.8,  rate: 0.92 } },
+  tech:  { name: '실무 면접관', desc: '차량 정비 · 안전 날카로운 꼬리질문',     voice: { pitch: 1.0,  rate: 1.07 } },
+  hr:    { name: '인사 면접관', desc: '조직 적응 · 인성 질문, 가끔 압박',       voice: { pitch: 1.25, rate: 1.0 } }
+};
+
+/* 키워드 사전 */
+const KW = {
+  '안전':     '안전|안전수칙|안전 절차|안전점검|안전 확인',
+  '매뉴얼':   '매뉴얼|규정|절차서|작업 지침|작업지침|기준서|정비 기준|점검 기준|정해진 절차',
+  '보고':     '보고|알려 드|알려드|책임자에게|상급자에게|선배님께 말씀',
+  '공유':     '공유|전달|인수인계|함께 확인|알려 주|알려주',
+  '원인 확인':'원인|진단|파악|살펴',
+  '재발 방지':'재발|방지|예방|개선|체크리스트|점검표',
+  '고객':     '고객|승객|국민|이용객|시민',
+  '기록':     '기록|일지|작성|남기|남겨',
+  '협력':     '협력|함께|협업|팀워크|같이',
+  '의도 파악':'의도|목적|원하는|입장|이유를 물|이유를 들',
+  '대안 제시':'대안|절충|제안|방법을 찾|타협',
+  '경청':     '경청|귀 기울|이야기를 듣|말을 듣|들어 보',
+  '결과':     '결과|덕분에|성과|수상|해결',
+  '배운 점':  '배웠|깨달|느꼈|교훈|다짐',
+  '책임감':   '책임|끝까지|맡은',
+  '정리정돈': '정리|정돈|구역|트레이|수납',
+  '선배':     '선배|숙련자|경험 많은|상사|팀장',
+  '즉시':     '즉시|바로|곧바로|지체 없이|지체없이',
+  '출고 보류':'운행 중지|출고 보류|출고를 보류|출고를 멈|투입하지 않|운행을 멈|내보내지 않',
+  '예비 차량':'예비 차량|예비차|대체 차량|교체 투입|대체 편성|차량 교체',
+  '관제':     '관제|관제실|운영 부서|사령',
+  '보호구':   '보호구|안전모|안전화|장갑|보안경|안전대',
+  '정직':     '정직|솔직|숨기지|있는 그대로|사실대로',
+  '존중':     '존중|정중|예의|배우는 자세|겸손'
+};
+
+/* 금기어 — 감지되면 경고 */
+const TABOO = [
+  { w: '모르겠', tip: '"정확히는 모르지만 ~로 알고 있습니다. 입사 후 반드시 익히겠습니다"처럼 아는 범위까지 말하세요.' },
+  { w: '잘 모르', tip: '모른다는 말로 끝내지 말고 아는 범위 + 배우겠다는 자세를 붙이세요.' },
+  { w: '그냥', tip: '"그냥"은 이유가 없다는 뜻으로 들립니다. 이유를 한 가지라도 붙이세요.' },
+  { w: '아마', tip: '추측 표현은 신뢰를 떨어뜨립니다. "~라고 판단했습니다"로 바꾸세요.' },
+  { w: '글쎄', tip: '생각할 시간이 필요하면 "잠시 생각을 정리하겠습니다"라고 말하세요.' },
+  { w: '대충', tip: '정비 직무에서 "대충"은 치명적인 단어입니다.' },
+  { w: '어쩔 수 없', tip: '체념 대신 "그래서 ~를 했습니다"로 행동을 말하세요.' },
+  { w: '뭐랄까', tip: '군말을 줄이고 결론부터 말하세요.' },
+  { w: '귀찮', tip: '태도 문제로 비칠 수 있는 표현입니다.' },
+  { w: '운이 좋', tip: '성과를 운으로 돌리지 말고 본인이 한 행동을 말하세요.' },
+  { w: '솔직히 말하면', tip: '앞의 답변이 솔직하지 않았다는 인상을 줄 수 있습니다.' }
+];
+
+/* 답변 구조 체크 — cues 중 하나라도 들어가면 해당 단계 충족 */
+const STRUCTURES = {
+  STAR: { label: 'STAR', parts: [
+    { key: 'S', label: '상황', cues: ['당시','때','상황','대회','실습','수업','학교','학년','동아리','프로젝트','과정에서','중에'] },
+    { key: 'T', label: '과제', cues: ['목표','과제','문제','해야','역할','맡','필요','목적','어려움','갈등','충돌','부딪','불편','고민','걱정'] },
+    { key: 'A', label: '행동', cues: ['제안','시도','나누','나눴','정리','확인','설명','노력','직접','조치','방법','안내','점검','했습니다','하였'] },
+    { key: 'R', label: '결과', cues: ['결과','덕분','되었','됐','줄었','늘었','성공','수상','해결','배웠','깨달','느꼈','이후','완성','충족'] }
+  ]},
+  PREP: { label: '두괄식', parts: [
+    { key: 'P', label: '결론 먼저', head: true },
+    { key: 'R', label: '이유', cues: ['때문','이유','왜냐하면','위해','라고 생각','라고 판단','덕분'] },
+    { key: 'E', label: '근거·사례', cues: ['경험','예를 들어','실제로','당시','때','실습','대회','자기소개서','자소서','친구','학교'] },
+    { key: 'P2', label: '마무리 다짐', cues: ['하겠습니다','되겠습니다','싶습니다','노력','포부','다짐','약속','기여','해 나가'] }
+  ]},
+  PT5: { label: 'PT 5단계', parts: [
+    { key: 'S1', label: '상황 파악', cues: ['상황','파악','현재','문제는','사실 확인','정확히','판단','우선 확인'] },
+    { key: 'S2', label: '우선순위', cues: ['우선','최우선','가장 중요','순위','먼저','첫째','무엇보다','첫 번째'] },
+    { key: 'S3', label: '조치', cues: ['조치','점검','정비','교체','중지','보류','격리','수리','매뉴얼에 따라','투입','차단','확인하겠'] },
+    { key: 'S4', label: '보고·공유', cues: ['보고','공유','전달','알리','관제','책임자','상급자','팀장','인수인계'] },
+    { key: 'S5', label: '재발 방지', cues: ['재발','방지','예방','개선','교육','기록','점검표','체크리스트','건의','다음부터'] }
+  ]}
+};
+
+/* 압박 이벤트 대사 */
+const PRESSURE_EVENT = '방금 답변, 자소서랑 좀 다른 것 같은데요?';
+const PRESSURE_PREFIX = [
+  '음… 그건 질문에 대한 답이 아닌 것 같은데요.',
+  '조금 더 구체적으로 듣고 싶네요.',
+  '준비해 온 답 말고, 본인 생각을 듣고 싶습니다.',
+  '그 정도는 다른 지원자도 다 하는 말입니다.',
+  '방금 말씀은 좀 추상적이네요.'
+];
+
+/* ========== 경험 면접 질문 은행 ========== */
+const EXP_QUESTIONS = [
+  /* ---------- 자소서 문항1 : 비협조적 상대와 협력 ---------- */
+  {
+    id: 'R1-1', type: 'resume', src: '자소서 문항1 · 협력', by: 'hr', structure: 'STAR',
+    q: '자기소개서에 반도체기술경진대회에서 팀원과 의견이 부딪혔다고 쓰셨는데, 어떤 상황이었고 어떻게 해결했는지 말씀해 주세요.',
+    keywords: ['의도 파악', '대안 제시', '경청', '협력', '결과', '배운 점'],
+    core: ['대체 자재|대체 재료|대체재|대체 소재', '의도|실현 가능성|목적', '작동 모형|모형|작동하는', '양쪽|둘 다|모두 충족|두 사람의 목표|서로의 목표'],
+    model: '▶상황: 교외 반도체기술경진대회 출품작을 만들면서 제작 방식으로 팀원과 의견이 부딪혔습니다. 저는 시간과 기술의 한계를 고려해 원리 설명용 모형을, 팀원은 실제 웨이퍼급 자재로 완성도와 신뢰도를 확보하자고 주장했습니다.\n▶행동: 저는 먼저 팀원에게 왜 실제 자재가 필요하다고 생각하는지 물었고, 평가위원에게 "이 기술이 실제로 구현 가능하다"는 것을 증명하고 싶다는 의도를 알게 됐습니다. 그래서 실제 웨이퍼를 가공하는 대신, 웨이퍼의 물리적 특성과 정밀한 작동 원리를 보여 줄 수 있는 대체 자재로 "실제로 작동하는 모형"을 만들자고 제안했습니다.\n▶결과: 제작 기간 안에 완성하면서도 실현 가능성을 보여 줄 수 있어 두 사람의 목표를 모두 충족했고, [대회 결과 또는 평가위원 반응]을 얻었습니다.\n▶배운 점: 상대의 주장보다 의도를 먼저 이해하고 건설적인 대안을 내는 것이 협력의 핵심이라는 것을 배웠습니다. 입사 후에도 선배·동료와 의견이 다를 때 의도를 먼저 듣고, 안전과 규정 안에서 대안을 찾겠습니다.',
+    followUps: [
+      { by: 'hr', q: '팀원과 의견이 부딪혔을 때 결국 누가 양보했나요?', keywords: ['절충|양쪽|둘 다|서로', '공통 목표|같은 목표|목표', '의도 파악'],
+        model: '어느 한쪽이 일방적으로 양보한 것이 아니라 서로의 목표를 합친 절충안이었습니다. 저는 "설명용 모형"만 고집하지 않고 실제로 작동하는 수준까지 올렸고, 팀원은 실제 웨이퍼 가공을 내려놓았습니다. 둘 다 "평가위원에게 인정받는다"는 같은 목표를 보고 있었기 때문에 가능했습니다.',
+        next: [ { by: 'hr', q: '그럼 본인은 그 과정에서 무엇을 포기한 건가요?', keywords: ['시간|편한|쉬운', '목표|결과', '배운 점'],
+          model: '제작이 쉬운 방식과 여유 있는 일정을 포기했습니다. [작동 모형을 만들기 위해 추가로 한 일: 예) 남은 기간 매일 방과 후 작업]을 했지만, 팀 전체의 목표를 생각하면 충분히 가치 있는 선택이었습니다.' } ] },
+      { by: 'tech', q: '대체 자재는 구체적으로 뭐였고, 왜 그게 웨이퍼 특성을 보여줄 수 있었나요?', keywords: ['특성|성질', '원리|작동', '비용|시간|가공', '대체 자재|대체 재료|대체재'], core: ['대체 자재|대체 재료|대체재|대체 소재', '특성|원리'],
+        model: '[실제로 사용한 대체 자재 이름]을 사용했습니다. 이 자재는 [웨이퍼처럼 얇고 평평한 형태 / 표면 정밀도 / 빛 반사·전기적 특성 등 실제 공통점]을 갖고 있어서, 실제 웨이퍼를 가공하지 않고도 [보여 주려던 공정·작동 원리]를 눈으로 확인할 수 있었습니다. 가공 비용과 시간은 줄이면서 원리는 정확하게 보여 주는 것이 선택 기준이었습니다.' },
+      { by: 'hr', q: '팀원이 끝까지 실제 웨이퍼를 고집했다면 어떻게 했을 건가요?', keywords: ['기준|평가 기준|일정', '선생님|지도교사|제3자|조언', '의도 파악', '근거|자료'], ifMissing: ['대안 제시'],
+        model: '감정적으로 맞서기보다 판단 기준을 함께 정했을 것입니다. 남은 기간·예산·평가 기준을 표로 정리해 두 방식을 비교하고, 그래도 결론이 안 나면 지도 선생님께 객관적인 조언을 구했을 것입니다. 기준이 같으면 결론도 가까워진다고 생각합니다.' },
+      { by: 'chair', q: '대회 결과는 어땠나요? 결과가 기대에 못 미쳤어도 그 선택이 옳았다고 생각하나요?', keywords: ['결과', '과정|협력', '배운 점'],
+        model: '[실제 대회 결과]였습니다. 결과와 관계없이, 기한 안에 팀원 모두가 납득한 작품을 완성했다는 점에서 옳은 선택이었다고 생각합니다. 무엇보다 의견이 다를 때 상대 의도를 먼저 묻는 습관을 얻었습니다.' }
+    ]
+  },
+  {
+    id: 'R1-2', type: 'resume', src: '자소서 문항1 · 협력', by: 'hr', structure: 'STAR',
+    q: '본인과 생각이 전혀 다른 사람과 함께 일해야 할 때, 어떻게 협력을 이끌어 내나요? 경험을 들어 말씀해 주세요.',
+    keywords: ['의도 파악', '경청', '대안 제시', '협력', '존중', '결과'],
+    core: ['대체 자재|대체 재료|대체재|대체 소재', '의도|실현 가능성', '경진대회|대회|반도체'],
+    model: '▶결론: 저는 상대의 "주장"보다 "의도"를 먼저 확인하고, 양쪽 목표를 함께 채우는 대안을 제시합니다.\n▶사례: 반도체기술경진대회에서 저는 원리 설명용 모형, 팀원은 실제 웨이퍼급 자재를 주장했습니다. 팀원에게 이유를 물어보니 평가위원에게 기술의 실현 가능성을 증명하고 싶다는 의도였고, 저는 웨이퍼의 물리적 특성과 작동 원리를 보여 주는 대체 자재로 작동 모형을 만들자고 제안해 두 목표를 모두 충족했습니다.\n▶다짐: 현장에서는 경험 많은 선배들과 생각이 다를 수 있습니다. 그때도 먼저 배우는 자세로 이유를 듣고, 안전과 규정 안에서 대안을 찾는 직원이 되겠습니다.',
+    followUps: [
+      { by: 'hr', q: '상대 의도를 파악하려고 구체적으로 어떤 질문을 했나요?', keywords: ['왜|이유', '목표|원하는', '경청'],
+        model: '"실제 자재를 쓰면 무엇이 가장 좋아진다고 생각해?", "평가위원이 무엇을 보고 점수를 줄 것 같아?"라고 물었습니다. 방법이 아니라 목적을 묻는 질문이라 팀원도 방어적이지 않게 답할 수 있었습니다.' },
+      { by: 'hr', q: '입사하면 나이 차이가 큰 선배와 의견이 다를 수 있습니다. 그때도 대안을 제시할 건가요?', keywords: ['존중', '먼저 배우|배우는|이해', '근거|이유', '안전', '보고'],
+        model: '먼저 선배님의 방식에 담긴 이유를 배우겠습니다. 오랜 경험에는 이유가 있다고 생각합니다. 다만 안전과 관련된 부분이라면 근거를 갖고 정중하게 말씀드리고, 제 판단이 어려우면 책임자께 보고해 기준에 따라 정하겠습니다.',
+        next: [ { by: 'hr', q: '선배가 "신입이 뭘 안다고" 하면서 무시하면요?', keywords: ['감정|차분', '근거|매뉴얼', '존중', '보고'],
+          model: '감정적으로 받아들이지 않고, 제가 아직 부족하다는 점은 인정하겠습니다. 그래도 안전과 관련된 부분이라면 매뉴얼 기준을 근거로 한 번 더 정중히 말씀드리고, 필요하면 책임자께 보고해 판단을 받겠습니다.' } ] }
+    ]
+  },
+  {
+    id: 'R1-3', type: 'resume', src: '자소서 문항1 · 협력', by: 'tech', structure: 'PREP',
+    q: '정비 현장에서 동료와 작업 방법에 대한 의견이 다르면 어떻게 하겠습니까? 경진대회 경험과 연결해서 말씀해 주세요.',
+    keywords: ['매뉴얼', '안전', '의도 파악', '대안 제시', '선배', '보고'],
+    core: ['의도|목적', '대안|절충|대체'],
+    model: '▶결론: 먼저 매뉴얼과 안전 기준을 확인하고, 그 안에서 서로의 의도를 맞추겠습니다.\n▶이유: 정비 현장에서 작업 방법은 개인 취향이 아니라 안전과 직결되기 때문입니다.\n▶사례: 경진대회에서 팀원과 제작 방식이 달랐을 때, 팀원의 의도가 "실현 가능성 증명"이라는 것을 확인하고 대체 자재로 작동 모형을 만드는 대안을 제시해 양쪽 목표를 모두 채웠습니다.\n▶다짐: 현장에서도 기준을 먼저 확인하고, 기준 안에서 동료의 의도를 존중하는 대안을 찾되, 판단이 어려우면 선배님께 보고해 결정하겠습니다.',
+    followUps: [
+      { by: 'tech', q: '그 대안이 매뉴얼에 없는 방법이라면요?', keywords: ['매뉴얼', '보고|승인', '임의|마음대로|혼자'],
+        model: '매뉴얼에 없는 방법은 제 판단으로 적용하지 않겠습니다. 더 좋은 방법이라고 생각되면 근거를 정리해 책임자께 보고하고, 검토와 승인을 받은 뒤에만 적용하겠습니다.' },
+      { by: 'tech', q: '출고 시간이 촉박해서 논의할 여유가 없다면 어떻게 하겠습니까?', keywords: ['안전', '책임자|선배', '보고', '매뉴얼'],
+        model: '시간이 없을수록 매뉴얼에 정해진 방법을 따르겠습니다. 논의는 작업 후로 미루고, 지금 판단이 필요한 부분은 책임자께 즉시 보고해 결정을 받겠습니다.' }
+    ]
+  },
+
+  /* ---------- 자소서 문항2 : 관행 개선 ---------- */
+  {
+    id: 'R2-1', type: 'resume', src: '자소서 문항2 · 관행 개선', by: 'tech', structure: 'STAR',
+    q: '실습실 작업 환경을 개선했던 경험이 있다고 했는데, 자세히 말씀해 주세요.',
+    keywords: ['정리정돈', '불편|위험', '결과', '공유', '안전', '배운 점'],
+    core: ['구역|구분|나누', '트레이|수납', '낙하|떨어', '찾는|찾기|찾느라'],
+    model: '▶상황: 실습 시간에 모두 공구와 부품을 책상 위에 한꺼번에 올려놓고 작업해서, 공구를 찾느라 작업이 자주 끊기고 작은 부품이 떨어지는 일이 잦았습니다.\n▶과제: 저는 이것이 단순한 불편이 아니라 부품 분실·혼입과 작업 실수로 이어질 수 있는 위험 요소라고 생각했습니다.\n▶행동: 제 책상을 "사용 중인 공구 / 가공할 부품 / 완성품" 세 구역으로 나누고, 작은 부품은 수납 트레이에 담아 관리했습니다.\n▶결과: 공구를 찾는 시간이 줄고 부품 낙하와 혼입이 눈에 띄게 줄었습니다. 이 방식을 본 친구들도 하나둘 따라 하면서 실습실 전체가 정돈됐습니다.\n▶다짐: 현장의 작은 불편과 위험 요소를 먼저 발견하고 개선하는 직원이 되겠습니다.',
+    followUps: [
+      { by: 'hr', q: '구역 분리를 친구들이 따라 했다고 했는데, 안 따라 한 사람은 없었나요?', keywords: ['있었|모두는', '강요|억지로', '효과|결과로 보여|직접 보여', '설명', '존중'],
+        model: '네, 처음에는 "번거롭다"며 안 따라 한 친구도 있었습니다. 억지로 권하지 않고, 제가 작업을 빨리 끝내고 부품을 잃어버리지 않는 모습을 보여 주었습니다. 궁금해하는 친구에게는 구역을 나누는 방법을 설명해 줬고, 그렇게 자연스럽게 따라 하는 친구가 늘었습니다. [끝까지 안 한 친구가 있었다면 솔직하게 인정]',
+        next: [ { by: 'hr', q: '회사에서도 동료가 따라 하지 않으면 그냥 두실 건가요?', keywords: ['안전', '보고|건의', '매뉴얼|표준', '설명|설득'],
+          model: '개인 습관 수준이라면 효과를 보여 주며 기다리겠지만, 안전과 직결된 문제라면 다릅니다. 근거를 정리해 선배님이나 책임자께 건의해서 팀의 기준으로 만드는 방법을 찾겠습니다.' } ] },
+      { by: 'tech', q: '작은 부품이 떨어지는 게 철도 차량 정비에서는 어떤 위험으로 이어질 수 있다고 생각하나요?', keywords: ['분실', '혼입|섞', '이물질', '사고|고장', '조립|체결'],
+        model: '떨어진 부품을 잃어버리면 체결이 빠진 채 조립될 수 있고, 다른 부품과 섞이면 잘못된 부품이 쓰일 수 있습니다. 또 차량 안에 이물질로 남으면 회전부나 전기 장치에 고장을 일으킬 수 있어, 결국 운행 안전의 문제로 이어진다고 생각합니다.' },
+      { by: 'chair', q: '그 개선 경험을 철도 차량 정비 현장에 적용한다면 무엇을 해 보겠습니까?', keywords: ['공구 관리|공구 수량|공구 확인', '정리정돈', '이물질', '매뉴얼|표준', '선배|제안|건의'],
+        model: '먼저 작업 전후 공구 수량을 확인하는 습관부터 철저히 하겠습니다. 공구 하나가 차량 안에 남으면 큰 사고로 이어질 수 있기 때문입니다. 그리고 제 작업 공간부터 구역을 나눠 정리하고, 더 나은 방법이 보이면 선배님들께 먼저 배우고 정식으로 건의하겠습니다.' },
+      { by: 'hr', q: '현장에는 이미 정해진 방식이 있는데, 신입이 바꾸자고 하면 반발이 있지 않을까요?', keywords: ['먼저 배우|이해|이유', '내 자리|작은 것|나부터', '제안|건의', '승인|보고'], pressure: true,
+        model: '그래서 바꾸자고 먼저 말하기보다, 기존 방식의 이유를 먼저 배우겠습니다. 실습 때처럼 제 자리에서 작게 시작해 효과를 보여 드리고, 정식 변경이 필요한 부분은 근거를 정리해 건의하고 승인을 받겠습니다.' }
+    ]
+  },
+  {
+    id: 'R2-2', type: 'resume', src: '자소서 문항2 · 관행 개선', by: 'hr', structure: 'STAR',
+    q: '주변 사람들이 당연하게 여기던 관행을 바꿔 본 경험이 있나요?',
+    keywords: ['불편|위험', '정리정돈', '결과', '공유|따라', '배운 점'],
+    core: ['구역|구분|나누', '트레이|수납', '낙하|떨어'],
+    model: '▶상황: 실습실에서는 공구와 부품을 책상에 한꺼번에 올려놓고 작업하는 것이 당연한 관행이었습니다.\n▶과제: 그 결과 공구를 찾느라 작업이 끊기고, 작은 부품이 떨어지거나 섞이는 일이 잦았습니다.\n▶행동: 저는 제 책상부터 사용 중 공구 / 가공할 부품 / 완성품 구역으로 나누고, 작은 부품은 수납 트레이에 담았습니다.\n▶결과: 작업이 끊기는 일이 줄고 부품 낙하·혼입이 줄었으며, 친구들도 하나둘 따라 했습니다.\n▶배운 점: 관행을 바꾸는 가장 좋은 방법은 말보다 효과를 먼저 보여 주는 것이라는 걸 배웠습니다.',
+    followUps: [
+      { by: 'hr', q: '왜 다른 친구들은 그 불편함을 그냥 넘겼다고 생각하나요?', keywords: ['익숙|관행|당연', '불편', '관찰|문제의식'],
+        model: '모두 익숙해져서 불편을 당연하게 여겼기 때문이라고 생각합니다. 저는 작업이 왜 자꾸 끊기는지 관찰하다가 원인이 책상 정리에 있다는 걸 발견했습니다. 익숙한 것일수록 한 번 더 의심해 보는 것이 중요하다고 느꼈습니다.' },
+      { by: 'tech', q: '개선했는데 효과가 없었다면 어떻게 했을까요?', keywords: ['원인 확인', '다시|재시도|수정', '의견|조언'],
+        model: '효과가 없는 원인을 다시 살펴봤을 것입니다. 구역 배치가 작업 순서와 안 맞는지, 트레이 크기가 맞지 않는지 확인하고, 친구들과 선생님 의견을 들어 방법을 수정했을 것입니다.' }
+    ]
+  },
+  {
+    id: 'R2-3', type: 'resume', src: '자소서 문항2 · 관행 개선', by: 'tech', structure: 'PREP',
+    q: '"현장의 작은 불편과 위험 요소를 먼저 개선하겠다"고 했는데, 차량 정비 현장에는 어떤 위험 요소가 있을 거라고 생각하나요?',
+    keywords: ['끼임|협착', '감전|고압|전기', '추락|높은 곳', '중량물|무거운', '이물질|공구', '보호구', '정리정돈'],
+    core: ['정리|구역|정돈', '낙하|떨어|부품'],
+    model: '▶결론: 끼임, 감전, 추락, 중량물 취급, 그리고 공구·부품 방치로 인한 이물질 위험이 있다고 생각합니다.\n▶이유: 철도 차량은 크고 무거우며 고압 전기를 사용하고, 차량 하부·지붕 등 위험한 위치에서 작업하기 때문입니다.\n▶사례: 실습 때 책상 위 부품이 떨어지고 섞이는 문제를 구역 분리로 줄였던 것처럼, 작은 정리 습관이 큰 위험을 막는다고 생각합니다.\n▶다짐: 보호구 착용과 작업 전 점검을 기본으로 지키고, 작업 공간의 공구·부품 관리부터 철저히 하겠습니다.',
+    followUps: [
+      { by: 'tech', q: '그중 신입이 가장 놓치기 쉬운 건 뭐라고 생각하나요?', keywords: ['공구|이물질', '확인', '익숙|습관', '보호구'],
+        model: '작업이 끝난 뒤 공구와 부품을 확인하는 일이라고 생각합니다. 작업에 집중하다 보면 마무리 확인을 놓치기 쉽습니다. 그래서 작업 전후 공구 수량을 꼭 맞춰 보는 습관을 들이겠습니다.' },
+      { by: 'hr', q: '위험 요소를 발견했는데 선배들이 별것 아니라고 하면요?', keywords: ['근거|기준|매뉴얼', '보고', '존중', '기록'],
+        model: '제가 놓친 부분이 있을 수 있으니 선배님께 이유를 먼저 여쭙겠습니다. 그래도 기준에 맞지 않는다고 판단되면 매뉴얼 근거를 갖고 정중히 다시 말씀드리고, 기록으로 남겨 책임자께 보고하겠습니다.' }
+    ]
+  },
+
+  /* ---------- 자소서 문항3 : 쉽게 설명해 문제 해결 ---------- */
+  {
+    id: 'R3-1', type: 'resume', src: '자소서 문항3 · 쉽게 설명', by: 'hr', structure: 'STAR',
+    q: '어려운 내용을 상대방 눈높이에 맞게 설명해서 문제를 해결한 경험을 말씀해 주세요.',
+    keywords: ['눈높이|입장|쉽게', '비유', '하나씩|단계|차근차근', '안심', '결과'],
+    core: ['운영체제|OS|윈도우', '숨|숨쉬|숨 쉬', '비유', '재설치|다시 설치|복구'],
+    model: '▶상황: 친구의 컴퓨터가 갑자기 켜지지 않아, 친구는 부품이 고장 나 큰돈이 들까 봐 걱정하고 있었습니다.\n▶행동: 점검해 보니 하드웨어는 정상이고, 운영체제가 손상돼 부팅이 안 되는 상황이었습니다. 저는 "운영체제는 사람이 의식하지 않아도 숨을 쉬는 것과 같아서, 몸(부품)은 멀쩡한데 숨 쉬는 방법을 잠시 잊은 상태"라고 비유해 설명했습니다.\n▶결과: 친구는 부품 고장이 아니라는 걸 이해하고 안심했고, 저는 윈도우 재설치 과정을 하나씩 안내해 컴퓨터를 복구했습니다.\n▶다짐: 어려운 기술일수록 고객과 동료의 입장에서 쉽게 설명하는 직원이 되겠습니다.',
+    followUps: [
+      { by: 'tech', q: '운영체제 손상인지 하드웨어 고장인지 어떻게 구분했나요?', keywords: ['전원|팬|LED|불빛', '바이오스|BIOS|바이오스 화면', '저장장치|SSD|하드|디스크', '오류|에러|메시지', '순서|단계'],
+        model: '전원부터 순서대로 확인했습니다. 전원 버튼을 누르면 [팬이 돌고 불빛이 들어오는 것]을 보고 전원과 기본 하드웨어는 살아 있다고 판단했고, [바이오스(BIOS) 화면에 정상 진입되고 저장장치도 인식되는 것]을 확인했습니다. 그런데 [윈도우 로딩 단계에서 멈추거나 자동 복구만 반복되는 것]을 보고 운영체제 손상이라고 판단했습니다. [실제로 본 증상으로 바꿔 말하기]',
+        next: [ { by: 'tech', q: '그 판단이 틀렸을 가능성은 없었나요? 확인은 어떻게 했죠?', keywords: ['확인|검증', '재설치 후|복구 후|정상', '가능성|다른 원인'],
+          model: '저장장치 불량일 가능성도 있었기 때문에 [재설치 과정에서 저장장치가 정상 인식되는지], 재설치 후 [며칠 동안 정상 작동하는지]를 확인했습니다. 결과적으로 정상 작동해 운영체제 문제라는 판단이 맞았습니다.' } ] },
+      { by: 'hr', q: '"숨쉬기" 비유를 저한테 다시 설명해 주시겠어요? 제가 그 친구라고 생각하고요.', keywords: ['숨', '의식하지|무의식', '부품은|몸은|멀쩡|정상', '재설치|다시 설치'],
+        model: '"컴퓨터 부품은 사람의 몸이고, 운영체제는 우리가 의식하지 않아도 저절로 숨을 쉬게 해 주는 기능 같은 거야. 지금 네 컴퓨터는 몸은 멀쩡한데 숨 쉬는 방법을 잠깐 잊어버린 상태라서, 운영체제만 다시 설치하면 다시 숨을 쉬듯 정상으로 돌아와. 부품을 새로 살 필요는 없어."' },
+      { by: 'tech', q: '윈도우를 재설치하면 자료가 날아갈 수 있는데, 그 부분은 어떻게 했나요?', keywords: ['백업', '미리|먼저 설명|동의', '확인'],
+        model: '[실제로 한 방법: 예) 재설치 전에 친구에게 자료가 지워질 수 있다는 점을 먼저 설명하고 동의를 받은 뒤, 중요한 자료를 외장 저장장치로 백업했습니다]. 상대의 물건을 다룰 때는 위험을 먼저 알리고 동의를 받는 것이 중요하다고 생각합니다.' },
+      { by: 'chair', q: '승객에게 열차 고장 상황을 쉽게 설명해야 한다면 어떻게 하겠습니까?', keywords: ['안심', '쉬운 말|쉽게|전문 용어', '안전', '시간|안내', '사과|죄송|불편'],
+        model: '전문 용어 대신 쉬운 말로 "지금 안전 확인을 위해 잠시 정차 중이며, 약 몇 분 후 다시 출발할 예정입니다"처럼 무엇이 문제인지보다 안전하다는 것과 앞으로의 예상을 먼저 알려 드리겠습니다. 불편을 드린 점에 대해 진심으로 사과드리는 것도 잊지 않겠습니다.' }
+    ]
+  },
+  {
+    id: 'R3-2', type: 'resume', src: '자소서 문항3 · 쉽게 설명', by: 'chair', structure: 'PREP',
+    q: '기술을 쉽게 설명하겠다고 했는데, 차량 정비원이 무언가를 설명해야 하는 상대는 누구라고 생각하나요?',
+    keywords: ['동료|선배', '기관사|운전', '승객|고객', '관제|운영', '인수인계'],
+    core: ['쉽게|눈높이|입장', '비유|숨'],
+    model: '▶결론: 함께 일하는 동료와 선배, 차량을 운전하는 기관사, 그리고 결국 승객까지라고 생각합니다.\n▶이유: 정비 결과가 정확히 전달되지 않으면 아무리 정비를 잘해도 운행 안전으로 이어지지 않기 때문입니다.\n▶사례: 친구 컴퓨터를 고칠 때 운영체제를 "숨쉬기"에 비유해 설명하니 친구가 안심하고 복구 과정을 따라왔습니다. 상대가 이해해야 문제도 함께 해결된다는 걸 배웠습니다.\n▶다짐: 인수인계와 보고는 정확한 사실과 수치로, 승객에게는 쉬운 말로 설명하는 정비원이 되겠습니다.',
+    followUps: [
+      { by: 'tech', q: '다음 근무자나 기관사에게 차량 상태를 인수인계할 때 가장 중요한 건 뭘까요?', keywords: ['정확|사실', '수치|숫자|구체', '이상 부위|위치', '조치 내용|조치', '기록'],
+        model: '추측이 아닌 정확한 사실입니다. 어느 차량, 어느 부위에서, 어떤 이상이 있었고, 어떤 조치를 했으며, 무엇이 남아 있는지를 기록으로 남기고 말로도 확인하겠습니다.' },
+      { by: 'hr', q: '설명했는데 상대가 이해를 못 했다면요?', keywords: ['다시 물|확인 질문|이해했는지', '다른 방법|그림|예시|비유', '끝까지'],
+        model: '상대가 어디까지 이해했는지 질문으로 확인하고, 그림이나 다른 비유를 써서 다시 설명하겠습니다. 이해가 안 된 상태로 넘어가면 같은 문제가 반복되기 때문에 끝까지 확인하겠습니다.' }
+    ]
+  },
+
+  /* ---------- 자소서 문항4 : 핵심가치 '안전' ---------- */
+  {
+    id: 'R4-1', type: 'resume', src: '자소서 문항4 · 안전', by: 'chair', structure: 'PREP',
+    q: '핵심가치로 "안전"을 선택하셨는데, 그 이유를 본인 경험과 함께 말씀해 주세요.',
+    keywords: ['안전', '매뉴얼', '기본|절차', '확인', '공유', '고객'],
+    core: ['익숙|반복', '절차|기본|매뉴얼', '재확인|다시 확인|생략', '작은 이상|평소와 다른|소리'],
+    model: '▶결론: 철도에서 안전은 다른 모든 가치의 전제이기 때문에 "안전"을 선택했습니다.\n▶이유: 정비의 작은 실수 하나가 많은 승객의 생명과 직결되기 때문입니다.\n▶사례: 실습 때 공구와 부품이 섞여 작은 부품이 자주 떨어지는 것을 보고, 책상을 구역별로 나누고 트레이를 써서 낙하와 작업 시간을 줄였습니다. 작은 이상을 넘기지 않는 것이 안전의 시작이라고 느꼈습니다.\n▶다짐: 익숙한 작업일수록 기본과 절차를 지키고, 작업 전 안전점검을 다시 확인하며, 매뉴얼 기준으로 점검하겠습니다. 평소와 다른 소리나 상태를 발견하면 원인을 확인하고 동료와 공유하겠습니다.',
+    followUps: [
+      { by: 'hr', q: '익숙한 작업에서 안전 절차를 생략하고 싶었던 적은 없나요?', keywords: ['솔직|정직|있었', '하지만|그래도|그럼에도', '확인|체크', '이유|사고'],
+        model: '솔직히 있었습니다. [실습에서 같은 작업을 반복할 때 확인 절차가 번거롭게 느껴졌던 구체적 순간]. 하지만 익숙해서 방심할 때 사고가 난다고 배웠기 때문에, 그럴수록 "한 번 더 확인"을 스스로 정한 규칙으로 지켰습니다. 생략하고 싶은 마음이 드는 순간이 바로 확인이 필요한 순간이라고 생각합니다.',
+        next: [ { by: 'hr', q: '그 규칙을 어긴 적은 정말 한 번도 없나요?', keywords: ['솔직|정직', '배운|이후|다시는', '확인'],
+          model: '[어긴 적이 있다면 솔직하게: 예) 한 번 확인을 건너뛰었다가 부품을 잘못 끼운 적이 있습니다]. 그 일 이후로 확인 절차를 더 철저히 지키게 됐습니다. 완벽하다고 말하기보다, 실수에서 배운 점을 지키는 사람이 되겠습니다.' } ] },
+      { by: 'tech', q: '안전 절차를 지키느라 작업이 늦어져 열차 출고가 지연되면 어떻게 하겠습니까?', keywords: ['안전', '보고', '공유|관제', '책임자|판단', '시간 관리|지연 최소화|미리'],
+        model: '안전 절차는 지키는 것이 원칙입니다. 다만 지연이 예상되면 미리 책임자께 보고해 예비 차량 투입 같은 판단을 빨리 하실 수 있게 하겠습니다. 그리고 평소에 작업 순서를 숙달해서 절차를 지키면서도 시간을 줄이는 방법을 익히겠습니다.' },
+      { by: 'tech', q: '평소와 다른 소리를 들었는데 선배는 정상이라고 하면요?', keywords: ['근거|이유', '다시 확인|재확인|함께', '기록', '보고', '원인'],
+        model: '선배님께 정상이라고 판단하신 이유를 여쭤 배우겠습니다. 그래도 의문이 남으면 함께 한 번 더 확인해 주시길 부탁드리고, 들은 내용을 기록으로 남겨 책임자께 공유하겠습니다. 결과적으로 정상이었다면 저도 기준을 하나 배운 것입니다.' },
+      { by: 'chair', q: '안전과 관련해서 본인이 실제로 지켜 온 습관 하나만 말씀해 주세요.', keywords: ['작업 전|시작 전|점검', '정리정돈', '보호구', '확인'],
+        model: '작업을 시작하기 전에 공구와 부품을 구역별로 정리하고, 작업이 끝나면 공구 수를 다시 확인하는 습관입니다. 실습 때 부품 낙하를 줄였던 그 습관을 현장에서도 그대로 지키겠습니다.' }
+    ]
+  },
+  {
+    id: 'R4-2', type: 'resume', src: '자소서 문항4 · 안전', by: 'tech', structure: 'PREP',
+    q: '"작은 이상도 넘기지 않겠다"고 했는데, 철도 차량 정비에서 그건 구체적으로 어떤 행동인가요?',
+    keywords: ['소리|소음', '진동|떨림', '누유|누설|새는', '냄새|열|온도', '기록', '보고', '원인 확인'],
+    core: ['작은 이상|평소와 다른', '원인', '공유'],
+    model: '▶결론: 평소와 다른 소리, 진동, 누유, 냄새나 열 같은 작은 변화를 "괜찮겠지" 하고 넘기지 않는 것입니다.\n▶행동: 이상을 느끼면 먼저 매뉴얼 기준으로 확인하고, 원인을 확인하지 못하면 선배님께 함께 봐 달라고 요청하겠습니다. 확인한 내용은 기록하고 동료와 공유하겠습니다.\n▶사례: 실습 때도 "작은 부품 하나쯤"이라고 넘기지 않고 책상 구역을 나눠 낙하를 줄였습니다.\n▶다짐: 작은 이상을 공유하는 것이 큰 사고를 막는 가장 확실한 방법이라고 믿고 실천하겠습니다.',
+    followUps: [
+      { by: 'tech', q: '이상인지 아닌지 애매할 땐 어떻게 판단하나요?', keywords: ['기준|매뉴얼', '선배|숙련자', '기록', '안전 쪽|보수적|확인될 때까지'],
+        model: '애매할 때는 안전한 쪽으로 판단하겠습니다. 매뉴얼 기준과 비교하고, 숙련된 선배님께 확인을 요청하며, 판단 근거를 기록해 두겠습니다. 정상으로 확인될 때까지는 정상이라고 보지 않겠습니다.' },
+      { by: 'chair', q: '그 습관을 실제로 보여 준 사례가 있나요?', keywords: ['실습', '구역|정리|트레이', '결과'], core: ['구역|정리|트레이', '낙하|떨어'],
+        model: '실습실에서 부품이 자주 떨어지는 것을 그냥 넘기지 않고, 책상을 사용 중 공구 / 가공할 부품 / 완성품 구역으로 나누고 트레이를 사용해 낙하와 혼입을 줄였습니다. 친구들도 따라 하면서 실습실 전체가 안전해졌습니다.' }
+    ]
+  },
+  {
+    id: 'R0-1', type: 'resume', src: '자소서 종합', by: 'chair', structure: 'STAR',
+    q: '자기소개서에 쓴 경험 중 본인을 가장 잘 보여 주는 경험 하나를 골라 1분 안에 말씀해 주세요.',
+    keywords: ['결과', '배운 점', '차량|정비|직무', '안전'],
+    core: ['대체 자재|구역|숨|운영체제|안전|트레이|의도'],
+    model: '[네 가지 경험 중 하나를 골라 STAR로 1분 안에]\n예) ▶상황: 실습 때 공구와 부품을 책상에 한꺼번에 올려 작업해 작업이 끊기고 부품이 자주 떨어졌습니다. ▶행동: 책상을 사용 중 공구 / 가공할 부품 / 완성품 구역으로 나누고 작은 부품은 트레이에 담았습니다. ▶결과: 공구 찾는 시간과 부품 낙하가 줄었고 친구들도 따라 했습니다. ▶연결: 이 경험처럼 현장의 작은 불편과 위험 요소를 먼저 개선하는 정비원이 되겠습니다.',
+    followUps: [
+      { by: 'chair', q: '그 경험이 차량 정비 업무에 어떻게 도움이 된다고 생각하나요?', keywords: ['안전', '정리|공구', '확인', '협력|소통'],
+        model: '차량 정비는 공구와 부품 관리, 작은 이상 발견, 동료와의 정확한 공유가 핵심이라고 생각합니다. 제 경험은 그중 작업 환경을 정리해 실수와 위험을 줄이는 습관과 직결된다고 생각합니다.' }
+    ]
+  },
+
+  /* ---------- 일반 질문 ---------- */
+  {
+    id: 'G-intro', type: 'general', fixed: 'first', src: '일반 · 자기소개', by: 'chair', structure: 'PREP',
+    q: '1분 동안 자기소개 해 주세요.',
+    keywords: ['차량|정비', '안전', '강점|장점', '경험|실습', '하겠습니다|포부'],
+    model: '▶한 줄 소개: 작은 이상도 넘기지 않는 안전한 정비원, [이름]입니다.\n▶근거 1: 실습 때 공구와 부품이 섞여 작은 부품이 자주 떨어지는 것을 보고, 책상을 구역별로 나누고 트레이를 사용해 낙하와 작업 시간을 줄였습니다.\n▶근거 2: 반도체기술경진대회에서 의견이 다른 팀원의 의도를 먼저 듣고 대체 자재로 작동 모형을 만드는 대안을 제시해 양쪽 목표를 모두 충족했습니다.\n▶포부: 익숙한 작업일수록 절차를 지키고, 동료와 소통하며, 승객이 안심하고 탈 수 있는 차량을 만드는 [부산경남권] 차량 정비원이 되겠습니다.',
+    followUps: [
+      { by: 'tech', q: '자기소개에서 말한 강점이 현장에서 실제로 어떻게 쓰일 수 있나요?', keywords: ['안전', '공구|정리|확인', '구체|예를 들어'],
+        model: '예를 들어 차량 하부 점검 후 공구 수량을 확인하는 일, 작업 공간을 정리해 이물질이 남지 않게 하는 일에 그대로 쓰일 수 있다고 생각합니다.' },
+      { by: 'hr', q: '방금 말한 것 말고, 본인의 단점은 뭔가요?', keywords: ['단점', '보완|고치|노력', '구체|예를 들어|실제로'], pressure: true,
+        model: '[실제 단점: 예) 한 가지에 집중하면 주변을 놓치는 편]입니다. 그래서 [보완 방법: 예) 작업 중간마다 주변과 일정을 확인하는 체크 시간을 정해 두고] 있습니다. 직무에 치명적이지 않으면서 개선 노력이 보이는 단점을 고르세요.' }
+    ]
+  },
+  {
+    id: 'G-motive', type: 'general', src: '일반 · 지원 동기', by: 'hr', structure: 'PREP',
+    q: '코레일에 지원한 동기는 무엇인가요?',
+    keywords: ['국민|공공|승객', '안전', '철도', '차량|정비', '지역|부산|경남', '성장|전문가'],
+    model: '▶결론: 많은 국민의 안전한 이동을 직접 책임지는 일을 하고 싶어 지원했습니다.\n▶이유: 철도는 매일 수많은 사람이 이용하는 공공 교통이고, 차량 정비는 그 안전의 가장 앞에 있는 일이기 때문입니다.\n▶근거: [전공·실습 경험]을 통해 기계를 직접 점검하고 고치는 일에 보람을 느꼈고, 작은 부품 하나도 소홀히 하지 않는 습관을 길렀습니다.\n▶다짐: 제가 자란 [부산경남] 지역의 철도를 안전하게 지키며 오래 일하는 전문 정비원으로 성장하겠습니다.',
+    followUps: [
+      { by: 'hr', q: '다른 공기업이나 사기업도 많은데, 왜 꼭 코레일인가요?', keywords: ['철도', '국민|공공', '안전', '차량|정비'],
+        model: '차량 정비 기술을 가장 많은 사람의 안전을 위해 쓸 수 있는 곳이 철도라고 생각했습니다. 그중에서도 코레일은 전국의 여객과 화물을 책임지는 곳이라, 제 일이 국민의 일상과 직접 연결된다는 점이 가장 큰 이유입니다.' },
+      { by: 'hr', q: '부산경남권으로 지원한 이유가 있나요?', keywords: ['지역|부산|경남', '거주|연고|자란', '오래|장기', '적응'],
+        model: '[지역 연고: 예) 부산에서 나고 자라 지역을 잘 알고], 이곳에서 오래 근무하며 지역 주민들이 매일 이용하는 철도를 지키고 싶어서입니다. 생활 기반이 있어 교대근무에도 빨리 적응할 수 있습니다.' }
+    ]
+  },
+  {
+    id: 'G-why-rs', type: 'general', src: '일반 · 직무', by: 'tech', structure: 'PREP',
+    q: '여러 분야 중에 왜 차량 분야를 선택했나요?',
+    keywords: ['전공|실습', '정비|점검', '기계|전기', '안전', '직접|손으로', '적성|흥미|보람'],
+    model: '▶결론: 직접 점검하고 고치는 일에 가장 보람을 느끼고, 그 결과가 승객의 안전으로 이어지기 때문입니다.\n▶근거: [전공 실습]에서 공구와 부품을 다루며 작업 환경을 개선해 본 경험, 친구의 컴퓨터 고장 원인을 순서대로 찾아 복구해 본 경험을 통해 원인을 찾아 해결하는 일이 적성에 맞다는 것을 알았습니다.\n▶다짐: 차량 분야에서 기본을 철저히 익혀 믿고 맡길 수 있는 정비원이 되겠습니다.',
+    followUps: [
+      { by: 'tech', q: '차량 분야 업무가 구체적으로 어떤 일인지 알고 있나요?', keywords: ['점검|검수|검사', '정비|수리', '일상|정기|주기', '고장 조치|고장', '기록'],
+        model: '철도 차량이 안전하게 운행되도록 정해진 주기에 따라 점검과 정비를 하고, 고장이 생기면 원인을 찾아 조치하는 일로 알고 있습니다. 출고 전 점검, 주기별 검사, 부품 교체와 기록 관리까지 포함된다고 알고 있습니다. [지원 직무 공고의 업무 설명을 다시 확인해 보세요]' },
+      { by: 'hr', q: '차량 정비에서 가장 힘든 점은 뭘 거라고 생각하나요?', keywords: ['교대|야간', '책임', '체력', '반복|집중'],
+        model: '야간·교대 근무 속에서도 반복 작업의 집중력을 유지하는 것이라고 생각합니다. 그래서 생활 리듬과 체력 관리를 습관으로 만들고, 반복 작업일수록 체크리스트로 확인하겠습니다.' }
+    ]
+  },
+  {
+    id: 'G-shift', type: 'general', src: '일반 · 근무 조건', by: 'hr', structure: 'PREP',
+    q: '차량 분야는 교대근무와 야간 작업이 많은데 괜찮겠습니까?',
+    keywords: ['가능|괜찮', '체력|건강', '수면|생활 관리|컨디션', '각오|이해', '근거|경험'],
+    model: '▶결론: 네, 가능합니다.\n▶이유: 철도는 24시간 운행되고, 열차가 쉬는 밤 시간이 정비의 핵심 시간이라는 것을 알고 지원했습니다.\n▶근거: [규칙적인 운동·생활 습관 등 체력 관리 경험]으로 컨디션을 관리해 왔습니다.\n▶다짐: 근무 리듬에 맞춰 수면과 식사를 관리해, 야간에도 같은 집중력으로 작업하겠습니다.',
+    followUps: [
+      { by: 'tech', q: '야간에 집중력이 떨어지면 실수가 생길 수 있는데, 어떻게 관리하겠습니까?', keywords: ['수면|컨디션', '체크리스트|점검표', '확인|재확인', '동료|교차'],
+        model: '근무 전 충분히 자는 것을 원칙으로 하고, 피곤할수록 체크리스트로 한 항목씩 확인하겠습니다. 중요한 작업은 동료와 서로 확인해 실수를 줄이겠습니다.' },
+      { by: 'hr', q: '원하지 않는 지역이나 부서로 발령이 나도 괜찮습니까?', keywords: ['가능|괜찮', '적응', '배우|경험'],
+        model: '네, 괜찮습니다. 어디에서 일하든 철도 차량의 안전을 지키는 일은 같다고 생각합니다. 새로운 곳에서 더 다양한 차량과 업무를 배우는 기회로 삼겠습니다.' }
+    ]
+  },
+  {
+    id: 'G-unfair', type: 'general', src: '일반 · 조직 적응', by: 'hr', structure: 'PREP',
+    q: '상사가 부당한 지시를 하면 어떻게 하겠습니까?',
+    keywords: ['의도 파악|확인', '매뉴얼', '안전', '존중', '보고', '대안 제시'],
+    model: '▶결론: 먼저 지시의 의도를 확인하고, 규정에 어긋나면 정중하게 의견을 말씀드리겠습니다.\n▶이유: 제가 부당하다고 느낀 지시도 제가 모르는 이유가 있을 수 있고, 반대로 규정에 어긋난다면 안전 문제로 이어질 수 있기 때문입니다.\n▶근거: 경진대회에서 팀원의 의견이 처음엔 무리라고 느꼈지만, 의도를 묻고 나니 대안을 찾을 수 있었습니다.\n▶다짐: 의도를 확인한 뒤에도 안전·규정에 어긋난다면 정중히 대안을 말씀드리고, 그래도 해결되지 않으면 정해진 절차에 따라 보고하겠습니다.',
+    followUps: [
+      { by: 'tech', q: '그 지시가 안전 절차를 생략하라는 거라면요?', keywords: ['따르지 않|할 수 없|거절', '매뉴얼', '보고', '존중'], pressure: true,
+        model: '안전 절차 생략은 따르지 않겠습니다. 정중하게 "매뉴얼상 생략할 수 없는 항목"이라고 말씀드리고, 시간이 문제라면 함께 해결 방법을 찾자고 하겠습니다. 그래도 지시가 유지되면 상급 책임자께 보고하겠습니다.' },
+      { by: 'hr', q: '그 일로 상사와 관계가 불편해지면요?', keywords: ['존중|예의', '관계|소통', '업무|일로', '먼저 다가'],
+        model: '원칙을 지킨 것과 상사를 존중하는 것은 별개라고 생각합니다. 이후에도 먼저 인사드리고 업무로 신뢰를 쌓아, 제 의견이 반항이 아니라 안전을 위한 것이었다는 걸 보여 드리겠습니다.' }
+    ]
+  },
+  {
+    id: 'G-goal', type: 'general', src: '일반 · 포부', by: 'chair', structure: 'PREP',
+    q: '입사 후 포부를 말씀해 주세요.',
+    keywords: ['단기|신입|1년|처음', '장기|5년|10년|앞으로', '자격증|공부', '안전', '선배|배우', '전문가'],
+    model: '▶결론: 믿고 맡길 수 있는 차량 정비 전문가가 되겠습니다.\n▶단기: 입사 후 1~2년은 선배님들께 기본 점검 절차와 매뉴얼을 철저히 배우고, 공구·부품 관리와 안전 수칙을 몸에 익히겠습니다.\n▶중장기: [관련 자격증 이름] 취득 등으로 전문성을 넓히고, 실습 때 작업 환경을 개선했던 것처럼 현장의 작은 불편과 위험을 개선하는 제안을 하겠습니다.\n▶다짐: 나중에는 후배에게 "익숙할수록 확인하라"는 기본을 가르치는 선배가 되겠습니다.',
+    followUps: [
+      { by: 'chair', q: '어떤 자격증이나 공부를 계획하고 있나요?', keywords: ['자격증|기능사|기사|산업기사', '언제|시기|계획|년 안', '이유|직무'],
+        model: '[실제로 준비할 자격증 이름]을 [시기]까지 취득하려고 합니다. 차량 [기계/전기] 장치를 더 깊이 이해해 고장 원인을 정확히 찾는 데 필요하기 때문입니다. [지원 분야 우대 자격증을 확인해서 바꿔 말하세요]' }
+    ]
+  },
+  {
+    id: 'G-mistake', type: 'general', src: '일반 · 윤리', by: 'tech', structure: 'PREP',
+    q: '본인이 실수를 했는데 아무도 모르는 상황이라면 어떻게 하겠습니까?',
+    keywords: ['즉시', '보고', '정직', '조치', '재발 방지', '안전'],
+    model: '▶결론: 즉시 보고하겠습니다.\n▶이유: 정비 실수는 숨기는 순간 승객의 안전 문제가 되기 때문입니다. 아무도 모른다는 것은 아무도 고칠 수 없다는 뜻입니다.\n▶행동: 실수한 내용과 범위를 사실대로 보고하고, 지시에 따라 바로 조치하겠습니다.\n▶다짐: 이후 원인을 돌아보고 같은 실수를 하지 않도록 제 작업 방식을 고치고, 필요하면 동료와 공유해 팀의 재발 방지로 이어지게 하겠습니다.',
+    followUps: [
+      { by: 'hr', q: '보고하면 본인에게 불이익이 있을 수도 있는데요?', keywords: ['안전', '책임', '정직', '신뢰'], pressure: true,
+        model: '불이익보다 숨겼을 때의 결과가 훨씬 큽니다. 실수는 제 책임으로 받아들이겠습니다. 정직하게 보고하는 것이 동료와 회사의 신뢰를 얻는 유일한 방법이라고 생각합니다.' }
+    ]
+  },
+  {
+    id: 'G-fail', type: 'general', src: '일반 · 실패 경험', by: 'hr', structure: 'STAR',
+    q: '실패했던 경험과, 그 경험에서 배운 점을 말씀해 주세요.',
+    keywords: ['실패|아쉬', '원인 확인', '배운 점', '이후|다음', '책임감'],
+    model: '[실제 실패 경험을 STAR로]\n▶상황: [언제, 무엇을 하다가]\n▶과제/실패: [무엇이 잘못됐는지 — 남 탓 없이]\n▶행동: [원인을 어떻게 분석했고 무엇을 바꿨는지]\n▶결과·배운 점: [이후 달라진 행동]. 예) "확인을 건너뛴 작은 실수가 결과 전체를 망칠 수 있다는 것을 배웠고, 그 뒤로는 작업 마무리 전 반드시 점검표로 확인합니다."',
+    followUps: [
+      { by: 'hr', q: '그 실패의 가장 큰 원인이 본인에게 있었다고 생각하나요?', keywords: ['제|저의|본인', '책임', '배운 점'],
+        model: '네, [원인 중 제 몫]이 가장 컸다고 생각합니다. 환경 탓을 하기보다 제가 바꿀 수 있는 부분을 찾는 것이 다음 실패를 막는 방법이라고 배웠습니다.' }
+    ]
+  },
+  {
+    id: 'G-org', type: 'general', src: '일반 · 조직 적응', by: 'hr', structure: 'PREP',
+    q: '조직 생활에서 가장 중요하다고 생각하는 것은 무엇인가요?',
+    keywords: ['소통|공유', '책임감', '신뢰', '규칙|매뉴얼', '협력'],
+    model: '▶결론: 신뢰라고 생각합니다.\n▶이유: 정비는 여러 사람이 한 차량을 이어서 작업하기 때문에, 앞사람의 작업과 기록을 믿을 수 있어야 안전합니다.\n▶근거: 경진대회에서 팀원과 의견이 달랐지만 서로의 의도를 믿고 대안을 찾았기에 기한 내 완성할 수 있었습니다.\n▶다짐: 제 작업은 기록으로 정확히 남기고, 약속과 규칙을 지켜 믿을 수 있는 동료가 되겠습니다.',
+    followUps: [
+      { by: 'hr', q: '동료가 계속 본인 일을 떠넘기면 어떻게 하겠습니까?', keywords: ['대화|이야기', '이유|사정', '업무 분담|기준', '보고'],
+        model: '먼저 사정이 있는지 직접 이야기해 보겠습니다. 계속 반복되면 업무 분담 기준을 함께 정하자고 제안하고, 그래도 안 되면 업무에 지장이 생기지 않도록 선배님께 상의드리겠습니다.' }
+    ]
+  },
+  {
+    id: 'G-senior', type: 'general', src: '일반 · 조직 적응', by: 'hr', structure: 'PREP',
+    q: '나이 차이가 많이 나는 선배들과는 어떻게 지낼 생각인가요?',
+    keywords: ['존중', '먼저 배우|배우는', '인사|예의', '질문|물어', '기록|메모'],
+    model: '▶결론: 먼저 배우는 자세로 다가가겠습니다.\n▶이유: 선배님들의 경험은 매뉴얼에 다 담기지 않은 현장의 지식이기 때문입니다.\n▶행동: 먼저 인사드리고, 모르는 것은 바로 여쭙되 같은 질문을 반복하지 않도록 메모하겠습니다.\n▶다짐: 실습 때 친구에게 컴퓨터 복구를 쉽게 설명했던 것처럼, 제가 잘하는 부분은 도움을 드리며 함께 성장하겠습니다.',
+    followUps: [
+      { by: 'hr', q: '선배가 술자리나 회식을 자주 권하면요?', keywords: ['참여|함께', '절제|건강|컨디션', '근무|다음 날', '정중'],
+        model: '팀과 가까워지는 자리라 기쁘게 참여하겠습니다. 다만 다음 날 근무와 안전에 영향이 없도록 절제하고, 어려울 때는 정중히 사정을 말씀드리겠습니다.' }
+    ]
+  },
+  {
+    id: 'G-stress', type: 'general', src: '일반 · 인성', by: 'hr', structure: 'PREP',
+    q: '스트레스는 어떻게 관리하나요?',
+    keywords: ['운동|산책|취미', '원인|정리', '대화|공유', '컨디션|건강'],
+    model: '▶결론: [운동 등 실제 방법]으로 몸을 움직여 풉니다.\n▶이유: 몸이 지치면 판단력도 떨어진다고 생각해서, 스트레스를 쌓아 두지 않으려 합니다.\n▶근거: [실제 사례: 예) 대회 준비로 힘들 때 매일 30분 걷기로 컨디션을 유지]\n▶다짐: 교대근무 중에도 컨디션을 스스로 관리해 작업 집중력을 지키겠습니다.',
+    followUps: [
+      { by: 'hr', q: '최근에 가장 크게 스트레스받은 일은 뭐였나요?', keywords: ['구체|당시', '해결|극복', '배운 점'],
+        model: '[실제 사례를 짧게] 그때 [해결한 방법]으로 극복했고, [배운 점]을 얻었습니다. 핵심은 감정보다 해결 행동을 말하는 것입니다.' }
+    ]
+  },
+  {
+    id: 'G-know', type: 'general', src: '일반 · 기업 이해', by: 'chair', structure: 'PREP',
+    q: '코레일에 대해 아는 것과, 최근에 관심 있게 본 철도 관련 소식을 말씀해 주세요.',
+    keywords: ['안전', '국민|고객', '철도', '디지털|스마트|첨단', '유지보수|정비', '친환경|탄소'],
+    model: '▶결론: 코레일은 전국의 여객과 화물 철도를 운영하며 국민의 안전한 이동을 책임지는 공기업입니다.\n▶관심 소식: [최근 기사 1개: 언제, 무슨 내용인지 한 문장]. 특히 [정비·안전 관련 내용 — 예) 데이터를 활용한 예방 정비]에 관심이 갔습니다.\n▶연결: 기술이 바뀌어도 결국 현장에서 작은 이상을 놓치지 않는 정비원의 기본이 중요하다고 생각합니다.\n▶다짐: 새로운 장비와 기술도 적극적으로 배워 현장에서 쓰겠습니다.\n※ 숫자·사업명은 면접 전에 공식 홈페이지와 최신 기사로 꼭 확인하세요.',
+    followUps: [
+      { by: 'chair', q: '그 소식이 차량 정비 업무에 어떤 영향을 줄 거라고 보나요?', keywords: ['정비|점검', '안전', '배우|적응', '데이터|기술'],
+        model: '[소식의 핵심]이 현장에 도입되면 정비원도 새로운 장비와 데이터를 다룰 줄 알아야 한다고 생각합니다. 기본기를 지키면서 새로운 방식도 빠르게 배우겠습니다.' }
+    ]
+  },
+  {
+    id: 'G-parts', type: 'general', src: '일반 · 직무 지식', by: 'tech', structure: 'PREP',
+    q: '철도 차량의 주요 구성 장치를 아는 대로 말씀해 주세요.',
+    keywords: ['대차|차륜|바퀴', '제동|브레이크', '출입문|도어', '공조|냉난방|냉방', '견인|전동기|모터', '집전|팬터그래프', '연결기|연결'],
+    model: '▶결론: 크게 차량을 지지하고 달리게 하는 장치, 멈추게 하는 장치, 승객 편의 장치로 나눌 수 있다고 알고 있습니다.\n▶설명: 차체를 지지하고 차륜이 달린 대차, 열차를 움직이는 견인 전동기, 전기 차량이 전기를 받는 집전장치(팬터그래프), 열차를 멈추는 제동장치, 차량을 잇는 연결기, 그리고 출입문과 냉난방(공조) 장치 등이 있습니다.\n▶다짐: 아직 깊이는 부족하지만 입사 후 장치별 매뉴얼을 하나씩 익혀 원리부터 이해하겠습니다.',
+    followUps: [
+      { by: 'tech', q: '그중 안전과 가장 직결되는 장치는 뭐라고 생각하나요? 이유는요?', keywords: ['제동|브레이크|대차|차륜', '이유|때문', '사고'],
+        model: '제동장치라고 생각합니다. 열차가 정해진 위치에 정확히 서지 못하면 바로 대형 사고로 이어지기 때문입니다. 물론 대차와 차륜도 탈선과 직결돼 모든 장치가 중요하다고 생각합니다.' }
+    ]
+  },
+  {
+    id: 'G-safety', type: 'general', src: '일반 · 안전', by: 'tech', structure: 'PREP',
+    q: '정비 작업 중 안전사고를 예방하기 위해 정비원이 꼭 지켜야 할 기본은 무엇이라고 생각합니까?',
+    keywords: ['보호구', '작업 전|시작 전', '전원 차단|차단|잠금', '신호|감시|2인|혼자', '정리정돈', '매뉴얼'],
+    model: '▶결론: 보호구 착용, 작업 전 안전 확인, 그리고 정리정돈이라고 생각합니다.\n▶이유: 정비 현장은 고압 전기, 무거운 부품, 차량 이동이 함께 있어서 기본 하나만 빠져도 큰 사고가 나기 때문입니다.\n▶행동: 작업 전 전원 차단과 차량 이동 여부를 확인하고, 혼자 판단하지 않고 정해진 신호와 절차를 따르겠습니다. 작업 후에는 공구와 부품을 정리해 이물질이 남지 않게 하겠습니다.\n▶다짐: 실습 때 책상 정리로 부품 낙하를 줄였던 것처럼, 기본 습관으로 사고를 예방하겠습니다.',
+    followUps: [
+      { by: 'tech', q: '동료가 보호구를 안 쓰고 작업하고 있으면요?', keywords: ['즉시|바로', '말하|권유|알려', '안전', '보고'],
+        model: '바로 정중하게 말씀드리겠습니다. 안전은 눈치 볼 문제가 아니기 때문입니다. 반복되면 개인의 문제가 아니라 팀의 안전 문제이므로 선배님께 보고하겠습니다.' }
+    ]
+  },
+  {
+    id: 'G-last', type: 'general', fixed: 'last', src: '일반 · 마무리', by: 'chair', structure: 'PREP',
+    q: '마지막으로 하고 싶은 말이 있으면 해 주세요.',
+    keywords: ['감사', '안전', '하겠습니다|다짐|각오', '정비|차량'],
+    model: '▶감사: 오늘 귀한 시간 내 주셔서 감사합니다.\n▶핵심 한 줄: 저는 익숙한 작업일수록 한 번 더 확인하는 사람입니다.\n▶다짐: 입사하게 된다면 작은 이상도 넘기지 않고, 동료와 정확히 공유하며, 승객이 안심하고 탈 수 있는 차량을 만드는 정비원이 되겠습니다. 감사합니다.\n※ 30초 이내로 짧고 힘 있게.',
+    followUps: []
+  }
+];
+
+/* ========== PT(상황) 면접 상황 카드 ==========
+   model 은 [상황 파악, 우선순위, 조치, 보고·공유, 재발 방지] 5단계 순서 */
+const PT_CARDS = [
+  {
+    id: 'PT01', title: '출고 직전, 평소와 다른 소음',
+    situation: '출고 30분 전 최종 점검 중, 대차 부근에서 평소와 다른 금속성 소음을 들었습니다. 출근 시간대 열차라 시간이 촉박하고, 함께 있던 선배는 "일단 내보내고 들어오면 보자"고 합니다.',
+    keywords: ['안전', '원인 확인', '출고 보류', '보고', '예비 차량', '매뉴얼', '기록', '고객'],
+    model: ['평소와 다른 소음은 결함의 초기 신호일 수 있습니다. 소음 위치와 발생 조건, 남은 시간이 30분이라는 점을 먼저 파악하겠습니다.',
+            '최우선은 승객의 안전, 그다음이 정시 운행입니다. 원인을 모르는 상태의 출고는 선택지가 아니라고 판단합니다.',
+            '선배님께 함께 들어 봐 달라고 요청하고, 매뉴얼 기준으로 체결 상태·마모·이물질을 확인하겠습니다. 시간 안에 원인을 찾지 못하면 출고 보류를 건의하겠습니다.',
+            '즉시 책임자께 보고해 예비 차량 투입 여부를 판단받고, 지연 가능성을 관제와 운영 부서에 빨리 공유해 승객 안내가 늦지 않게 하겠습니다.',
+            '점검 결과와 조치를 기록하고, 같은 증상이 다른 차량에서 나오는지 확인할 수 있도록 팀에 사례로 공유하겠습니다.'],
+    followUps: [
+      { by: 'tech', q: '확인해 보니 원인을 못 찾았어요. 그래도 출고를 막을 건가요?', keywords: ['안전', '보고', '책임자|판단', '예비 차량'],
+        model: '제가 혼자 출고를 결정할 권한은 없지만, "원인 미확인"이라는 사실을 정확히 보고하고 출고 보류를 건의하겠습니다. 최종 판단은 책임자께서 하시도록 정확한 근거를 드리는 것이 제 역할입니다.' },
+      { by: 'hr', q: '선배가 기분 나빠하면 어떻게 할 건가요?', keywords: ['존중', '함께 확인|함께', '안전'],
+        model: '선배님을 무시하는 게 아니라 같이 확인하고 싶다는 뜻으로 정중히 말씀드리겠습니다. 결과가 정상이면 제가 배운 것이고, 이상이 있으면 함께 사고를 막은 것이라고 생각합니다.' },
+      { by: 'chair', q: '결국 열차가 20분 지연됐습니다. 승객 불만은 어떻게 생각합니까?', keywords: ['고객', '안전', '안내', '사과|죄송', '신뢰'],
+        model: '승객께 불편을 드린 점은 정말 죄송한 일입니다. 하지만 안전이 확인되지 않은 열차를 운행하는 것은 더 큰 신뢰를 잃는 일입니다. 다음에는 이상을 더 빨리 발견해 지연을 줄일 수 있도록 점검 순서를 개선하겠습니다.' },
+      { by: 'tech', q: '대차 부근 금속성 소음의 원인으로는 어떤 것들을 생각해 볼 수 있을까요?', keywords: ['베어링', '체결|볼트|풀림', '마모', '이물질', '제동'],
+        model: '정확한 진단은 장비와 선배님들과 해야 하지만, 베어링 손상, 볼트 등 체결 부품 풀림, 부품 마모, 제동 장치 간섭, 이물질 등을 생각해 볼 수 있다고 알고 있습니다.' }
+    ]
+  },
+  {
+    id: 'PT02', title: '"원래 이렇게 해 왔어"',
+    situation: '선배가 "이 항목은 원래 안 봐도 문제없었다"며 점검표의 일부 항목을 생략하고 넘어가자고 합니다. 오늘은 작업량이 많아 다들 바쁩니다.',
+    keywords: ['매뉴얼', '안전', '존중', '보고', '기록', '재발 방지'],
+    model: ['선배님이 생략하자는 항목이 무엇인지, 생략하면 어떤 위험이 있는지 먼저 정확히 파악하겠습니다.',
+            '작업량보다 점검 기준 준수가 우선입니다. 점검표 항목은 과거 사고와 경험에서 만들어진 최소한의 기준이라고 생각합니다.',
+            '선배님께 "제가 빠르게 확인하겠습니다"라고 정중히 말씀드리고, 생략하지 않고 점검을 진행하겠습니다. 시간이 부족하면 우선순위를 여쭤 효율적으로 하겠습니다.',
+            '그래도 생략이 반복된다면, 개인을 탓하는 방식이 아니라 "작업량이 많아 점검 시간이 부족하다"는 문제로 책임자께 보고하겠습니다.',
+            '점검 항목이 현실에 맞지 않는다면 생략이 아니라 정식 절차로 점검표 개선을 건의하겠습니다.'],
+    followUps: [
+      { by: 'hr', q: '선배가 "신입이 원칙만 따진다"며 핀잔을 주면요?', keywords: ['존중', '안전', '감정|차분', '배우'],
+        model: '핀잔은 겸허히 받아들이되, 점검은 하겠습니다. 제가 직접 하겠다고 말씀드려 선배님 부담을 줄이고, 다른 부분에서는 먼저 배우는 자세를 보여 드리겠습니다.' },
+      { by: 'tech', q: '그 항목이 실제로 수년간 이상이 한 번도 없었던 항목이라면요?', keywords: ['매뉴얼', '건의|개선', '임의|마음대로'],
+        model: '이상이 없었던 것은 점검을 해 왔기 때문일 수도 있습니다. 항목이 불필요하다면 개인이 생략할 것이 아니라 근거 자료를 모아 정식으로 개선을 건의해야 한다고 생각합니다.' },
+      { by: 'chair', q: '만약 생략한 사실을 나중에 알게 됐다면 어떻게 하겠습니까?', keywords: ['즉시', '보고', '재점검|다시 점검', '기록'],
+        model: '해당 차량이 운행 중인지 먼저 확인하고, 즉시 책임자께 보고해 재점검을 받도록 하겠습니다. 누락 경위도 기록해 재발 방지에 쓰이게 하겠습니다.' }
+    ]
+  },
+  {
+    id: 'PT03', title: '매뉴얼과 다른 부품 상태',
+    situation: '정비 중 부품을 확인해 보니 매뉴얼에 적힌 형태·규격과 실제 장착된 부품이 다릅니다. 개량된 부품인지, 잘못 장착된 것인지 알 수 없습니다.',
+    keywords: ['매뉴얼', '원인 확인', '보고', '임의|마음대로|혼자', '기록', '공유'],
+    model: ['매뉴얼 버전이 최신인지, 부품 번호와 규격, 장착 이력이 어떻게 되는지 사실부터 확인하겠습니다.',
+            '추측으로 판단하지 않는 것이 우선입니다. 확인되기 전까지는 해당 부품에 대한 작업을 임의로 진행하지 않겠습니다.',
+            '부품 번호·사진 등 확인 가능한 자료를 정리하고, 정비 이력과 개량 이력을 조회하겠습니다.',
+            '확인한 내용을 선배님과 책임자께 보고해 판단을 받고, 관련 부서에도 공유하겠습니다.',
+            '개량 부품이라면 매뉴얼 개정을, 오장착이라면 같은 형식 차량 전수 확인을 건의하고, 결과를 기록해 공유하겠습니다.'],
+    followUps: [
+      { by: 'tech', q: '확인할 사람이 모두 자리를 비웠고, 작업 마감이 30분 남았다면요?', keywords: ['임의|마음대로|혼자', '연락|전화', '보고', '안전'],
+        model: '모르는 상태로 작업을 마무리하지 않겠습니다. 전화 등으로 책임자께 연락해 판단을 받고, 연락이 닿지 않으면 "확인 필요" 상태로 인계해 차량이 그대로 출고되지 않게 하겠습니다.' },
+      { by: 'hr', q: '매뉴얼이 틀렸다고 생각되면 신입으로서 어떻게 말하겠습니까?', keywords: ['근거|자료', '정중|존중', '건의', '보고'],
+        model: '"제가 틀렸을 수 있지만 확인이 필요해 보입니다"라고 근거 자료와 함께 정중히 보고하겠습니다. 신입이라 조심스러워도, 매뉴얼의 오류는 모두의 안전 문제입니다.' },
+      { by: 'chair', q: '이 상황에서 가장 위험한 행동은 뭐라고 생각합니까?', keywords: ['추측|임의|마음대로', '넘어가|무시', '안전'],
+        model: '"아마 개량된 거겠지" 하고 추측으로 넘어가는 것입니다. 확인 없는 추측이 사고의 시작이라고 생각합니다.' }
+    ]
+  },
+  {
+    id: 'PT04', title: '지연 민원 속 결함 의심',
+    situation: '앞선 열차 지연으로 승객 민원이 쏟아지는 상황입니다. 서둘러 투입해야 할 차량을 점검하던 중 출입문 작동이 미세하게 느린 결함이 의심됩니다.',
+    keywords: ['안전', '고객', '원인 확인', '보고', '관제', '예비 차량', '기록'],
+    model: ['출입문 작동 지연이 어느 문에서, 어느 정도인지 확인하고, 투입까지 남은 시간과 대체 가능 차량을 파악하겠습니다.',
+            '민원이 많아도 최우선은 안전입니다. 출입문 결함은 승객 끼임이나 출입문 열림 운행 같은 직접적인 사고로 이어질 수 있습니다.',
+            '매뉴얼 기준으로 작동 시간과 상태를 점검하고, 기준을 벗어나면 조치 후 투입하거나 예비 차량 투입을 건의하겠습니다.',
+            '책임자와 관제에 차량 상태와 예상 소요 시간을 즉시 공유해 승객 안내가 정확하게 이뤄지도록 하겠습니다.',
+            '같은 증상의 이력을 확인하고 기록해, 반복 결함이면 근본 원인 점검을 건의하겠습니다.'],
+    followUps: [
+      { by: 'hr', q: '승객이 정비원인 당신에게 직접 와서 항의하면요?', keywords: ['경청|공감', '사과|죄송', '안전', '안내|담당'],
+        model: '먼저 불편을 드린 점에 사과드리고 이야기를 들어 드리겠습니다. 안전 점검 중이라는 점을 쉽게 설명드리고, 정확한 운행 정보는 담당 안내 직원께 연결해 드리겠습니다.' },
+      { by: 'tech', q: '기준 안에 들어오긴 하는데 경계선이라면요?', keywords: ['기록', '보고', '공유|인수인계', '재점검|추적'],
+        model: '기준 안이라면 운행은 가능하지만, 경계선이라는 사실을 기록하고 보고해 다음 점검 때 우선 확인하도록 인수인계하겠습니다.' },
+      { by: 'chair', q: '안전과 고객 만족이 충돌할 때 정비원의 기준은 뭡니까?', keywords: ['안전', '고객', '신뢰'],
+        model: '안전이 곧 가장 큰 고객 만족이라고 생각합니다. 승객은 빨리 가는 열차보다 안전한 열차를 원하십니다. 지연은 사과할 수 있지만 사고는 되돌릴 수 없습니다.' }
+    ]
+  },
+  {
+    id: 'PT05', title: '내가 한 작업에서 실수 발견',
+    situation: '신입인 당신은 어제 본인이 교체한 부품의 체결 토크를 기록하지 않았고, 일부 볼트를 규정 토크로 조였는지 확신이 없다는 것을 깨달았습니다. 해당 차량은 오늘 오후 운행 예정입니다.',
+    keywords: ['즉시', '보고', '정직', '재점검|다시 점검|재확인', '기록', '재발 방지'],
+    model: ['어떤 차량, 어떤 부품, 어떤 볼트인지 정확히 정리하고, 해당 차량의 운행 일정을 확인하겠습니다.',
+            '제 평가보다 차량 안전이 우선입니다. 운행 전에 바로잡는 것이 가장 중요합니다.',
+            '즉시 재점검이 가능하도록 준비하고, 지시에 따라 규정 토크로 다시 확인·체결하겠습니다.',
+            '숨기지 않고 바로 선배님과 책임자께 사실대로 보고하겠습니다. 운행 전 확인이 어렵다면 운행 조정 여부를 판단받겠습니다.',
+            '작업 직후 기록하는 습관을 만들고, 체크리스트에 기록 확인 항목을 추가하는 등 같은 실수가 없도록 개선하고 공유하겠습니다.'],
+    followUps: [
+      { by: 'hr', q: '보고하면 신입인데 평가가 나빠질 수 있잖아요.', keywords: ['안전', '정직', '책임', '신뢰'], pressure: true,
+        model: '평가보다 승객의 안전이 훨씬 중요합니다. 실수를 숨기는 사람보다 바로 보고하는 사람을 동료들도 믿을 수 있다고 생각합니다.' },
+      { by: 'tech', q: '선배가 "그냥 내가 몰래 다시 조여 줄게, 보고하지 마"라고 하면요?', keywords: ['감사', '보고', '기록', '정직'],
+        model: '마음은 정말 감사하지만, 기록 없이 처리하면 같은 문제가 다시 생겨도 아무도 알 수 없습니다. 정식으로 보고하고 기록을 남기겠다고 정중히 말씀드리겠습니다.' },
+      { by: 'chair', q: '이 일로 본인이 바꿀 습관 하나를 말한다면요?', keywords: ['바로|즉시', '기록', '확인'],
+        model: '"작업 직후 바로 기록하기"입니다. 기억에 의존하지 않고, 손이 끝나면 기록도 끝난 것으로 하겠습니다.' }
+    ]
+  },
+  {
+    id: 'PT06', title: '야간 작업 후 사라진 공구',
+    situation: '야간 정비를 마치고 공구를 정리하는데 렌치 1개가 보이지 않습니다. 차량 안이나 하부에 두고 왔을 가능성이 있고, 해당 차량은 첫차로 출고될 예정입니다.',
+    keywords: ['안전', '출고 보류', '보고', '이물질', '공구 관리|공구 수량|공구 확인', '재발 방지'],
+    model: ['어떤 공구가, 마지막으로 어디서 쓰였는지 작업 동선을 되짚고, 첫차 출고까지 남은 시간을 확인하겠습니다.',
+            '공구를 찾기 전까지 해당 차량의 출고 안전이 확인되지 않은 것으로 보는 것이 우선입니다.',
+            '작업한 부위를 중심으로 차량 하부와 내부를 수색하고, 필요하면 동료에게 도움을 요청하겠습니다.',
+            '찾지 못하면 즉시 책임자께 보고해 출고 보류나 예비 차량 투입 여부를 판단받겠습니다.',
+            '작업 전후 공구 수량 확인을 철저히 하고, 공구 관리 방식(공구판·수량표 등) 개선을 건의하겠습니다. 실습 때 구역 정리로 부품 낙하를 줄였던 것처럼요.'],
+    followUps: [
+      { by: 'tech', q: '공구 하나가 차량에 남아 있으면 어떤 일이 생길 수 있죠?', keywords: ['회전|바퀴|대차', '전기|단락|합선', '탈선|사고', '이물질'],
+        model: '회전하는 부품이나 대차에 끼어 손상을 일으키거나, 전기 장치에 닿아 단락을 일으킬 수 있습니다. 최악의 경우 운행 중 큰 사고로 이어질 수 있습니다.' },
+      { by: 'hr', q: '본인 실수라 혼날까 봐 걱정되면요?', keywords: ['보고', '정직', '안전'],
+        model: '혼나는 것은 잠깐이지만 사고는 되돌릴 수 없습니다. 바로 보고하겠습니다.' },
+      { by: 'chair', q: '알고 보니 공구는 공구함 다른 칸에 있었습니다. 괜히 소란 피웠다는 말을 들으면요?', keywords: ['안전', '확인', '개선|재발'],
+        model: '소란을 드린 점은 죄송하지만 같은 상황이면 또 보고하겠습니다. 대신 공구 위치가 헷갈리지 않도록 공구함 정리 방법을 개선하겠습니다.' }
+    ]
+  },
+  {
+    id: 'PT07', title: '보호구 없이 작업하는 동료',
+    situation: '차량 하부 작업 중, 입사 동기가 "금방 끝나니까"라며 안전모와 보안경 없이 작업하고 있습니다. 작업 책임자는 다른 선로에 가 있습니다.',
+    keywords: ['보호구', '안전', '즉시', '존중', '보고', '재발 방지'],
+    model: ['동기가 어떤 작업을, 어떤 위험 속에서 하고 있는지 파악하겠습니다.',
+            '작업 속도보다 동기의 안전이 우선입니다.',
+            '즉시 작업을 잠깐 멈추자고 말하고, 보호구 착용을 권하겠습니다. 필요하면 보호구를 가져다주겠습니다.',
+            '반복된다면 개인 문제가 아니라 팀 안전 문제이므로 책임자께 보고하겠습니다.',
+            '작업 전 서로 보호구를 확인해 주는 "짝 점검"을 제안하겠습니다.'],
+    followUps: [
+      { by: 'hr', q: '동기가 "너나 잘해"라며 짜증을 내면요?', keywords: ['감정|차분', '안전', '존중', '보고'],
+        model: '감정적으로 맞서지 않고, "다치면 너도 나도 힘들어진다"고 진심으로 말하겠습니다. 그래도 안 들으면 책임자께 보고하겠습니다. 관계보다 안전이 먼저입니다.' },
+      { by: 'tech', q: '선배가 보호구 없이 작업하고 있다면요?', keywords: ['정중', '안전', '보고'],
+        model: '선배님께도 정중히 말씀드리겠습니다. "선배님 안전모 챙겨 드릴까요?"처럼 부드럽게요. 안전에는 선후배가 없다고 생각합니다.' }
+    ]
+  },
+  {
+    id: 'PT08', title: '규격 부품이 없다',
+    situation: '교체해야 할 부품의 재고가 없어, 선배가 "비슷한 다른 규격 부품으로 일단 끼우자"고 합니다. 해당 차량은 내일 아침 운행 예정입니다.',
+    keywords: ['매뉴얼', '안전', '보고', '예비 차량', '임의|마음대로', '기록'],
+    model: ['필요한 부품의 정확한 규격과 대체 부품의 차이, 다른 기지 재고 여부, 운행 일정을 파악하겠습니다.',
+            '규격에 맞지 않는 부품 사용은 안전 문제이므로, 규정 준수가 일정보다 우선입니다.',
+            '승인되지 않은 부품은 임의로 장착하지 않고, 다른 기지·창고에서 긴급 수급이 가능한지 알아보겠습니다.',
+            '책임자께 보고해 차량 운행 조정이나 예비 차량 투입을 판단받겠습니다.',
+            '자주 쓰는 부품의 안전 재고 관리 개선을 건의하고, 이번 사례를 기록하겠습니다.'],
+    followUps: [
+      { by: 'tech', q: '대체 부품이 사실상 똑같아 보인다면요?', keywords: ['승인|규정', '매뉴얼', '임의|마음대로', '보고'],
+        model: '눈으로 똑같아 보여도 재질, 강도, 공차가 다를 수 있습니다. 승인된 호환 부품 목록에 있는지 확인하고, 없다면 사용하지 않겠습니다.' },
+      { by: 'hr', q: '선배가 "책임은 내가 진다"고 하면요?', keywords: ['안전', '규정|매뉴얼', '보고', '정중'],
+        model: '책임을 지는 것과 사고를 막는 것은 다르다고 생각합니다. 정중히 규정상 어렵다고 말씀드리고 책임자께 보고하겠습니다.' }
+    ]
+  },
+  {
+    id: 'PT09', title: '세 번째 같은 고장',
+    situation: '같은 차량의 출입문 고장이 이번 달에만 세 번째 접수됐습니다. 매번 부품 조정으로 임시 조치를 해 왔습니다.',
+    keywords: ['원인 확인', '기록', '이력|이전', '근본|근본 원인', '보고', '재발 방지'],
+    model: ['이전 두 번의 고장 기록과 조치 내용, 이번 증상을 비교해 공통점을 파악하겠습니다.',
+            '임시 조치를 반복하는 것보다 근본 원인을 찾는 것이 우선입니다. 반복 고장은 더 큰 고장의 신호일 수 있습니다.',
+            '매뉴얼에 따라 관련 부품을 전반적으로 점검하고, 필요하면 부품 교체를 건의하겠습니다.',
+            '반복 결함이라는 사실을 책임자께 보고하고, 같은 형식 차량을 담당하는 팀에도 공유하겠습니다.',
+            '고장 이력 관리로 반복 고장을 조기에 발견할 수 있게 하고, 원인과 조치를 기록으로 남기겠습니다.'],
+    followUps: [
+      { by: 'tech', q: '세 번 다 다른 사람이 조치했다면 어떤 문제가 있었을까요?', keywords: ['인수인계|공유', '기록', '이력'],
+        model: '각자 임시 조치만 하고 이력이 공유되지 않았을 가능성이 큽니다. 그래서 기록과 인수인계가 정비만큼 중요하다고 생각합니다.' },
+      { by: 'chair', q: '근본 원인을 찾느라 차량이 며칠 빠지면 운영에 부담이 됩니다.', keywords: ['안전', '예비 차량', '보고|판단', '비용|장기'],
+        model: '단기적으로는 부담이지만 반복 고장과 운행 중 고장은 더 큰 부담입니다. 예비 차량 운용 등은 책임자께서 판단하시도록 정확한 정보를 드리겠습니다.' }
+    ]
+  },
+  {
+    id: 'PT10', title: '폭염 속 냉방 고장',
+    situation: '폭염 특보가 내린 날, 운행 중인 열차의 한 칸 냉방이 안 된다는 민원이 들어왔고, 열차가 기지에 들어오는 30분 동안 조치를 맡게 됐습니다.',
+    keywords: ['고객', '원인 확인', '매뉴얼', '보고', '공유', '기록'],
+    model: ['어느 칸에서, 어떤 증상(바람 없음·미지근함 등)인지 기관사·관제에서 받은 정보를 정리하고 필요한 부품과 공구를 미리 준비하겠습니다.',
+            '폭염 속 승객 건강이 걸린 문제라 신속성이 중요하지만, 안전한 작업 절차를 지키는 것이 우선입니다.',
+            '입고되면 매뉴얼 순서대로 전원·필터·작동 상태를 점검하고, 시간 안에 수리가 어려우면 차량 교체를 건의하겠습니다.',
+            '조치 결과와 예상 시간을 관제에 공유해 승객 안내와 운행 조정이 가능하게 하겠습니다.',
+            '여름철 전 냉방장치 사전 점검을 강화하는 방안을 건의하고 기록하겠습니다.'],
+    followUps: [
+      { by: 'tech', q: '30분 안에 고칠 수 없다면요?', keywords: ['보고', '예비 차량', '관제'],
+        model: '무리하게 시간을 맞추기보다 바로 보고해 예비 차량 투입이나 해당 칸 승객 이동 안내 같은 대안을 판단받겠습니다.' },
+      { by: 'hr', q: '더위에 지친 동료가 작업을 대충 하자고 하면요?', keywords: ['안전', '휴식|물|컨디션', '절차'],
+        model: '작업은 절차대로 하되, 동료의 컨디션도 챙기겠습니다. 물과 짧은 휴식을 권하고, 제가 더 많은 부분을 맡겠습니다.' }
+    ]
+  },
+  {
+    id: 'PT11', title: '불명확한 인수인계',
+    situation: '근무 교대 후 인수인계 일지를 보니 "3번 차량 제동 이상 – 확인 요망"이라고만 적혀 있습니다. 전 근무자는 퇴근해서 연락이 닿지 않습니다.',
+    keywords: ['원인 확인', '안전', '출고 보류', '보고', '기록', '인수인계'],
+    model: ['3번 차량의 운행 일정과 정비 기록, 제동 관련 이력을 확인해 사실관계부터 파악하겠습니다.',
+            '제동 이상은 안전과 직결되므로, 확인 전까지 해당 차량은 이상이 있는 것으로 간주하겠습니다.',
+            '매뉴얼에 따라 제동장치를 점검하고, 운행 전 확인이 어렵다면 출고 보류를 건의하겠습니다.',
+            '책임자께 보고하고, 전 근무자와 연락이 닿으면 구체적인 증상을 확인하겠습니다.',
+            '인수인계 양식에 "증상·위치·조치·남은 일"을 쓰도록 개선을 건의하고, 제 인수인계부터 그렇게 쓰겠습니다.'],
+    followUps: [
+      { by: 'tech', q: '점검해 보니 이상이 없었습니다. 그대로 출고해도 될까요?', keywords: ['기록', '보고', '판단|책임자', '재확인|추적'],
+        model: '기준에 따라 이상이 없다면 출고할 수 있지만, 점검 내용을 정확히 기록하고 책임자의 확인을 받겠습니다. 전 근무자가 본 증상이 간헐적인 것일 수 있으니 다음 점검 때 다시 확인하도록 남기겠습니다.' },
+      { by: 'hr', q: '전 근무자에게 이 일을 어떻게 이야기하겠습니까?', keywords: ['존중|정중', '개선|양식', '공유'],
+        model: '탓하기보다 "제가 이해를 잘 못 해서 그러는데, 다음엔 증상을 조금 더 자세히 적어 주시면 좋겠다"고 부드럽게 말하고, 양식 개선 같은 방법을 함께 제안하겠습니다.' }
+    ]
+  },
+  {
+    id: 'PT12', title: '비어 있는 점검 기록',
+    situation: '오늘 작업할 차량의 전날 점검 기록 중 일부 항목이 비어 있습니다. 점검을 안 한 건지, 기록만 누락된 건지 알 수 없습니다.',
+    keywords: ['원인 확인', '재점검|다시 점검', '보고', '기록', '재발 방지'],
+    model: ['어떤 항목이 비어 있는지, 해당 차량이 그 사이 운행했는지 확인하겠습니다.',
+            '기록이 없다면 점검이 안 된 것으로 보는 것이 안전합니다.',
+            '빈 항목은 다시 점검하고 결과를 기록하겠습니다.',
+            '누락 사실을 책임자께 보고하고, 전 근무자에게 사실관계를 확인하겠습니다.',
+            '필수 항목이 비면 저장이 안 되는 방식 등 기록 누락 방지 개선을 건의하겠습니다.'],
+    followUps: [
+      { by: 'tech', q: '다시 점검할 시간이 부족하다면요?', keywords: ['우선순위|중요', '보고', '안전'],
+        model: '안전에 직결되는 항목부터 점검하고, 시간 안에 다 못 하면 그 사실을 보고해 출고 판단을 받겠습니다.' },
+      { by: 'hr', q: '누락한 사람이 친한 동기라면요?', keywords: ['보고', '정직', '공정|똑같이'],
+        model: '친한 동기라도 똑같이 보고하겠습니다. 대신 동기에게 먼저 사실을 이야기하고, 함께 보고하자고 하겠습니다.' }
+    ]
+  },
+  {
+    id: 'PT13', title: '두 선배의 엇갈린 지시',
+    situation: 'A 선배는 "이 작업부터 끝내라", B 선배는 "그건 나중에 하고 저 차량부터 봐라"라고 서로 다른 지시를 했습니다. 두 작업 모두 오늘 끝내야 합니다.',
+    keywords: ['우선순위', '안전', '보고', '공유', '책임자'],
+    model: ['두 작업의 내용, 마감 시간, 차량 운행 일정을 정확히 파악하겠습니다.',
+            '운행 시간이 더 이르거나 안전과 직결된 작업이 우선이라고 판단합니다.',
+            '혼자 판단하지 않고 두 선배님께 상황을 함께 말씀드려 우선순위를 정해 달라고 하겠습니다.',
+            '결정이 어려우면 작업 책임자께 보고해 정리해 주시도록 하겠습니다. 결정된 내용은 두 선배님 모두에게 공유하겠습니다.',
+            '작업 배분이 겹치지 않도록 작업 시작 전 지시를 확인하는 습관을 갖겠습니다.'],
+    followUps: [
+      { by: 'hr', q: '한 선배가 "내 말 안 듣냐"며 서운해하면요?', keywords: ['존중', '설명', '공유'],
+        model: '무시한 게 아니라 정해진 우선순위를 따른 것임을 차분히 설명드리고, 선배님 작업도 바로 이어서 하겠다고 말씀드리겠습니다.' },
+      { by: 'chair', q: '왜 둘 중 하나를 그냥 고르지 않았나요?', keywords: ['책임|판단', '정확|확인', '혼자'],
+        model: '신입이 혼자 우선순위를 정하면 운행 일정이나 안전 상황을 놓칠 수 있습니다. 판단 권한이 있는 분께 정확한 정보를 드리고 결정을 받는 것이 맞다고 생각했습니다.' }
+    ]
+  },
+  {
+    id: 'PT14', title: '폭설 예보와 결빙 우려',
+    situation: '내일 새벽 부산경남권에 이례적인 폭설과 한파가 예보됐습니다. 출입문 결빙과 제동장치 이상이 우려되지만 내일 운행 계획은 그대로입니다.',
+    keywords: ['예방|사전', '안전', '점검', '공유', '보고', '매뉴얼'],
+    model: ['예보 시간과 적설량, 내일 출고 차량 목록, 그리고 결빙에 취약한 장치를 파악하겠습니다.',
+            '첫차 출고 전 출입문·제동장치 등 안전 핵심 장치 점검을 최우선으로 하겠습니다.',
+            '매뉴얼의 동절기 대비 절차에 따라 사전 점검과 대비를 하고, 필요한 장비를 미리 준비하겠습니다.',
+            '점검 결과와 이상 차량 정보를 책임자와 관제에 미리 공유해 운행 계획 조정이 가능하게 하겠습니다.',
+            '이번 대비 과정을 기록해 다음 이상 기후 때 참고할 수 있는 체크리스트로 만들자고 건의하겠습니다.'],
+    followUps: [
+      { by: 'tech', q: '부산경남권은 눈이 드문 지역인데, 그 점에서 더 신경 쓸 부분은요?', keywords: ['경험|대비|장비', '사전|미리', '교육|확인'],
+        model: '눈이 드문 만큼 장비와 경험이 부족할 수 있습니다. 동절기 대비 장비가 실제로 작동하는지 미리 확인하고, 경험 있는 선배님들의 노하우를 공유받아야 한다고 생각합니다.' },
+      { by: 'hr', q: '밤새 비상근무를 해야 한다면 괜찮습니까?', keywords: ['가능|괜찮', '컨디션|체력', '안전'],
+        model: '네, 괜찮습니다. 승객 안전을 위한 일이라 당연히 하겠습니다. 다만 피로로 실수하지 않도록 동료와 교대로 쉬며 집중력을 유지하겠습니다.' }
+    ]
+  },
+  {
+    id: 'PT15', title: '작업 중 손을 베였다',
+    situation: '마감이 촉박한 작업 중 날카로운 부품에 손을 베였습니다. 피가 조금 나지만 참고 하면 끝낼 수 있을 것 같습니다.',
+    keywords: ['안전', '응급|치료|처치', '보고', '중단|멈추', '재발 방지', '보호구'],
+    model: ['부상 정도와 작업에 미치는 영향, 남은 작업과 마감 시간을 파악하겠습니다.',
+            '제 안전도 안전입니다. 다친 채로 작업하면 2차 사고와 작업 품질 저하로 이어질 수 있습니다.',
+            '작업을 멈추고 응급 처치를 받겠습니다.',
+            '선배님께 부상 사실과 작업 진행 상황을 보고해 작업을 이어받을 사람을 정하도록 하겠습니다.',
+            '어떤 상황에서 다쳤는지 공유하고, 장갑 등 보호구와 부품 취급 방법 개선을 건의하겠습니다.'],
+    followUps: [
+      { by: 'hr', q: '작은 상처인데 보고하는 건 유난 아닐까요?', keywords: ['안전', '보고', '공유|재발'],
+        model: '작은 상처도 공유해야 같은 부품에서 다른 사람이 다치지 않습니다. 작은 사고를 보고하는 문화가 큰 사고를 막는다고 생각합니다.' },
+      { by: 'tech', q: '처치 후 작업에 복귀할지 말지는 누가 판단하나요?', keywords: ['책임자|선배', '판단', '상태'],
+        model: '제 상태를 정확히 말씀드리고 책임자께서 판단하시도록 하겠습니다. 무리해서 복귀하겠다고 고집하지 않겠습니다.' }
+    ]
+  },
+  {
+    id: 'PT16', title: '새 진단 장비에 대한 거부감',
+    situation: '새로운 차량 진단 장비가 도입됐지만, 선배들은 "기존 방식이 더 정확하다"며 잘 쓰지 않습니다. 당신은 교육을 받아 장비를 다룰 수 있습니다.',
+    keywords: ['존중', '공유|도움', '매뉴얼', '협력', '안전', '쉽게'],
+    model: ['선배님들이 장비를 안 쓰는 이유가 불편함인지, 신뢰 부족인지, 교육 부족인지 먼저 파악하겠습니다.',
+            '새 장비를 쓰게 하는 것보다, 점검의 정확성과 안전을 높이는 것이 목적임을 잊지 않겠습니다.',
+            '기존 방식과 장비 결과를 함께 비교해 보는 방식으로 장비를 써 보고, 선배님들이 원하시면 사용법을 쉽게 알려 드리겠습니다.',
+            '장비 사용 중 발견한 문제점과 장점은 책임자와 공유하겠습니다.',
+            '사용법을 쉽게 정리한 자료를 만들어 공유하자고 제안하겠습니다. 친구에게 컴퓨터를 쉽게 설명했던 것처럼요.'],
+    followUps: [
+      { by: 'hr', q: '신입이 선배를 가르치는 모양새가 되면 불편하지 않을까요?', keywords: ['존중', '배우|함께', '겸손|도움'],
+        model: '가르친다기보다 "제가 교육받은 내용을 공유드리는" 자세로 다가가겠습니다. 저는 선배님께 현장을 배우고, 장비 사용은 제가 돕는 서로 배우는 관계를 만들고 싶습니다.' },
+      { by: 'tech', q: '장비와 선배의 판단이 다르게 나오면 무엇을 믿겠습니까?', keywords: ['재확인|다시 확인', '보고', '원인', '안전 쪽|보수적'],
+        model: '어느 한쪽을 바로 믿기보다 다시 확인하고, 그래도 다르면 안전한 쪽으로 판단하도록 책임자께 보고하겠습니다. 차이가 나는 원인도 기록해 두겠습니다.' }
+    ]
+  },
+  {
+    id: 'PT17', title: '운행 중 이상 진동 연락',
+    situation: '운행 중인 열차의 기관사로부터 "특정 구간에서 평소와 다른 진동이 느껴진다"는 연락이 정비 쪽으로 들어왔습니다. 열차는 1시간 뒤 기지에 들어옵니다.',
+    keywords: ['원인 확인', '기록', '공유', '보고', '관제', '안전'],
+    model: ['진동이 느껴진 구간, 속도, 차량 위치(몇 호차), 지속 여부 등 기관사의 정보를 최대한 구체적으로 확인하고 기록하겠습니다.',
+            '운행 중 안전이 최우선이므로, 운행 계속 여부는 관제와 책임자의 판단을 즉시 받을 수 있게 하겠습니다.',
+            '입고되면 대차·차륜 등 관련 장치를 매뉴얼에 따라 우선 점검할 수 있도록 미리 준비하겠습니다.',
+            '받은 정보를 책임자와 관제에 즉시 공유하고, 선로 문제일 수도 있으니 관련 부서와도 공유되도록 하겠습니다.',
+            '점검 결과를 기록해 같은 구간에서 다른 열차도 진동이 있는지 비교할 수 있게 하겠습니다.'],
+    followUps: [
+      { by: 'tech', q: '차량 문제인지 선로 문제인지 어떻게 구분할 수 있을까요?', keywords: ['다른 열차|같은 구간', '특정 구간|위치', '차량 점검|점검 결과'],
+        model: '같은 구간을 지나는 다른 열차에서도 진동이 있는지, 해당 차량이 다른 구간에서도 진동이 있는지를 비교하면 범위를 좁힐 수 있다고 생각합니다. 차량 점검 결과와 함께 판단하겠습니다.' },
+      { by: 'chair', q: '입고 후 점검에서 아무 이상이 없으면 어떻게 하겠습니까?', keywords: ['기록', '공유', '추적|지속|다시'],
+        model: '이상 없음을 기록하되, 기관사가 느낀 증상이 사라진 게 아니므로 다음 운행 때 관찰을 요청하고 계속 추적하겠습니다.' }
+    ]
+  },
+  {
+    id: 'PT18', title: '안전수칙을 무시하는 협력업체',
+    situation: '기지 안에서 작업하는 외부 협력업체 직원들이 출입 통제 구역에 안전 표지 없이 들어가 작업하고 있습니다. 그들은 "우리 회사 방식대로 한다"고 합니다.',
+    keywords: ['안전', '즉시', '보고', '규정|매뉴얼', '존중', '재발 방지'],
+    model: ['어떤 구역에서 어떤 작업을 하는지, 차량 이동이나 전기 등 위험 요소가 있는지 파악하겠습니다.',
+            '기지 안에서는 소속과 상관없이 우리 기지의 안전 규정이 우선입니다.',
+            '위험이 임박했다면 즉시 작업을 멈춰 달라고 정중히 요청하겠습니다.',
+            '담당 책임자께 바로 보고해 협력업체 관리자와 조율하도록 하겠습니다.',
+            '작업 전 협력업체 안전 교육과 출입 절차 확인을 강화하자고 건의하겠습니다.'],
+    followUps: [
+      { by: 'hr', q: '협력업체 직원이 나이가 많고 강하게 반발하면요?', keywords: ['정중|존중', '안전', '보고'],
+        model: '언쟁하지 않고 정중히 "안전 규정 때문에 그렇다"고만 말씀드린 뒤, 바로 책임자께 보고해 공식적으로 해결하겠습니다.' },
+      { by: 'tech', q: '그 업체의 작업이 늦어지면 우리 정비 일정도 늦어진다면요?', keywords: ['안전', '보고', '일정|조정'],
+        model: '일정이 늦어져도 안전 규정은 지켜야 합니다. 대신 지연 상황을 빨리 보고해 일정 조정이 가능하게 하겠습니다.' }
+    ]
+  },
+  {
+    id: 'PT19', title: '시운전 중 켜진 경고등',
+    situation: '정비를 마친 차량의 시운전 중 경고등이 잠깐 켜졌다 꺼졌습니다. 이후 다시 켜지지 않고, 출고 시간이 다가옵니다.',
+    keywords: ['원인 확인', '기록', '보고', '출고 보류', '안전', '공유'],
+    model: ['어떤 경고등이, 어떤 조건에서, 얼마나 켜졌는지 확인하고 정비한 부위와 관련이 있는지 파악하겠습니다.',
+            '다시 안 켜진다고 해서 정상이라고 보지 않는 것이 우선입니다. 간헐적 이상이 더 위험할 수 있습니다.',
+            '매뉴얼에 따라 관련 장치를 다시 점검하고, 저장된 고장 기록이 있다면 확인하겠습니다.',
+            '원인을 확인하지 못하면 책임자께 보고해 출고 여부를 판단받겠습니다.',
+            '간헐적 증상을 기록해 이후 운행에서도 추적할 수 있게 공유하겠습니다.'],
+    followUps: [
+      { by: 'tech', q: '정비한 부위와 상관없는 경고등이었다면요?', keywords: ['확인', '보고', '기록', '안전'],
+        model: '상관없어 보여도 정비 과정에서 커넥터가 건드려졌을 수도 있습니다. 관련 여부를 확인하고, 모르면 보고하겠습니다.' },
+      { by: 'hr', q: '다들 별것 아니라며 넘어가려 한다면요?', keywords: ['근거|기준', '보고', '기록', '존중'],
+        model: '분위기에 맞추기보다 기준에 맞추겠습니다. 정중히 다시 확인을 요청하고, 기록을 남겨 책임자께 보고하겠습니다.' }
+    ]
+  },
+  {
+    id: 'PT20', title: '술 냄새 나는 동기',
+    situation: '출근한 입사 동기에게서 전날 마신 술 냄새가 납니다. 동기는 "괜찮다, 작업할 수 있다"고 합니다. 오늘은 고압 장치 관련 작업이 예정돼 있습니다.',
+    keywords: ['안전', '즉시', '보고', '규정|매뉴얼', '정직', '재발 방지'],
+    model: ['동기의 상태와 오늘 맡은 작업의 위험도를 파악하겠습니다. 고압 장치 작업은 작은 실수도 큰 사고가 됩니다.',
+            '동기와의 관계보다 동기 본인과 동료, 승객의 안전이 우선입니다.',
+            '먼저 동기에게 작업하지 말고 스스로 보고하자고 설득하겠습니다.',
+            '동기가 거부하더라도 책임자께 보고해 규정에 따라 판단받겠습니다.',
+            '근무 전 음주 관련 규정을 동기들과 함께 다시 확인하고, 서로 지켜 주는 분위기를 만들겠습니다.'],
+    followUps: [
+      { by: 'hr', q: '보고하면 동기와 사이가 틀어질 텐데요.', keywords: ['안전', '진심|걱정', '정직'],
+        model: '사이가 틀어지더라도 동기가 다치는 것보다 낫습니다. 나중에 동기도 제가 걱정해서 그랬다는 걸 알아줄 거라고 믿습니다.' },
+      { by: 'tech', q: '본인이 전날 회식으로 컨디션이 나쁘다면요?', keywords: ['보고', '정직', '안전'],
+        model: '저도 똑같이 솔직하게 보고하고 판단을 받겠습니다. 저에게 다른 기준을 적용하지 않겠습니다.' }
+    ]
+  },
+  {
+    id: 'PT21', title: '객실 연기 냄새 신고',
+    situation: '승객이 "객실에서 타는 냄새가 난다"고 신고했습니다. 열차는 곧 기지에 들어오고, 정비 담당인 당신이 원인 점검을 맡았습니다.',
+    keywords: ['안전', '원인 확인', '전원 차단|차단', '보고', '공유', '기록', '고객'],
+    model: ['냄새가 난 위치(호차), 시간, 연기 여부, 승객 상황을 관제를 통해 확인하겠습니다.',
+            '화재 가능성이 있으므로 승객 안전과 확산 방지가 최우선입니다.',
+            '입고 즉시 해당 칸의 전기 장치·공조장치·제동장치 과열 여부를 매뉴얼에 따라 점검하고, 필요하면 해당 장치를 차단하겠습니다.',
+            '점검 결과를 책임자와 관제에 즉시 공유하고, 원인이 불명확하면 운행 투입 중단을 건의하겠습니다.',
+            '원인과 조치를 기록하고, 같은 형식 차량 점검 필요 여부를 건의하겠습니다.'],
+    followUps: [
+      { by: 'tech', q: '타는 냄새의 원인으로 어떤 것들을 생각해 볼 수 있을까요?', keywords: ['전기|배선|합선', '제동|브레이크|마찰', '공조|냉난방|모터', '과열'],
+        model: '배선이나 전기 장치의 과열·합선, 제동 시 마찰열, 공조장치 모터 과열 등을 생각해 볼 수 있다고 알고 있습니다. 정확한 원인은 점검으로 확인해야 합니다.' },
+      { by: 'chair', q: '신고한 승객에게 결과를 알려야 할까요?', keywords: ['고객', '감사', '신뢰|안내'],
+        model: '직접 연락은 담당 부서의 절차를 따르겠지만, 신고해 주신 덕분에 안전을 확인할 수 있었다는 감사의 뜻은 꼭 전해져야 한다고 생각합니다.' }
+    ]
+  },
+  {
+    id: 'PT22', title: '일손 부족, 쌓인 점검',
+    situation: '동료 두 명이 갑자기 결근해, 오늘 끝내야 할 점검 항목을 정해진 시간 안에 모두 마치기 어렵습니다. 선배는 "중요한 것만 하자"고 합니다.',
+    keywords: ['우선순위', '안전', '보고', '매뉴얼', '기록', '공유'],
+    model: ['남은 점검 항목, 차량별 출고 시간, 가용 인원을 정확히 파악하겠습니다.',
+            '출고가 빠른 차량과 안전 핵심 항목이 우선입니다. 다만 "생략"과 "순서 조정"은 다르다고 생각합니다.',
+            '점검 항목을 생략하지 않고 순서를 조정해 출고 순서대로 진행하겠습니다.',
+            '시간 안에 끝낼 수 없다는 사실을 즉시 책임자께 보고해 인원 지원이나 출고 조정을 판단받겠습니다.',
+            '미완료 항목은 정확히 기록해 인계하고, 인력 공백 대비 계획 수립을 건의하겠습니다.'],
+    followUps: [
+      { by: 'tech', q: '"중요한 것"은 누가 정하는 거죠?', keywords: ['매뉴얼|기준', '책임자', '임의|마음대로'],
+        model: '현장에서 개인이 임의로 정해서는 안 되고, 정해진 기준과 책임자의 판단으로 정해야 한다고 생각합니다.' },
+      { by: 'hr', q: '본인이 초과근무를 해야 할 수도 있는데 괜찮습니까?', keywords: ['가능|괜찮', '안전|컨디션', '보고'],
+        model: '네, 필요하면 하겠습니다. 다만 피로로 실수하지 않도록 컨디션을 관리하고, 무리라고 판단되면 솔직히 보고하겠습니다.' }
+    ]
+  },
+  {
+    id: 'PT23', title: 'SNS에 올라온 정비 부실 의혹',
+    situation: '한 승객이 "우리 지역 열차 정비가 엉망"이라며 차량 고장 영상을 SNS에 올렸고, 조회수가 빠르게 늘고 있습니다. 영상 속 차량은 당신이 속한 기지 차량입니다.',
+    keywords: ['사실 확인|원인 확인|원인', '보고', '고객', '기록', '공유', '재발 방지'],
+    model: ['영상 속 차량과 날짜, 증상을 확인하고 정비 기록과 비교해 사실관계를 파악하겠습니다.',
+            '여론 대응보다 실제 결함 여부를 확인해 안전을 지키는 것이 우선입니다.',
+            '해당 차량을 점검하고, 결함이 있다면 즉시 조치하겠습니다.',
+            '확인한 사실을 책임자께 보고하고, 대외 대응은 홍보 담당 부서의 공식 절차를 따르겠습니다. 개인적으로 댓글을 달지 않겠습니다.',
+            '정비 과정에서 놓친 부분이 있다면 원인을 기록하고 공유해 재발을 막겠습니다.'],
+    followUps: [
+      { by: 'hr', q: '영상 내용이 사실과 다르다면 직접 반박하고 싶지 않나요?', keywords: ['공식|절차|담당', '개인', '보고'],
+        model: '억울하더라도 개인적으로 반박하지 않겠습니다. 사실관계를 정리해 보고하고, 대응은 공식 창구에서 하는 것이 맞습니다.' },
+      { by: 'chair', q: '이런 일이 왜 공기업에 특히 중요하다고 생각합니까?', keywords: ['국민|고객', '신뢰', '공공'],
+        model: '공기업은 국민의 신뢰로 운영되기 때문입니다. 작은 고장 영상 하나도 국민이 느끼는 안전 신뢰와 직결됩니다.' }
+    ]
+  },
+  {
+    id: 'PT24', title: '정비고 세척제 누출',
+    situation: '정비고에서 세척용 화학약품 용기가 넘어져 바닥에 흘러 퍼지고 있습니다. 근처에서는 동료들이 전기 장치 작업을 하고 있습니다.',
+    keywords: ['안전', '즉시', '대피|통제|접근', '보고', '보호구', '재발 방지'],
+    model: ['누출된 약품의 종류와 양, 퍼지는 범위, 주변 전기 작업과 작업자를 빠르게 파악하겠습니다.',
+            '사람의 안전이 최우선입니다. 미끄러짐, 화재, 유해 증기 위험이 있습니다.',
+            '주변 동료들에게 즉시 알려 작업을 멈추고 접근을 통제하겠습니다. 정해진 절차와 보호구를 갖춘 상태에서만 확산 방지 조치를 하겠습니다.',
+            '즉시 책임자와 안전 담당자에게 보고하겠습니다.',
+            '약품 보관 방법과 넘어짐 방지 조치 개선을 건의하고 기록하겠습니다.'],
+    followUps: [
+      { by: 'tech', q: '어떤 약품인지 모르겠다면요?', keywords: ['안전보건자료|MSDS|물질안전', '접근|만지지', '보고'],
+        model: '확인되기 전까지 만지지 않고 접근을 통제하겠습니다. 용기 라벨과 물질안전보건자료(MSDS)로 성질을 확인하고 담당자의 지시를 따르겠습니다.' },
+      { by: 'hr', q: '본인이 넘어뜨린 거라면요?', keywords: ['즉시', '보고', '정직'],
+        model: '제가 넘어뜨렸다는 사실까지 포함해 즉시 보고하겠습니다. 정확한 정보가 빠른 대응에 필요합니다.' }
+    ]
+  },
+  {
+    id: 'PT25', title: '실수를 덮어 주겠다는 선배',
+    situation: '당신이 부품 체결 순서를 잘못해 재작업이 필요해졌습니다. 이를 본 선배가 "이번만 내가 조용히 고쳐 줄 테니 기록하지 말자"고 합니다.',
+    keywords: ['정직', '기록', '보고', '감사', '재발 방지', '안전'],
+    model: ['제 실수의 내용과 범위, 재작업이 차량 안전에 미치는 영향을 정확히 파악하겠습니다.',
+            '선배님의 배려보다 정확한 기록과 안전이 우선이라고 판단합니다.',
+            '선배님께 감사드리되, 재작업은 정해진 절차대로 하고 기록하겠다고 정중히 말씀드리겠습니다.',
+            '실수 사실을 책임자께 보고하겠습니다.',
+            '체결 순서를 헷갈리지 않도록 작업 순서표를 확인하는 습관을 들이고, 필요하면 순서표 개선을 건의하겠습니다.'],
+    followUps: [
+      { by: 'hr', q: '선배의 호의를 거절하면 다음에 도와주지 않을 수도 있어요.', keywords: ['감사', '존중', '안전|기록'],
+        model: '그럴 수도 있지만, 진심으로 감사하다는 마음은 꼭 전하겠습니다. 이후 업무로 신뢰를 보여 드리면 이해해 주실 거라고 생각합니다.' },
+      { by: 'chair', q: '기록이 왜 그렇게 중요하다고 생각합니까?', keywords: ['이력|추적', '다음 사람|인수인계', '재발 방지'],
+        model: '기록은 다음 정비자에게 주는 정보이자, 같은 문제가 생겼을 때 원인을 찾는 단서이기 때문입니다. 기록이 없으면 정비를 했어도 안 한 것과 같습니다.' }
+    ]
+  }
+];
+
+/* 대기실 팁 */
+const WAIT_TIPS = [
+  '두괄식! 결론 한 문장 → 이유 → 경험 → 다짐 순서로.',
+  '자소서 핵심 4가지: 대체 자재 · 구역 분리와 트레이 · 숨쉬기 비유 · 익숙할수록 절차 준수.',
+  'PT는 상황 파악 → 우선순위 → 조치 → 보고·공유 → 재발 방지.',
+  '"모르겠습니다"로 끝내지 말고 아는 범위 + 배우겠다는 자세로.',
+  '정비원의 정답은 대부분 "혼자 판단하지 않고 보고·공유".',
+  '숫자와 구체적 행동이 들어가면 답변이 단단해집니다.',
+  '꼬리질문은 짧게! 첫 문장에 바로 답하세요.',
+  '압박 질문은 태도를 보는 질문입니다. 차분하게, 인정할 건 인정하고.'
+];
+
+/* 업적 */
+const ACHIEVEMENTS = [
+  { id: 'first',    icon: '🎫', name: '첫 면접 완주',     desc: '어떤 모드든 처음으로 끝까지' },
+  { id: 'firstS',   icon: '🏆', name: '첫 S등급',         desc: '세션 총점 90점 이상' },
+  { id: 'allCards', icon: '🗂️', name: '상황카드 올클리어', desc: '모든 상황 카드 70점 이상' },
+  { id: 'streak3',  icon: '🔥', name: '3일 연속',         desc: '3일 연속 연습' },
+  { id: 'streak7',  icon: '🚄', name: '7일 연속',         desc: '7일 연속 연습' },
+  { id: 'noTaboo',  icon: '🤐', name: '깔끔한 말투',      desc: '답변 5개 이상, 금기어 0개' },
+  { id: 'onTime',   icon: '⏱️', name: '시간 장인',        desc: '모든 답변을 적정 시간으로' },
+  { id: 'hellB',    icon: '😈', name: '지옥 생존',        desc: '지옥 압박에서 B등급 이상' },
+  { id: 'real',     icon: '🎓', name: '실전 완주',        desc: '실전 모드 끝까지' },
+  { id: 'calm',     icon: '🧘', name: '강철 멘탈',        desc: '긴장도 30 이하로 면접 종료' },
+  { id: 'wrong5',   icon: '📕', name: '오답 정복자',      desc: '오답노트 질문 5개 졸업' },
+  { id: 'bankAll',  icon: '📚', name: '질문 은행 마스터', desc: '경험 질문 전부 한 번 이상 답변' },
+  { id: 's10',      icon: '💪', name: '연습벌레',         desc: '면접 연습 10회' }
+];
+</script>
+
+<!-- ==================== 엔진 ==================== -->
+<script>
+'use strict';
+const $ = (s, el = document) => el.querySelector(s);
+const $$ = (s, el = document) => [...el.querySelectorAll(s)];
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const markPh = s => esc(s).replace(/\[([^\]]+)\]/g, '<span class="ph">[$1]</span>');
+
+/* ---------- 키워드 ---------- */
+function kwSyns(k) { return (KW[k] || k).split('|').map(s => s.trim()).filter(Boolean); }
+function kwLabel(k) { return KW[k] ? k : k.split('|')[0]; }
+
+/* ---------- 화면 전환 ---------- */
+function show(id) {
+  $$('.screen').forEach(s => s.classList.toggle('active', s.id === 'scr-' + id));
+  window.scrollTo(0, 0);
+  if (SCREEN_ENTER[id]) SCREEN_ENTER[id]();
+}
+const SCREEN_ENTER = {};
+
+function toast(msg, cls = '', ms = 2600) {
+  const t = document.createElement('div');
+  t.className = 'toast ' + cls; t.innerHTML = msg;
+  $('#toasts').appendChild(t);
+  setTimeout(() => t.remove(), ms);
+}
+
+/* ---------- 질문 은행 화면 ---------- */
+let bankTab = 'resume';
+function chipList(arr, cls = '') { return (arr || []).map(k => `<span class="chip ${cls}">${esc(kwLabel(k))}</span>`).join(''); }
+function followTree(list) {
+  if (!list || !list.length) return '<p class="muted">꼬리질문 없음</p>';
+  return '<ul class="tree">' + list.map(f => `<li><span class="chip who">${INTERVIEWERS[f.by].name}</span>${f.pressure ? '<span class="chip bad">압박</span>' : ''}<div class="fq">${esc(f.q)}</div>
+    <div>${chipList(f.keywords)}</div>${f.model ? `<div class="fm">💡 ${markPh(f.model)}</div>` : ''}${f.next ? followTree(f.next) : ''}</li>`).join('') + '</ul>';
+}
+function renderBank() {
+  $$('#bankTabs .tab').forEach(t => t.classList.toggle('on', t.dataset.tab === bankTab));
+  const box = $('#bankList');
+  if (bankTab === 'resume' || bankTab === 'general') {
+    box.innerHTML = EXP_QUESTIONS.filter(q => q.type === bankTab).map(q => `
+      <details class="bank-item"><summary><span class="chip who">${INTERVIEWERS[q.by].name}</span><span class="q">${esc(q.q)}</span></summary>
+      <div class="body">
+        <div class="kv"><b>분류</b><span>${esc(q.src)} · 구조 ${STRUCTURES[q.structure].label}</span></div>
+        <h4>들어가면 좋은 키워드</h4><div>${chipList(q.keywords)}</div>
+        ${q.core ? `<h4>자소서 핵심 (빠지면 "연결 약함")</h4><div>${chipList(q.core, 'warn')}</div>` : ''}
+        <h4>모범 답변</h4><div class="model">${markPh(q.model)}</div>
+        <h4>꼬리질문 트리</h4>${followTree(q.followUps)}
+      </div></details>`).join('');
+  } else if (bankTab === 'pt') {
+    const steps = STRUCTURES.PT5.parts;
+    box.innerHTML = PT_CARDS.map(c => `
+      <details class="bank-item"><summary><span class="chip">${c.id}</span><span class="q">${esc(c.title)}</span></summary>
+      <div class="body">
+        <p>${esc(c.situation)}</p>
+        <h4>키워드</h4><div>${chipList(c.keywords)}</div>
+        <h4>모범 발표 (5단계)</h4><div class="model">${c.model.map((m, i) => `<b>${i + 1}. ${steps[i].label}</b> — ${markPh(m)}`).join('\n')}</div>
+        <h4>꼬리질문</h4>${followTree(c.followUps)}
+      </div></details>`).join('');
+  } else {
+    box.innerHTML = `
+      <div class="card"><h4 style="margin-top:0">키워드 사전 (대표어 → 인정되는 표현)</h4>
+        <div class="kv">${Object.entries(KW).map(([k, v]) => `<b>${esc(k)}</b><span>${esc(v.split('|').join(', '))}</span>`).join('')}</div></div>
+      <div class="card" style="margin-top:12px"><h4 style="margin-top:0">금기어</h4>
+        <div class="kv">${TABOO.map(t => `<b>"${esc(t.w)}"</b><span>${esc(t.tip)}</span>`).join('')}</div></div>
+      <div class="card" style="margin-top:12px"><h4 style="margin-top:0">구조 체크</h4>
+        ${Object.values(STRUCTURES).map(s => `<p><b>${s.label}</b>: ${s.parts.map(p => p.label).join(' → ')}</p>`).join('')}</div>`;
+  }
+}
+SCREEN_ENTER.bank = renderBank;
+
+/* ---------- 시작 ---------- */
+function bindNav() {
+  document.addEventListener('click', e => {
+    const go = e.target.closest('[data-go]');
+    if (go) { show(go.dataset.go); return; }
+    const tab = e.target.closest('#bankTabs .tab');
+    if (tab) { bankTab = tab.dataset.tab; renderBank(); }
+  });
+}
+function boot() {
+  $('#targetLine').textContent = CONFIG.target;
+  bindNav();
+  show('splash');
+  let done = false;
+  const toMenu = () => { if (done) return; done = true; show('menu'); };
+  $('#scr-splash').addEventListener('click', toMenu);
+  setTimeout(toMenu, 2000);
+}
+boot();
+</script>
+</body>
+</html>
