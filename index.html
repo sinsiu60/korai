@@ -140,7 +140,7 @@ h1,h2,h3{line-height:1.3;margin:0}
 .hud{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:6px 0 10px}
 .hud .prog{font-weight:800;color:var(--navy);background:#fff;border-radius:10px;padding:6px 12px;font-size:.95rem}
 .hud .gauge-wrap{flex:1;min-width:0}
-.stage{position:relative;border-radius:18px;overflow:hidden;background:linear-gradient(#dfe8f3 0 74%,#1f4470 74%);box-shadow:var(--shadow)}
+.stage{position:relative;border-radius:18px;overflow:hidden;background:linear-gradient(#dfe8f3 0 74%,#2d5a8c 74% 77%,#1f4470 77%);box-shadow:var(--shadow)}
 .stage svg{display:block;width:100%;height:auto;max-height:44vh}
 .bubble{position:relative;background:#fff;border-radius:16px;padding:14px 18px;margin:14px 0 12px;box-shadow:var(--shadow);min-height:3.6em;border:2px solid var(--sky2)}
 .bubble::before{content:"";position:absolute;top:-12px;left:var(--arrow,50%);transform:translateX(-50%);border:12px solid transparent;border-top:0;border-bottom-color:var(--sky2)}
@@ -209,9 +209,9 @@ h1,h2,h3{line-height:1.3;margin:0}
 .prep-clock{font-size:2.6rem;font-weight:800;font-variant-numeric:tabular-nums;color:var(--navy);text-align:center}
 .prep-clock.low{color:var(--bad)}
 .memo-grid{display:grid;gap:10px;margin-top:12px}
-.memo-step label{display:flex;align-items:center;gap:8px;font-weight:800;color:var(--navy);font-size:.95rem;margin-bottom:4px}
+.memo-step label{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;font-weight:800;color:var(--navy);font-size:.95rem;margin-bottom:4px}
 .memo-step label .n{display:inline-flex;width:26px;height:26px;border-radius:50%;background:var(--navy);color:#fff;align-items:center;justify-content:center;font-size:.8rem}
-.memo-step label small{font-weight:500;color:var(--muted)}
+.memo-step label small{font-weight:500;color:var(--muted);flex-basis:100%;padding-left:34px;font-size:.8rem}
 .memo-step textarea{width:100%;min-height:64px;border:2px solid var(--sky2);border-radius:12px;padding:8px 12px;resize:vertical;background:#fffef6}
 @media (min-width:860px){.prep-layout{display:grid;grid-template-columns:5fr 6fr;gap:18px;align-items:start}.prep-layout .left{position:sticky;top:12px}}
 
@@ -427,6 +427,29 @@ h1,h2,h3{line-height:1.3;margin:0}
   </div>
 </section>
 
+<!-- ==================== PT 준비실 ==================== -->
+<section id="scr-prep" class="screen">
+  <div class="wrap">
+    <div class="topbar"><button class="icon-btn" id="prepBack" aria-label="그만두기">✕</button><h2>PT 준비실</h2><span class="chip" id="prepTag">PT</span></div>
+    <div class="prep-layout">
+      <div class="left">
+        <div class="sit-card" id="sitCard"><div class="no" id="sitNo">SITUATION</div><h3 id="sitTitle"></h3><p id="sitText"></p></div>
+        <div class="card" style="margin-top:12px;text-align:center">
+          <div class="muted" style="font-size:.88rem">남은 준비 시간</div>
+          <div class="prep-clock" id="prepClock">3:00</div>
+          <div class="timer" style="margin:8px 0 12px"><div class="fill" id="prepFill"></div></div>
+          <button class="btn block" id="prepDone">준비 완료 · 면접장 입장</button>
+          <p class="notice">발표 시간 <b id="ptTalkLbl">2분</b> · 발표 중에도 메모를 볼 수 있어요</p>
+        </div>
+      </div>
+      <div class="card">
+        <b>📝 발표 메모</b> <small class="muted">— 5단계 구조로 정리해 보세요</small>
+        <div class="memo-grid" id="memoGrid"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
 <!-- ==================== 면접장 ==================== -->
 <section id="scr-room" class="screen">
   <div class="room-wrap">
@@ -569,6 +592,19 @@ const STRUCTURES = {
 
 /* 압박 이벤트 대사 */
 const PRESSURE_EVENT = '방금 답변, 자소서랑 좀 다른 것 같은데요?';
+const PT_PRESSURE_EVENT = {
+  by: 'hr', q: '발표하신 대로 하면 열차가 계속 지연될 텐데, 그게 현실적인 대안이라고 보세요?',
+  keywords: ['안전', '보고', '예비 차량', '우선순위|우선', '고객'],
+  model: '지연은 분명 부담이지만, 안전이 확인되지 않은 열차를 운행하는 것은 더 큰 위험입니다. 그래서 지연을 최소화하기 위해 즉시 보고해 예비 차량 투입 같은 판단을 빨리 받고, 승객 안내가 늦지 않도록 공유하는 것까지가 제 대안입니다.'
+};
+/* PT 메모 템플릿 (5단계 구조와 같은 순서) */
+const MEMO_HINTS = [
+  '무엇이 문제인가? 확인해야 할 사실은? (위치·증상·남은 시간)',
+  '무엇이 가장 먼저인가? (안전 > 정시 운행 > 편의)',
+  '매뉴얼에 따라 내가 할 행동은? 혼자 판단하지 않는 것은?',
+  '누구에게, 언제 보고하고 공유하나? (선배·책임자·관제)',
+  '기록 · 개선 건의 · 교육 · 체크리스트'
+];
 const PRESSURE_PREFIX = [
   '음… 그건 질문에 대한 답이 아닌 것 같은데요.',
   '조금 더 구체적으로 듣고 싶네요.',
@@ -1653,7 +1689,7 @@ function interviewerSVG(id) {
   const hairFront = {
     chair: '<path d="M-47,-160 C-52,-206 -16,-219 4,-215 C30,-213 52,-197 47,-160 C43,-180 30,-192 2,-194 C-24,-194 -40,-182 -47,-160 Z" fill="#b8bcc4"/><path d="M-47,-165 L-50,-140 M47,-165 L50,-140" stroke="#b8bcc4" stroke-width="7" stroke-linecap="round"/>',
     tech: '<path d="M-46,-160 C-49,-208 -22,-219 0,-219 C22,-219 49,-208 46,-160 C42,-178 32,-187 0,-189 C-32,-187 -42,-178 -46,-160 Z" fill="#1d1d22"/>',
-    hr: '<path d="M-46,-162 C-42,-214 42,-214 47,-160 C32,-186 4,-192 -18,-178 C-28,-170 -38,-165 -46,-162 Z" fill="#3b2a20"/>'
+    hr: '<path d="M-47,-158 C-50,-210 -20,-218 0,-218 C24,-218 50,-208 47,-158 C40,-182 20,-190 -4,-186 C-20,-176 -36,-168 -47,-158 Z" fill="#3b2a20"/>'
   }[id];
   const brows = id === 'tech'
     ? '<path d="M-28,-178 L-6,-175" stroke="#1d1d22" stroke-width="6" stroke-linecap="round"/><path class="brow-r" d="M6,-175 L28,-178" stroke="#1d1d22" stroke-width="6" stroke-linecap="round"/>'
@@ -2025,6 +2061,111 @@ async function runExpPart(questions, labelPrefix) {
   }
 }
 
+/* =====================================================================
+   PT(상황) 면접
+   ===================================================================== */
+function pickCard() {
+  const cleared = Store.d.cleared.cards;
+  const fresh = PT_CARDS.filter(c => !cleared[c.id]);
+  return pick(fresh.length ? fresh : PT_CARDS);
+}
+
+function prepRoom(card) {
+  show('prep');
+  const steps = STRUCTURES.PT5.parts;
+  $('#sitNo').textContent = `SITUATION ${card.id}`;
+  $('#sitTitle').textContent = card.title;
+  $('#sitText').textContent = card.situation;
+  $('#prepTag').textContent = S.mode === 'real' ? '실전 모드' : S.retry ? '재도전' : 'PT 면접';
+  $('#ptTalkLbl').textContent = fmtSec(CONFIG.ptTalkSec);
+  const sc = $('#sitCard'); sc.classList.remove('flip'); void sc.offsetWidth; sc.classList.add('flip');
+  $('#memoGrid').innerHTML = steps.map((p, i) => `<div class="memo-step"><label for="memo-${i}"><span class="n">${i + 1}</span>${p.label} <small>${esc(MEMO_HINTS[i] || '')}</small></label><textarea id="memo-${i}"></textarea></div>`).join('');
+  const total = CONFIG.ptPrepSec, start = performance.now();
+  return guard(resolve => {
+    const tick = () => {
+      const left = Math.max(0, total - (performance.now() - start) / 1000);
+      $('#prepClock').textContent = fmtSec(Math.ceil(left));
+      $('#prepClock').classList.toggle('low', left <= 30);
+      $('#prepFill').style.width = (left / total * 100) + '%';
+      if (left <= 0) { toast('⏰ 준비 시간이 끝났습니다. 면접장으로 이동합니다.'); done(); }
+    };
+    const t = setInterval(tick, 250); S.timers.add(t); tick();
+    $('#prepDone').onclick = done;
+    function done() {
+      clearInterval(t);
+      const memo = steps.map((p, i) => ({ label: p.label, text: ($('#memo-' + i).value || '').trim() }));
+      resolve({ memo, prepSec: Math.round((performance.now() - start) / 1000) });
+    }
+  });
+}
+
+async function runPTCard(card, labelPrefix = 'PT') {
+  const block = { kind: 'pt', id: card.id, title: card.title, situation: card.situation, answers: [] };
+  hud(`${labelPrefix} 준비`);
+  const prep = await prepRoom(card);
+  block.memo = prep.memo; block.prepSec = prep.prepSec;
+  block.memoFilled = prep.memo.filter(m => m.text).length;
+
+  enterRoom();
+  const memoTxt = prep.memo.filter(m => m.text).map(m => `■ ${m.label}: ${m.text}`).join('\n');
+  $('#memoRefText').textContent = memoTxt || '(작성한 메모가 없습니다)';
+  $('#memoRef').classList.remove('hidden');
+  $('#memoRef').open = !isTouch();
+
+  hud(`${labelPrefix} 발표`);
+  await say('chair', S.mode === 'real' ? '반갑습니다. 먼저 PT 면접부터 진행하겠습니다. 준비하신 내용을 발표해 주세요.' : '반갑습니다. 준비하신 상황에 대해 2분 동안 발표해 주세요.');
+  const res = await answerPhase({ limit: CONFIG.ptTalkSec, minSec: CONFIG.tooShort.pt, label: '발표 시간' });
+  const ev = evaluate(res, { kind: 'pt', keywords: card.keywords, structure: 'PT5', minSec: CONFIG.tooShort.pt });
+  if (res.timeOver) addTension(12);
+  if (ev.taboo.length) addTension(Math.min(15, ev.taboo.length * 5));
+  if (ev.score >= 80) addTension(-8); else if (ev.score < 45) addTension(6);
+  react('chair', ev.score);
+  if (res.timeOver) await say('chair', '네, 시간이 다 됐습니다. 발표는 여기까지 듣겠습니다.');
+  await sleep(1100);
+  const main = { role: 'main', who: 'chair', q: '상황 발표: ' + card.title, text: res.text, elapsed: ev.elapsed, ev,
+                 model: card.model.map((m, i) => `${i + 1}. ${STRUCTURES.PT5.parts[i].label} — ${m}`).join('\n') };
+  block.answers.push(main);
+
+  // 압박 이벤트
+  if (Math.random() < S.pcfg.eventRate) {
+    addTension(10);
+    block.answers.push(await askAndAnswer({ who: PT_PRESSURE_EVENT.by, text: PT_PRESSURE_EVENT.q, role: 'event', pressure: true, model: PT_PRESSURE_EVENT.model,
+      spec: { kind: 'follow', keywords: PT_PRESSURE_EVENT.keywords }, limit: followLimit(), minSec: CONFIG.tooShort.follow, label: '압박 질문' }));
+  }
+  // 꼬리질문 2개
+  let pool = card.followUps.filter(f => !(f.pressure && S.pressureKey === 'mild'));
+  let prev = main;
+  const nF = Math.min(2, pool.length, S.forceFollow ?? 9);
+  for (let k = 0; k < nF; k++) {
+    const f = chooseFollow(pool, prev.ev); if (!f) break;
+    pool = pool.filter(x => x !== f);
+    hud(`${labelPrefix} 꼬리질문 ${k + 1}/${nF}`);
+    let line = f.q, pressure = !!f.pressure;
+    if (prev.ev.score < 60 && Math.random() < S.pcfg.prefixRate) { line = pick(PRESSURE_PREFIX) + ' ' + f.q; pressure = true; addTension(4); }
+    if (pressure) addTension(4);
+    prev = await askAndAnswer({ who: f.by, text: line, role: 'follow', model: f.model, pressure,
+      spec: { kind: 'follow', keywords: f.keywords, core: f.core }, limit: followLimit(), minSec: CONFIG.tooShort.follow, label: '꼬리질문' });
+    block.answers.push(prev);
+  }
+  block.self = await selfEval('pt');
+  finalizeBlock(block);
+  $('#memoRef').classList.add('hidden');
+  return block;
+}
+
+async function runPTMode(mode, opts = {}) {
+  const card = opts.card || pickCard();
+  await waitingRoom({ title: mode === 'real' ? '실전 모드 대기실' : opts.retry ? '오답노트 재도전' : 'PT 면접 대기실',
+                      callLine: '수험번호 {no}번, PT 준비실로 이동해 주세요.' });
+  S.blocks.push(await runPTCard(card, opts.retry ? '재도전 PT' : 'PT'));
+  if (mode === 'real') {
+    await say('chair', '수고하셨습니다. 이어서 경험 면접을 진행하겠습니다.');
+    await sleep(600);
+    await runExpPart(buildExpSet(+settings().qCount), '경험');
+  }
+  await say('chair', '수고하셨습니다. 이상으로 면접을 마치겠습니다.');
+}
+
 /* ---------- 세션 시작/종료 ---------- */
 function newSession(mode, extra = {}) {
   if (S) abortSession();
@@ -2125,6 +2266,7 @@ function bindNav() {
   $('#bubble').addEventListener('click', e => { if (!e.target.closest('#replayBtn')) Voice.skip(); });
   $('#quitBtn').addEventListener('click', () => { if (confirm('면접을 중단할까요? 이번 기록은 저장되지 않습니다.')) { abortSession(); S = null; show('menu'); } });
   $('#waitBack').addEventListener('click', () => { abortSession(); S = null; show('menu'); });
+  $('#prepBack').addEventListener('click', () => { if (confirm('면접을 중단할까요? 이번 기록은 저장되지 않습니다.')) { abortSession(); S = null; show('menu'); } });
   // 음성 인식 결과를 입력창에 붙이기
   Mic.onFinal = t => { const ta = $('#answerText'); ta.value = (ta.value ? ta.value.replace(/\s+$/, '') + ' ' : '') + t; ta.scrollTop = ta.scrollHeight; };
   Mic.onInterim = t => { $('#interim').textContent = t ? '🎙️ ' + t : ''; };
