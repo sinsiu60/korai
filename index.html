@@ -139,8 +139,8 @@ h1,h2,h3{line-height:1.3;margin:0}
 .room-wrap{max-width:1100px;margin:0 auto;padding:10px 12px 24px}
 .hud{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:6px 0 10px}
 .hud .prog{font-weight:800;color:var(--navy);background:#fff;border-radius:10px;padding:6px 12px;font-size:.95rem}
-.hud .gauge-wrap{flex:1;min-width:200px}
-.stage{position:relative;border-radius:18px;overflow:hidden;background:#cfdcec;box-shadow:var(--shadow)}
+.hud .gauge-wrap{flex:1;min-width:0}
+.stage{position:relative;border-radius:18px;overflow:hidden;background:linear-gradient(#dfe8f3 0 74%,#1f4470 74%);box-shadow:var(--shadow)}
 .stage svg{display:block;width:100%;height:auto;max-height:44vh}
 .bubble{position:relative;background:#fff;border-radius:16px;padding:14px 18px;margin:14px 0 12px;box-shadow:var(--shadow);min-height:3.6em;border:2px solid var(--sky2)}
 .bubble::before{content:"";position:absolute;top:-12px;left:var(--arrow,50%);transform:translateX(-50%);border:12px solid transparent;border-top:0;border-bottom-color:var(--sky2)}
@@ -192,11 +192,11 @@ h1,h2,h3{line-height:1.3;margin:0}
 .iv[data-expr="memo"] .head{transform:translateY(5px)}
 .iv[data-expr="memo"] .eyes{transform:translateY(4px) scaleY(.7)}
 .iv .brow-r{transition:transform .4s}
-.iv .pen{display:none}
-.iv[data-expr="memo"] .pen{display:inline;animation:write .5s infinite alternate}
+.iv-items .pen{display:none}
+.iv-items.memo .pen{display:inline;animation:write .5s infinite alternate}
 @keyframes write{from{transform:translate(0,0)}to{transform:translate(12px,3px)}}
-.iv .plate-hl{opacity:0;transition:opacity .3s}
-.iv.speaking .plate-hl{opacity:1}
+.iv-items .plate-hl{opacity:0;transition:opacity .3s}
+.iv-items.speaking .plate-hl{opacity:1}
 
 /* ---------- PT 준비실 ---------- */
 .sit-card{background:linear-gradient(135deg,#fff,#f4f8fd);border:2px solid var(--sky2);border-radius:18px;padding:20px;box-shadow:var(--shadow);position:relative;overflow:hidden}
@@ -356,6 +356,111 @@ h1,h2,h3{line-height:1.3;margin:0}
   </div>
 </section>
 
+<!-- ==================== 설정 ==================== -->
+<section id="scr-settings" class="screen">
+  <div class="wrap">
+    <div class="topbar"><button class="icon-btn" data-go="menu" aria-label="뒤로">←</button><h2>설정</h2></div>
+    <div class="card">
+      <div class="set-row"><div class="lbl"><b>면접관 음성</b><small id="ttsSupport">질문을 소리로 읽어 줍니다</small></div>
+        <div style="display:flex;gap:8px;align-items:center"><div class="seg" data-set="voice"><button data-v="true">켜기</button><button data-v="false">끄기</button></div><button class="btn small ghost" id="ttsTest">들어 보기</button></div></div>
+      <div class="set-row"><div class="lbl"><b>답변 시간 (경험 면접)</b><small>질문 1개당 제한시간</small></div>
+        <div class="seg" data-set="answerTime"><button data-v="60">60초</button><button data-v="90">90초</button><button data-v="120">120초</button></div></div>
+      <div class="set-row"><div class="lbl"><b>압박 강도</b><small>꼬리질문 수 · 압박 이벤트 확률</small></div>
+        <div class="seg" data-set="pressure"><button data-v="mild">순한맛</button><button data-v="real">실전</button><button data-v="hell">지옥</button></div></div>
+      <div class="set-row"><div class="lbl"><b>질문 개수 (경험 면접)</b><small>자기소개 · 마지막 할 말 포함</small></div>
+        <div class="seg" data-set="qCount"><button data-v="5">5개</button><button data-v="8">8개</button><button data-v="12">12개</button></div></div>
+      <div class="set-row"><div class="lbl"><b>답변 시작 시 마이크 자동 켜기</b><small id="sttSupport"></small></div>
+        <div class="seg" data-set="autoMic"><button data-v="true">켜기</button><button data-v="false">끄기</button></div></div>
+    </div>
+    <div class="card" style="margin-top:14px">
+      <div class="set-row"><div class="lbl"><b>기록 초기화</b><small>스트릭 · 기록 · 오답노트 · 업적을 모두 지웁니다</small></div>
+        <button class="btn small danger" id="resetAll">초기화</button></div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== 대기실 ==================== -->
+<section id="scr-wait" class="screen">
+  <div class="wrap">
+    <div class="topbar"><button class="icon-btn" id="waitBack" aria-label="그만두기">✕</button><h2 id="waitTitle">면접 대기실</h2></div>
+    <div class="waitroom">
+      <svg viewBox="0 0 800 300" aria-hidden="true">
+        <rect width="800" height="300" fill="#e3ecf6"/>
+        <rect y="230" width="800" height="70" fill="#c9d6e6"/>
+        <g opacity=".5" stroke="#cfdbe9" stroke-width="2">
+          <line x1="0" y1="80" x2="800" y2="80"/><line x1="0" y1="160" x2="560" y2="160"/>
+        </g>
+        <!-- 면접실 문 -->
+        <rect x="600" y="60" width="130" height="172" fill="#7b5a3c"/>
+        <rect x="610" y="70" width="110" height="162" fill="#2a3a4d"/>
+        <rect class="door" id="doorLeaf" x="610" y="70" width="110" height="162" fill="#a77d55"/>
+        <circle cx="706" cy="155" r="5" fill="#e8c27a"/>
+        <rect x="610" y="26" width="110" height="28" rx="6" fill="#0d2f57"/>
+        <text x="665" y="46" text-anchor="middle" fill="#fff" font-size="16" font-weight="700">면접실</text>
+        <!-- 진행요원 -->
+        <g id="staff" opacity="0" style="transition:opacity .6s">
+          <circle cx="760" cy="140" r="16" fill="#f0cfae"/><path d="M738 232 C738 176 782 176 782 232 Z" fill="#1d5fa8"/>
+          <rect x="752" y="186" width="16" height="10" fill="#fff"/>
+        </g>
+        <!-- 의자와 지원자들 -->
+        <g fill="#8aa1bd">
+          <rect x="60" y="190" width="70" height="12" rx="4"/><rect x="150" y="190" width="70" height="12" rx="4"/><rect x="240" y="190" width="70" height="12" rx="4"/><rect x="330" y="190" width="70" height="12" rx="4"/><rect x="420" y="190" width="70" height="12" rx="4"/>
+        </g>
+        <g fill="#5f748f">
+          <circle cx="95" cy="132" r="17"/><path d="M70 192 C70 150 120 150 120 192 Z"/>
+          <circle cx="275" cy="134" r="17"/><path d="M250 192 C250 152 300 152 300 192 Z"/>
+          <circle cx="455" cy="132" r="17"/><path d="M430 192 C430 150 480 150 480 192 Z"/>
+        </g>
+        <g><circle cx="185" cy="130" r="18" fill="#f0cfae"/><path d="M158 192 C158 148 212 148 212 192 Z" fill="#0d2f57"/><rect x="175" y="160" width="20" height="16" rx="2" fill="#fff"/><text x="185" y="172" text-anchor="middle" font-size="10" font-weight="800" fill="#0d2f57" id="myNoSvg">27</text>
+          <text x="185" y="98" text-anchor="middle" font-size="14" font-weight="800" fill="#1d5fa8">나</text></g>
+        <text x="20" y="40" font-size="18" font-weight="800" fill="#0d2f57" id="waitSign">2026 하반기 채용 면접</text>
+      </svg>
+    </div>
+    <div class="call" id="callText">잠시 대기해 주세요…</div>
+    <div class="gauge-wrap" id="waitGaugeWrap"><span class="gl"><span class="heart">💓</span> 긴장도</span><div class="gauge"><div class="cover" id="waitGauge"></div></div><span class="gv" id="waitGaugeV">50</span></div>
+    <div class="tip-box" id="tipBox"></div>
+    <div class="wait-actions">
+      <button class="btn ghost" id="breatheBtn">🌬️ 심호흡 (3)</button>
+      <button class="btn" id="enterBtn" disabled>입장하기</button>
+    </div>
+    <p class="notice" style="text-align:center"><button class="btn small ghost" id="skipWait" style="margin-top:6px">대기 건너뛰기</button></p>
+  </div>
+</section>
+
+<!-- ==================== 면접장 ==================== -->
+<section id="scr-room" class="screen">
+  <div class="room-wrap">
+    <div class="hud">
+      <span class="prog" id="hudProg">질문 1/8</span>
+      <div class="gauge-wrap" id="roomGaugeWrap"><span class="gl"><span class="heart">💓</span></span><div class="gauge"><div class="cover" id="roomGauge"></div></div><span class="gv" id="roomGaugeV">50</span></div>
+      <button class="btn small ghost" id="quitBtn">중단</button>
+    </div>
+    <div class="stage" id="stage"></div>
+    <div class="bubble" id="bubble"><div class="who" id="bubbleWho">위원장</div><div class="text" id="bubbleText">안녕하세요. 자리에 앉아 주세요.</div><button class="replay" id="replayBtn" aria-label="다시 듣기">🔊</button></div>
+    <div class="answer-panel">
+      <details class="memo-ref hidden" id="memoRef"><summary>📝 내 PT 메모 보기</summary><div class="m" id="memoRefText"></div></details>
+      <div class="timer" id="timer"><div class="fill" id="timerFill"></div></div>
+      <div class="timer-row"><span id="timerLabel">대기 중</span><span id="timerLeft"></span></div>
+      <textarea id="answerText" placeholder="면접관의 질문이 끝나면 답변을 시작하세요. 🎤 버튼으로 말하거나 직접 입력할 수 있어요." disabled></textarea>
+      <div class="interim" id="interim"></div>
+      <div class="ans-actions">
+        <button class="btn navy mic-btn" id="micBtn" disabled>🎤 말로 답변</button>
+        <button class="btn" id="submitBtn" disabled>답변 완료 ✓</button>
+      </div>
+      <p class="notice" id="inputNotice"></p>
+    </div>
+  </div>
+  <div class="vignette" id="vignette"></div>
+</section>
+
+<!-- ==================== 결과 리포트 ==================== -->
+<section id="scr-report" class="screen">
+  <div class="wrap" id="reportBox"></div>
+</section>
+
+<!-- 모달 -->
+<div class="modal hidden" id="modal"><div class="sheet" id="modalSheet"></div></div>
+
 <div id="toasts" aria-live="polite"></div>
 
 <!-- =====================================================================
@@ -368,6 +473,7 @@ h1,h2,h3{line-height:1.3;margin:0}
      • followUps: 꼬리질문. ifMissing 키워드를 본 답변에서 빠뜨리면 우선 출제,
        next: 에 넣은 질문은 그 꼬리질문 다음에 이어지는 2단계 꼬리질문입니다.
      • 모범답변의 [대괄호]는 본인 실제 경험으로 바꿔 말해야 하는 부분입니다.
+     • (선택) limit: 이 질문만의 제한시간(초), minSec: 이보다 짧으면 "너무 짧음"
      ===================================================================== -->
 <script id="game-data">
 const CONFIG = {
@@ -650,7 +756,7 @@ const EXP_QUESTIONS = [
 
   /* ---------- 일반 질문 ---------- */
   {
-    id: 'G-intro', type: 'general', fixed: 'first', src: '일반 · 자기소개', by: 'chair', structure: 'PREP',
+    id: 'G-intro', type: 'general', fixed: 'first', src: '일반 · 자기소개', by: 'chair', structure: 'PREP', minSec: 40,
     q: '1분 동안 자기소개 해 주세요.',
     keywords: ['차량|정비', '안전', '강점|장점', '경험|실습', '하겠습니다|포부'],
     model: '▶한 줄 소개: 작은 이상도 넘기지 않는 안전한 정비원, [이름]입니다.\n▶근거 1: 실습 때 공구와 부품이 섞여 작은 부품이 자주 떨어지는 것을 보고, 책상을 구역별로 나누고 트레이를 사용해 낙하와 작업 시간을 줄였습니다.\n▶근거 2: 반도체기술경진대회에서 의견이 다른 팀원의 의도를 먼저 듣고 대체 자재로 작동 모형을 만드는 대안을 제시해 양쪽 목표를 모두 충족했습니다.\n▶포부: 익숙한 작업일수록 절차를 지키고, 동료와 소통하며, 승객이 안심하고 탈 수 있는 차량을 만드는 [부산경남권] 차량 정비원이 되겠습니다.',
@@ -800,7 +906,7 @@ const EXP_QUESTIONS = [
     ]
   },
   {
-    id: 'G-last', type: 'general', fixed: 'last', src: '일반 · 마무리', by: 'chair', structure: 'PREP',
+    id: 'G-last', type: 'general', fixed: 'last', src: '일반 · 마무리', by: 'chair', structure: 'PREP', minSec: 10, limit: 60,
     q: '마지막으로 하고 싶은 말이 있으면 해 주세요.',
     keywords: ['감사', '안전', '하겠습니다|다짐|각오', '정비|차량'],
     model: '▶감사: 오늘 귀한 시간 내 주셔서 감사합니다.\n▶핵심 한 줄: 저는 익숙한 작업일수록 한 번 더 확인하는 사람입니다.\n▶다짐: 입사하게 된다면 작은 이상도 넘기지 않고, 동료와 정확히 공유하며, 승객이 안심하고 탈 수 있는 차량을 만드는 정비원이 되겠습니다. 감사합니다.\n※ 30초 이내로 짧고 힘 있게.',
@@ -1327,16 +1433,707 @@ function renderBank() {
 }
 SCREEN_ENTER.bank = renderBank;
 
+/* =====================================================================
+   저장소 (localStorage — 실패해도 메모리로 동작)
+   ===================================================================== */
+const STORE_KEY = 'siwoo_korail_interview_v1';
+const Store = {
+  d: null,
+  blank() {
+    return { settings: { ...CONFIG.defaults }, sessions: [], reports: {}, days: {}, streak: { cur: 0, best: 0, last: null },
+      wrong: {}, cleared: { cards: {} }, seen: {}, ach: {}, stats: { wrongCleared: 0, total: 0 } };
+  },
+  load() {
+    let raw = null;
+    try { raw = JSON.parse(localStorage.getItem(STORE_KEY) || 'null'); } catch (e) { raw = null; }
+    const b = this.blank();
+    this.d = Object.assign(b, raw || {});
+    this.d.settings = Object.assign({}, CONFIG.defaults, this.d.settings || {});
+    for (const k of ['streak', 'cleared', 'stats']) this.d[k] = Object.assign(b[k], this.d[k] || {});
+  },
+  save() { try { localStorage.setItem(STORE_KEY, JSON.stringify(this.d)); } catch (e) { /* 저장 실패해도 계속 */ } },
+  reset() { this.d = this.blank(); try { localStorage.removeItem(STORE_KEY); } catch (e) {} }
+};
+const settings = () => Store.d.settings;
+
+/* =====================================================================
+   유틸
+   ===================================================================== */
+const rand = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
+const pick = arr => arr[Math.floor(Math.random() * arr.length)];
+const shuffle = arr => { const a = arr.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const today = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+const fmtSec = s => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
+const gradeOf = score => CONFIG.grades.find(([, min]) => score >= min)[0];
+const isTouch = () => matchMedia('(pointer:coarse)').matches;
+
+/* =====================================================================
+   음성 합성 (면접관 목소리)
+   ===================================================================== */
+const Voice = {
+  synth: window.speechSynthesis || null,
+  ko: null,
+  init() {
+    if (!this.synth) return;
+    const pickVoice = () => {
+      const vs = this.synth.getVoices();
+      this.ko = vs.find(v => /ko[-_]KR/i.test(v.lang)) || vs.find(v => /^ko/i.test(v.lang)) || null;
+    };
+    pickVoice();
+    try { this.synth.addEventListener('voiceschanged', pickVoice); } catch (e) { this.synth.onvoiceschanged = pickVoice; }
+  },
+  get enabled() { return !!this.synth && settings().voice; },
+  cancel() { try { this.synth && this.synth.cancel(); } catch (e) {} },
+  /** 말하기. 끝나면 resolve. 음성이 꺼져 있으면 읽을 시간만큼 기다림 */
+  speak(text, who) {
+    const plain = String(text).replace(/[“”"]/g, '');
+    const readMs = clamp(600 + plain.length * 45, 1200, 3500);
+    if (!this.enabled) return new Promise(r => setTimeout(r, readMs));
+    return new Promise(resolve => {
+      let done = false;
+      const finish = () => { if (done) return; done = true; clearTimeout(fallback); resolve(); };
+      this.cancel();
+      const u = new SpeechSynthesisUtterance(plain);
+      u.lang = 'ko-KR';
+      if (this.ko) u.voice = this.ko;
+      const v = (INTERVIEWERS[who] && INTERVIEWERS[who].voice) || { pitch: 1.1, rate: 1.05 };
+      u.pitch = v.pitch; u.rate = v.rate;
+      u.onend = finish; u.onerror = finish;
+      // onend가 안 오는 브라우저 대비
+      const fallback = setTimeout(finish, 1500 + plain.length * 210 / v.rate);
+      Voice._finish = finish;
+      try { this.synth.speak(u); } catch (e) { finish(); }
+    });
+  },
+  /** 지금 말하는 것 건너뛰기 */
+  skip() { this.cancel(); if (this._finish) this._finish(); }
+};
+
+/* =====================================================================
+   음성 인식 (말로 답변) — 미지원이면 타자 입력
+   ===================================================================== */
+const SRClass = window.SpeechRecognition || window.webkitSpeechRecognition;
+const Mic = {
+  supported: !!SRClass,
+  blocked: false,
+  rec: null, on: false, lastFinal: '',
+  onFinal: null, onInterim: null, onState: null,
+  get usable() { return this.supported && !this.blocked; },
+  start() {
+    if (!this.usable || this.on) return;
+    this.on = true; this.lastFinal = '';
+    this._spawn();
+    this.onState && this.onState(true);
+  },
+  _spawn() {
+    let r;
+    try { r = new SRClass(); } catch (e) { this.blocked = true; this.stop(); return; }
+    r.lang = 'ko-KR';
+    r.interimResults = true;
+    r.continuous = !/Android/i.test(navigator.userAgent); // 안드로이드는 중복 결과 버그 회피
+    r.onresult = ev => {
+      let interim = '';
+      for (let i = ev.resultIndex; i < ev.results.length; i++) {
+        const t = ev.results[i][0].transcript.trim();
+        if (ev.results[i].isFinal) {
+          if (t && t !== this.lastFinal) { this.lastFinal = t; this.onFinal && this.onFinal(t); }
+        } else interim += t + ' ';
+      }
+      this.onInterim && this.onInterim(interim.trim());
+    };
+    r.onerror = ev => {
+      if (ev.error === 'not-allowed' || ev.error === 'service-not-allowed' || ev.error === 'audio-capture') {
+        this.blocked = true;
+        toast('🎤 마이크를 쓸 수 없어 타자 입력으로 전환합니다.');
+        this.stop();
+      }
+    };
+    r.onend = () => { if (this.on && this.rec === r) { try { r.start(); } catch (e) { setTimeout(() => this.on && this.rec === r && this._spawn(), 250); } } };
+    this.rec = r;
+    try { r.start(); } catch (e) { /* 이미 시작됨 */ }
+  },
+  stop() {
+    const wasOn = this.on;
+    this.on = false;
+    const r = this.rec; this.rec = null;
+    if (r) { try { r.stop(); } catch (e) {} }
+    this.onInterim && this.onInterim('');
+    if (wasOn || this.blocked) this.onState && this.onState(false);
+  }
+};
+
+/* =====================================================================
+   평가 엔진 (오프라인 규칙 기반)
+   ===================================================================== */
+const norm = s => String(s || '').toLowerCase().replace(/[\s.,!?~·…'"“”‘’()\[\]\-:;/]/g, '');
+const kwMatch = (n, k) => kwSyns(k).some(s => n.includes(norm(s)));
+const tabooRegex = w => new RegExp(w.trim().split('').map(c => c === ' ' ? '\\s*' : c.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join(''), 'g');
+
+function findTaboo(text) {
+  const spans = [], found = [];
+  for (const t of TABOO.slice().sort((a, b) => b.w.length - a.w.length)) {
+    const re = tabooRegex(t.w); let m;
+    while ((m = re.exec(text))) {
+      const s = m.index, e = s + m[0].length;
+      if (!spans.some(([a, b]) => s < b && e > a)) { spans.push([s, e]); found.push(t); }
+      if (m[0].length === 0) re.lastIndex++;
+    }
+  }
+  return found;
+}
+
+function checkStructure(text, key) {
+  const st = STRUCTURES[key]; if (!st) return null;
+  const n = norm(text);
+  const sentences = text.split(/(?<=[.?!])\s+|(?<=니다)\s+|(?<=[요죠])\s+|\n+/).filter(s => s.trim());
+  return st.parts.map(p => {
+    let ok;
+    if (p.head) ok = sentences.length >= 2 && norm(sentences[0]).length <= 70 && norm(sentences[0]).length >= 4;
+    else ok = p.cues.some(c => n.includes(norm(c)));
+    return { key: p.key, label: p.label, ok };
+  });
+}
+
+/**
+ * res: { text, elapsed, timeOver }
+ * spec: { kind:'main'|'follow'|'pt', keywords, core, structure, minSec }
+ */
+function evaluate(res, spec) {
+  const text = (res.text || '').trim();
+  const n = norm(text);
+  const kwHit = [], kwMiss = [];
+  (spec.keywords || []).forEach(k => (kwMatch(n, k) ? kwHit : kwMiss).push(kwLabel(k)));
+  const kwTotal = kwHit.length + kwMiss.length;
+  const kwTarget = Math.max(1, Math.ceil(kwTotal * 0.6));
+  const kwRatio = kwTotal ? Math.min(1, kwHit.length / kwTarget) : 1;
+
+  const structure = spec.structure ? checkStructure(text, spec.structure) : null;
+  const stRatio = structure ? structure.filter(p => p.ok).length / structure.length : 1;
+
+  let time = 'ok';
+  if (!n) time = 'none';
+  else if (res.timeOver) time = 'over';
+  else if (res.elapsed < spec.minSec) time = 'short';
+  const timeScore = { ok: 1, short: 0.4, over: 0.5, none: 0 }[time];
+
+  const taboo = findTaboo(text);
+  const tabooScore = Math.max(0, 1 - 0.35 * taboo.length);
+
+  let core = null;
+  if (spec.core && spec.core.length) {
+    const hit = [], miss = [];
+    spec.core.forEach(k => (kwMatch(n, k) ? hit : miss).push(kwLabel(k)));
+    const need = Math.ceil(spec.core.length / 2);
+    core = { hit, miss, linked: hit.length >= need, ratio: Math.min(1, hit.length / need) };
+  }
+
+  const W = { main: { kw: 40, st: 25, time: 15, taboo: 10, core: 10 },
+              follow: { kw: 55, st: 0, time: 20, taboo: 15, core: 10 },
+              pt: { kw: 35, st: 35, time: 15, taboo: 15, core: 0 } }[spec.kind] || {};
+  const parts = [[W.kw, kwRatio], [structure ? W.st : 0, stRatio], [W.time, timeScore], [W.taboo, tabooScore], [core ? W.core : 0, core ? core.ratio : 0]];
+  const wSum = parts.reduce((a, [w]) => a + w, 0);
+  let score = n ? Math.round(parts.reduce((a, [w, r]) => a + w * r, 0) / wSum * 100) : 0;
+  if (n && n.length < 15) score = Math.min(score, 30); // 한두 마디로 끝낸 답변
+
+  return { score, kwHit, kwMiss, kwRatio, structure, stRatio, time, elapsed: Math.round(res.elapsed || 0), taboo: taboo.map(t => t.w), tabooTips: taboo.map(t => t.tip), core, chars: n.length };
+}
+
+/* =====================================================================
+   면접관 일러스트 (SVG)
+   ===================================================================== */
+const SEATS = { tech: 190, chair: 480, hr: 770 };
+const ARROW = { tech: '20%', chair: '50%', hr: '80%', staff: '50%' };
+function interviewerSVG(id) {
+  const x = SEATS[id];
+  const skin = { chair: '#efcfb0', tech: '#e8c19c', hr: '#f3d6bd' }[id];
+  const suit = { chair: '#2b3442', tech: '#1d3f66', hr: '#5a4a6e' }[id];
+  const tie = { chair: '#8c2f39', tech: '#c99a1a', hr: null }[id];
+  const hairBack = id === 'hr' ? '<path d="M-58,-150 C-66,-222 66,-222 58,-150 L60,-104 C42,-98 30,-108 30,-128 L-30,-128 C-30,-108 -42,-98 -60,-104 Z" fill="#3b2a20"/>' : '';
+  const hairFront = {
+    chair: '<path d="M-47,-160 C-52,-206 -16,-219 4,-215 C30,-213 52,-197 47,-160 C43,-180 30,-192 2,-194 C-24,-194 -40,-182 -47,-160 Z" fill="#b8bcc4"/><path d="M-47,-165 L-50,-140 M47,-165 L50,-140" stroke="#b8bcc4" stroke-width="7" stroke-linecap="round"/>',
+    tech: '<path d="M-46,-160 C-49,-208 -22,-219 0,-219 C22,-219 49,-208 46,-160 C42,-178 32,-187 0,-189 C-32,-187 -42,-178 -46,-160 Z" fill="#1d1d22"/>',
+    hr: '<path d="M-46,-162 C-42,-214 42,-214 47,-160 C32,-186 4,-192 -18,-178 C-28,-170 -38,-165 -46,-162 Z" fill="#3b2a20"/>'
+  }[id];
+  const brows = id === 'tech'
+    ? '<path d="M-28,-178 L-6,-175" stroke="#1d1d22" stroke-width="6" stroke-linecap="round"/><path class="brow-r" d="M6,-175 L28,-178" stroke="#1d1d22" stroke-width="6" stroke-linecap="round"/>'
+    : `<path d="M-27,-176 Q-17,-181 -7,-176" stroke="${id === 'chair' ? '#8d9199' : '#3b2a20'}" stroke-width="4" fill="none" stroke-linecap="round"/><path class="brow-r" d="M7,-176 Q17,-181 27,-176" stroke="${id === 'chair' ? '#8d9199' : '#3b2a20'}" stroke-width="4" fill="none" stroke-linecap="round"/>`;
+  const glasses = id === 'chair'
+    ? '<g fill="none" stroke="#3a3f47" stroke-width="2.5"><rect x="-30" y="-170" width="23" height="18" rx="7"/><rect x="7" y="-170" width="23" height="18" rx="7"/><path d="M-7,-163 L7,-163"/></g>' : '';
+  const extra = id === 'chair' ? '<path d="M-30,-140 Q-26,-136 -22,-140 M22,-140 Q26,-136 30,-140" stroke="#c9a68a" stroke-width="2" fill="none"/>'
+    : id === 'hr' ? '<circle cx="-46" cy="-140" r="4" fill="#e2b33c"/><circle cx="46" cy="-140" r="4" fill="#e2b33c"/>' : '';
+  const tieSvg = tie ? `<path d="M-7,-94 L7,-94 L11,-42 L0,-30 L-11,-42 Z" fill="${tie}"/>` : '<path d="M-22,-98 L0,-70 L22,-98" fill="none" stroke="#fff" stroke-width="5"/>';
+  const label = INTERVIEWERS[id].name;
+  return `
+  <g class="iv" id="iv-${id}" data-expr="neutral" transform="translate(${x},300)">
+    <path d="M-102,12 C-102,-58 -72,-92 -32,-99 L32,-99 C72,-92 102,-58 102,12 Z" fill="${suit}"/>
+    <path d="M-30,-99 L0,-46 L30,-99 Z" fill="#fff"/>
+    ${tieSvg}
+    <path d="M-32,-99 L-4,-38 L-18,-28 L-52,-82 Z M32,-99 L4,-38 L18,-28 L52,-82 Z" fill="rgba(0,0,0,.18)"/>
+    ${id === 'tech' ? '<rect x="38" y="-70" width="26" height="16" rx="3" fill="#e9eff7"/><rect x="42" y="-66" width="18" height="3" fill="#1d5fa8"/>' : ''}
+    <rect x="-14" y="-122" width="28" height="28" fill="${skin}"/>
+    <g class="head">
+      ${hairBack}
+      <circle cx="-45" cy="-158" r="10" fill="${skin}"/><circle cx="45" cy="-158" r="10" fill="${skin}"/>
+      <ellipse cx="0" cy="-160" rx="44" ry="52" fill="${skin}"/>
+      ${hairFront}
+      ${brows}
+      <g class="eyes"><ellipse cx="-17" cy="-160" rx="4.5" ry="6" fill="#23262b"/><ellipse cx="17" cy="-160" rx="4.5" ry="6" fill="#23262b"/></g>
+      ${glasses}
+      <path d="M0,-152 L-5,-140 L3,-139" stroke="rgba(0,0,0,.25)" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+      ${extra}
+      <path class="mouth m-flat" d="M-12,-128 L12,-128" stroke="#7a3b35" stroke-width="3.5" stroke-linecap="round"/>
+      <path class="mouth m-smile" d="M-15,-132 Q0,-117 15,-132" stroke="#7a3b35" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+      <path class="mouth m-hmm" d="M-12,-126 Q-4,-132 4,-127 T14,-129" stroke="#7a3b35" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+      <ellipse class="mouth m-talk" cx="0" cy="-128" rx="9" ry="6" fill="#7a3b35"/>
+    </g>
+  </g>`;
+}
+function tableItemsSVG(id) {
+  const x = SEATS[id], skin = { chair: '#efcfb0', tech: '#e8c19c', hr: '#f3d6bd' }[id];
+  const suit = { chair: '#2b3442', tech: '#1d3f66', hr: '#5a4a6e' }[id];
+  return `<g class="iv-items" data-for="${id}" transform="translate(${x},300)">
+    <rect x="-36" y="14" width="56" height="38" rx="3" fill="#fff" transform="rotate(-4)"/>
+    <g stroke="#c9d6e6" stroke-width="2" transform="rotate(-4)"><line x1="-30" y1="24" x2="14" y2="24"/><line x1="-30" y1="32" x2="14" y2="32"/><line x1="-30" y1="40" x2="4" y2="40"/></g>
+    <rect x="-96" y="2" width="40" height="18" rx="8" fill="${suit}"/><ellipse cx="-56" cy="12" rx="15" ry="10" fill="${skin}"/>
+    <rect x="56" y="2" width="40" height="18" rx="8" fill="${suit}"/><ellipse cx="54" cy="12" rx="15" ry="10" fill="${skin}"/>
+    <g class="pen"><line x1="30" y1="20" x2="10" y2="40" stroke="#222" stroke-width="5" stroke-linecap="round"/></g>
+    <rect class="plate-hl" x="-68" y="54" width="136" height="38" rx="8" fill="#ffd54a"/>
+    <path d="M-60,58 L60,58 L66,88 L-66,88 Z" fill="#f4f7fb"/>
+    <text x="0" y="80" text-anchor="middle" font-size="18" font-weight="800" fill="#0d2f57">${INTERVIEWERS[id].name}</text>
+  </g>`;
+}
+function buildStage() {
+  $('#stage').innerHTML = `
+  <svg viewBox="0 0 960 400" role="img" aria-label="면접관 세 명이 테이블에 앉아 있는 면접장">
+    <rect width="960" height="400" fill="#dfe8f3"/>
+    <g stroke="#d1deec" stroke-width="3">${[120, 240, 360, 600, 720, 840].map(x => `<line x1="${x}" y1="0" x2="${x}" y2="300"/>`).join('')}</g>
+    <rect x="395" y="22" width="170" height="64" rx="6" fill="#f6f9fc" stroke="#b9c9dc" stroke-width="4"/>
+    <path d="M410 66 L460 46 L520 46 L550 66 Z" fill="#2f7fd1" opacity=".35"/><line x1="405" y1="70" x2="555" y2="70" stroke="#5b6b80" stroke-width="3"/>
+    <circle cx="880" cy="56" r="26" fill="#fff" stroke="#b9c9dc" stroke-width="4"/><path d="M880 56 L880 40 M880 56 L892 62" stroke="#14243a" stroke-width="3" stroke-linecap="round"/>
+    ${['tech', 'chair', 'hr'].map(interviewerSVG).join('')}
+    <rect x="0" y="296" width="960" height="104" fill="#1f4470"/>
+    <rect x="0" y="296" width="960" height="12" fill="#2d5a8c"/>
+    <rect x="300" y="262" width="12" height="40" rx="4" fill="#bfe1ff" opacity=".85"/><rect x="650" y="262" width="12" height="40" rx="4" fill="#bfe1ff" opacity=".85"/>
+    ${['tech', 'chair', 'hr'].map(tableItemsSVG).join('')}
+  </svg>`;
+}
+function setExpr(id, expr) { const g = $('#iv-' + id); if (g) { g.dataset.expr = 'reset'; g.getBoundingClientRect(); g.dataset.expr = expr; } $$('.iv-items[data-for="' + id + '"]').forEach(it => it.classList.toggle('memo', expr === 'memo')); }
+function setAllExpr(expr) { ['chair', 'tech', 'hr'].forEach(id => setExpr(id, expr)); }
+function setSpeaking(id) {
+  ['chair', 'tech', 'hr'].forEach(k => {
+    const g = $('#iv-' + k); if (g) g.classList.toggle('speaking', k === id);
+    $$('.iv-items[data-for="' + k + '"]').forEach(it => it.classList.toggle('speaking', k === id));
+  });
+}
+/** 답변 점수에 따라 면접관 반응: 끄덕임 / 메모 / 무표정 / 고개 갸웃 */
+function react(asker, score) {
+  const e = score >= 80 ? 'nod' : score >= 60 ? 'memo' : score >= 40 ? 'neutral' : 'tilt';
+  setExpr(asker, e);
+  ['chair', 'tech', 'hr'].filter(k => k !== asker).forEach(k =>
+    setExpr(k, score >= 80 ? pick(['nod', 'memo', 'neutral']) : score < 45 ? pick(['tilt', 'memo', 'neutral']) : pick(['memo', 'neutral'])));
+}
+</script>
+<script>
+'use strict';
+/* =====================================================================
+   세션 · 흐름 제어
+   ===================================================================== */
+class AbortErr extends Error {}
+let S = null; // 현재 면접 세션
+
+function guard(fn) {
+  return new Promise((resolve, reject) => {
+    if (!S || S.aborted) return reject(new AbortErr());
+    const sess = S;
+    sess.rejecters.add(reject);
+    fn(v => { sess.rejecters.delete(reject); resolve(v); }, reject);
+  });
+}
+function sleep(ms) { return guard(res => { const t = setTimeout(res, ms); S.timers.add(t); }); }
+function abortSession() {
+  if (!S) return;
+  S.aborted = true;
+  S.timers.forEach(t => { clearTimeout(t); clearInterval(t); });
+  S.rejecters.forEach(r => r(new AbortErr()));
+  Voice.cancel(); Mic.stop();
+  setVignette(false);
+}
+
+/* ---------- 긴장도 ---------- */
+function setTension(v) {
+  if (!S) return;
+  S.tension = clamp(Math.round(v), 0, 100);
+  S.maxTension = Math.max(S.maxTension, S.tension);
+  for (const [g, gv, wrap] of [['#waitGauge', '#waitGaugeV', '#waitGaugeWrap'], ['#roomGauge', '#roomGaugeV', '#roomGaugeWrap']]) {
+    $(g).style.width = (100 - S.tension) + '%';
+    $(gv).textContent = S.tension;
+    $(wrap).classList.toggle('tense-hi', S.tension >= 70);
+  }
+  setVignette(S.tension >= 85 && $('#scr-room').classList.contains('active'));
+}
+const addTension = d => S && setTension(S.tension + d);
+function setVignette(on) { $('#vignette').classList.toggle('on', !!on); }
+
+/* ---------- 말풍선 ---------- */
+let lastSaid = null;
+async function say(who, text, { pressure = false } = {}) {
+  const b = $('#bubble');
+  b.style.setProperty('--arrow', ARROW[who] || '50%');
+  b.classList.toggle('pressure', pressure);
+  $('#bubbleWho').textContent = (INTERVIEWERS[who] ? INTERVIEWERS[who].name : '진행요원') + (pressure ? ' · 압박' : '');
+  $('#bubbleText').textContent = text;
+  lastSaid = { who, text };
+  setSpeaking(who);
+  try { await guard(res => Voice.speak(text, who).then(res)); }
+  finally { setSpeaking(null); }
+}
+
+/* ---------- 답변 입력 단계 ---------- */
+const ans = { resolve: null, startedAt: 0, limit: 0, timer: null, emptyWarned: false };
+function setAnswerUI(on) {
+  $('#answerText').disabled = !on;
+  $('#submitBtn').disabled = !on;
+  $('#micBtn').disabled = !on || !Mic.usable;
+  if (!on) { Mic.stop(); }
+}
+function updateInputNotice() {
+  $('#inputNotice').textContent = Mic.usable
+    ? '🎤 말로 답하면 글자로 바뀝니다. 잘못 인식된 부분은 직접 고쳐도 돼요.'
+    : '⌨️ 이 브라우저는 음성 인식을 지원하지 않아 타자로 답변합니다. (크롬·엣지·사파리 권장)';
+  $('#micBtn').classList.toggle('hidden', !Mic.usable);
+}
+function answerPhase({ limit, minSec, label = '답변 시간' }) {
+  return guard(resolve => {
+    const ta = $('#answerText');
+    ta.value = ''; $('#interim').textContent = '';
+    ans.resolve = resolve; ans.limit = limit; ans.minSec = minSec; ans.startedAt = performance.now(); ans.emptyWarned = false;
+    setAnswerUI(true);
+    updateInputNotice();
+    $('#timerLabel').textContent = label;
+    const timerEl = $('#timer');
+    timerEl.classList.remove('warn', 'over');
+    if (Mic.usable && settings().autoMic) Mic.start();
+    else if (!isTouch()) ta.focus();
+    ans.timer = setInterval(() => {
+      const el = (performance.now() - ans.startedAt) / 1000;
+      const left = Math.max(0, limit - el);
+      $('#timerFill').style.width = (left / limit * 100) + '%';
+      $('#timerLeft').textContent = `${fmtSec(left)} 남음`;
+      timerEl.classList.toggle('warn', left <= limit * 0.25 && left > 0);
+      if (el < minSec) $('#timerLabel').textContent = `${label} · ${Math.ceil(minSec - el)}초 더 말하면 적정`;
+      else $('#timerLabel').textContent = label;
+      if (left <= 0) { timerEl.classList.add('over'); finishAnswer(true); }
+    }, 200);
+    S.timers.add(ans.timer);
+  });
+}
+async function finishAnswer(timeOver = false) {
+  if (!ans.resolve) return;
+  const ta = $('#answerText');
+  if (!timeOver && !ta.value.trim() && !$('#interim').textContent.trim() && !ans.emptyWarned) {
+    ans.emptyWarned = true;
+    toast('답변이 비어 있어요. 한 번 더 누르면 그대로 넘어갑니다.');
+    return;
+  }
+  const resolve = ans.resolve; ans.resolve = null;
+  clearInterval(ans.timer);
+  const elapsed = Math.min(ans.limit, (performance.now() - ans.startedAt) / 1000);
+  if (Mic.on) {
+    // 인식 중이던 문장을 마저 받기
+    const pending = $('#interim').textContent.trim();
+    Mic.stop();
+    await new Promise(r => setTimeout(r, 450));
+    if (pending && !ta.value.includes(pending)) ta.value = (ta.value + ' ' + pending).trim();
+  }
+  setAnswerUI(false);
+  $('#timerLabel').textContent = timeOver ? '⏰ 시간 초과' : '답변 완료';
+  resolve({ text: ta.value.trim(), elapsed, timeOver });
+}
+
+/* ---------- 자기평가 ---------- */
+function selfEval(kind) {
+  return guard(resolve => {
+    const items = [['conf', '자신감'], ['logic', '논리'], ['consist', kind === 'pt' ? '발표–답변 일관성' : '자소서와 일관성']];
+    const val = { conf: 3, logic: 3, consist: 3 };
+    openModal(`<h3>자기평가</h3><p class="muted" style="margin:0">방금 답변을 스스로 평가해 보세요. (1 = 부족, 5 = 매우 좋음)</p>
+      ${items.map(([k, l]) => `<div class="rate-row"><div class="lbl">${l}</div><div class="rate" data-k="${k}">${[1, 2, 3, 4, 5].map(n => `<button data-n="${n}" class="${n === 3 ? 'on' : ''}">${n}</button>`).join('')}</div></div>`).join('')}
+      <button class="btn block" id="selfOk" style="margin-top:8px">다음으로 →</button>`);
+    $$('#modalSheet .rate').forEach(r => r.addEventListener('click', e => {
+      const b = e.target.closest('button'); if (!b) return;
+      val[r.dataset.k] = +b.dataset.n;
+      $$('button', r).forEach(x => x.classList.toggle('on', x === b));
+    }));
+    $('#selfOk').addEventListener('click', () => { closeModal(); resolve(val); });
+  });
+}
+function openModal(html) { $('#modalSheet').innerHTML = html; $('#modal').classList.remove('hidden'); }
+function closeModal() { $('#modal').classList.add('hidden'); }
+
+/* ---------- 대기실 ---------- */
+function waitingRoom({ title, callLine }) {
+  show('wait');
+  $('#waitTitle').textContent = title;
+  $('#myNoSvg').textContent = S.candNo;
+  $('#callText').textContent = '잠시 대기해 주세요…';
+  $('#callText').classList.remove('flash');
+  $('#doorLeaf').classList.remove('open');
+  $('#staff').style.opacity = 0;
+  $('#enterBtn').disabled = true;
+  let breaths = 3;
+  const bb = $('#breatheBtn'); bb.disabled = false; bb.textContent = `🌬️ 심호흡 (${breaths})`;
+  setTension(S.tension);
+  const tips = shuffle(WAIT_TIPS); let ti = 0;
+  const showTip = () => { $('#tipBox').innerHTML = '💡 ' + esc(tips[ti++ % tips.length]); };
+  showTip();
+  const tipT = setInterval(showTip, 4000); S.timers.add(tipT);
+  return guard(resolve => {
+    let called = false;
+    const call = () => {
+      if (called || S.aborted) return; called = true;
+      $('#doorLeaf').classList.add('open'); $('#staff').style.opacity = 1;
+      const line = callLine.replace('{no}', S.candNo);
+      $('#callText').textContent = `📢 "${line}"`;
+      $('#callText').classList.add('flash');
+      addTension(6);
+      $('#enterBtn').disabled = false;
+      Voice.speak(line, 'staff');
+    };
+    const ct = setTimeout(call, 6500); S.timers.add(ct);
+    bb.onclick = () => {
+      if (breaths <= 0) return;
+      breaths--; bb.disabled = true; bb.textContent = '들이쉬고… 내쉬고…';
+      const t = setTimeout(() => { addTension(-7); bb.textContent = `🌬️ 심호흡 (${breaths})`; bb.disabled = breaths <= 0; }, 2500); S.timers.add(t);
+    };
+    $('#skipWait').onclick = () => { call(); finish(); };
+    $('#enterBtn').onclick = finish;
+    function finish() { clearInterval(tipT); clearTimeout(ct); Voice.cancel(); resolve(); }
+  });
+}
+
+/* ---------- 면접장 준비 ---------- */
+function enterRoom() {
+  show('room');
+  setAllExpr('neutral'); setSpeaking(null);
+  $('#answerText').value = ''; $('#interim').textContent = '';
+  $('#timerFill').style.width = '100%'; $('#timerLeft').textContent = ''; $('#timerLabel').textContent = '대기 중';
+  $('#memoRef').classList.add('hidden');
+  setAnswerUI(false); updateInputNotice();
+  setTension(S.tension);
+}
+function hud(text) { $('#hudProg').textContent = text; }
+
+/* =====================================================================
+   경험 면접
+   ===================================================================== */
+function buildExpSet(n) {
+  const first = EXP_QUESTIONS.find(q => q.fixed === 'first');
+  const last = EXP_QUESTIONS.find(q => q.fixed === 'last');
+  const mid = n - (first ? 1 : 0) - (last ? 1 : 0);
+  const bySeen = list => shuffle(list).sort((a, b) => (Store.d.seen[a.id] || 0) - (Store.d.seen[b.id] || 0));
+  const resume = bySeen(EXP_QUESTIONS.filter(q => q.type === 'resume'));
+  const general = bySeen(EXP_QUESTIONS.filter(q => q.type === 'general' && !q.fixed));
+  const nR = Math.min(resume.length, Math.ceil(mid * 0.6));
+  const chosen = shuffle(resume.slice(0, nR).concat(general.slice(0, mid - nR)));
+  return [first, ...chosen, last].filter(Boolean);
+}
+
+function followLimit() { return Math.max(40, Math.round(settings().answerTime * CONFIG.followLimitRatio)); }
+
+function chooseFollow(pool, prevEv) {
+  let best = null, bw = 0;
+  for (const f of pool) {
+    let w = 1;
+    if (f.ifMissing && f.ifMissing.some(k => prevEv.kwMiss.includes(kwLabel(k)))) w += 3;
+    if (f.pressure) w *= S.pressureKey === 'hell' ? 2.5 : S.pressureKey === 'mild' ? 0 : 1;
+    w *= 0.5 + Math.random();
+    if (w > bw) { bw = w; best = f; }
+  }
+  return best;
+}
+
+/** 답변 하나: 질문 → 답변 → 평가 → 반응 */
+async function askAndAnswer({ who, text, spec, limit, minSec, role, model, pressure = false, label }) {
+  await say(who, text, { pressure });
+  const res = await answerPhase({ limit, minSec, label });
+  const ev = evaluate(res, { ...spec, minSec });
+  // 긴장도
+  if (res.timeOver) addTension(12);
+  if (ev.taboo.length) addTension(Math.min(15, ev.taboo.length * 5));
+  if (ev.time === 'none') addTension(10);
+  if (ev.score >= 80) addTension(-8); else if (ev.score < 45) addTension(6);
+  react(who, ev.score);
+  if (res.timeOver) await say(who, '네, 시간 관계상 거기까지 듣겠습니다.');
+  await sleep(1100);
+  return { role, who, q: text, text: res.text, elapsed: ev.elapsed, ev, model, pressure };
+}
+
+async function runExpQuestion(q, idx, total, labelPrefix = '경험') {
+  hud(`${labelPrefix} ${idx}/${total}`);
+  setAllExpr('neutral');
+  const block = { kind: 'exp', id: q.id, title: q.q, type: q.type, src: q.src, answers: [] };
+  const main = await askAndAnswer({ who: q.by, text: q.q, role: 'main', model: q.model,
+    spec: { kind: 'main', keywords: q.keywords, core: q.core, structure: q.structure },
+    limit: q.limit || settings().answerTime, minSec: q.minSec ?? CONFIG.tooShort.main });
+  block.answers.push(main);
+
+  // 압박 이벤트 (자소서 기반 질문에서 확률 발생)
+  if (q.type === 'resume' && q.core && Math.random() < S.pcfg.eventRate) {
+    addTension(10);
+    block.answers.push(await askAndAnswer({ who: 'hr', text: PRESSURE_EVENT, role: 'event', pressure: true,
+      model: '당황하지 말고 자소서의 핵심 내용을 그대로 다시 짚으세요: ' + q.core.map(kwLabel).join(' · '),
+      spec: { kind: 'follow', keywords: q.core, core: q.core }, limit: followLimit(), minSec: CONFIG.tooShort.follow, label: '압박 질문' }));
+  }
+
+  // 꼬리질문 1~2개 (트리)
+  const [fmin, fmax] = S.pcfg.follow;
+  const nF = Math.min(q.followUps.length ? rand(fmin, fmax) : 0, S.forceFollow ?? 9);
+  let pool = q.followUps.filter(f => !(f.pressure && S.pressureKey === 'mild'));
+  let prev = main, cur = null;
+  for (let k = 0; k < nF; k++) {
+    const f = (cur && cur.next && cur.next.length) ? pick(cur.next) : chooseFollow(pool, prev.ev);
+    if (!f) break;
+    pool = pool.filter(x => x !== f);
+    let line = f.q, pressure = !!f.pressure;
+    if (prev.ev.score < 60 && Math.random() < S.pcfg.prefixRate) { line = pick(PRESSURE_PREFIX) + ' ' + f.q; pressure = true; addTension(4); }
+    if (pressure) addTension(4);
+    const a = await askAndAnswer({ who: f.by, text: line, role: 'follow', model: f.model, pressure,
+      spec: { kind: 'follow', keywords: f.keywords, core: f.core }, limit: followLimit(), minSec: CONFIG.tooShort.follow, label: '꼬리질문' });
+    block.answers.push(a);
+    prev = a; cur = f;
+  }
+  block.self = await selfEval('exp');
+  finalizeBlock(block);
+  Store.d.seen[q.id] = (Store.d.seen[q.id] || 0) + 1;
+  return block;
+}
+
+function finalizeBlock(block) {
+  const main = block.answers.find(a => a.role === 'main');
+  const rest = block.answers.filter(a => a !== main);
+  const fAvg = rest.length ? rest.reduce((s, a) => s + a.ev.score, 0) / rest.length : null;
+  const auto = fAvg == null ? main.ev.score : main.ev.score * 0.6 + fAvg * 0.4;
+  const sv = block.self ? (block.self.conf + block.self.logic + block.self.consist) / 3 : 3;
+  block.auto = Math.round(auto);
+  block.score = Math.round(auto * 0.9 + sv * 2);
+}
+
+async function runExpPart(questions, labelPrefix) {
+  for (let i = 0; i < questions.length; i++) {
+    if (i > 0 && Math.random() < 0.5) await say('chair', pick(['네, 잘 들었습니다.', '알겠습니다. 다음 질문 드리겠습니다.', '네. 이어서 질문하겠습니다.']));
+    S.blocks.push(await runExpQuestion(questions[i], i + 1, questions.length, labelPrefix));
+  }
+}
+
+/* ---------- 세션 시작/종료 ---------- */
+function newSession(mode, extra = {}) {
+  if (S) abortSession();
+  const pk = settings().pressure;
+  S = { mode, pressureKey: pk, pcfg: CONFIG.pressure[pk], candNo: rand(3, 48), tension: rand(40, 55), maxTension: 0,
+        blocks: [], timers: new Set(), rejecters: new Set(), aborted: false, startedAt: Date.now(), ...extra };
+  S.maxTension = S.tension;
+  return S;
+}
+
+async function startMode(mode, opts = {}) {
+  if (mode !== 'exp' && typeof runPTMode !== 'function') { toast('준비 중인 모드입니다.'); return; }
+  const sess = newSession(mode, opts);
+  try {
+    if (mode === 'exp') {
+      const qs = opts.questions || buildExpSet(+settings().qCount);
+      await waitingRoom({ title: opts.retry ? '오답노트 재도전' : '경험 면접 대기실', callLine: '수험번호 {no}번, 들어오세요.' });
+      enterRoom();
+      await say('chair', opts.retry ? '다시 오셨네요. 지난번에 아쉬웠던 질문부터 다시 해 보겠습니다.' : '반갑습니다. 편하게 앉으세요. 지금부터 경험 면접을 시작하겠습니다.');
+      await runExpPart(qs, opts.retry ? '재도전' : '경험');
+      await say('chair', '수고하셨습니다. 이상으로 면접을 마치겠습니다.');
+    } else if (typeof runPTMode === 'function') {
+      await runPTMode(mode, opts);
+    }
+    if (sess.aborted) return;
+    finishSession();
+  } catch (e) {
+    if (!(e instanceof AbortErr)) { console.error(e); toast('오류가 발생했습니다: ' + esc(e.message)); show('menu'); }
+  }
+}
+
+function finishSession() {
+  const sess = S;
+  setVignette(false); Voice.cancel(); Mic.stop();
+  const total = sess.blocks.length ? Math.round(sess.blocks.reduce((s, b) => s + b.score, 0) / sess.blocks.length) : 0;
+  const report = { id: 'r' + sess.startedAt, date: new Date(sess.startedAt).toISOString(), mode: sess.mode, retry: !!sess.retry,
+    pressure: sess.pressureKey, score: total, grade: gradeOf(total), maxTension: sess.maxTension, endTension: sess.tension,
+    blocks: sess.blocks, durationSec: Math.round((Date.now() - sess.startedAt) / 1000) };
+  sess.report = report;
+  if (typeof recordSession === 'function') recordSession(report); else Store.save();
+  S = null;
+  renderReport(report);
+  show('report');
+}
+
+/* ---------- 리포트 (기본) ---------- */
+function renderReport(r) {
+  $('#reportBox').innerHTML = `
+    <div class="topbar"><button class="icon-btn" data-go="menu" aria-label="메뉴">⌂</button><h2>결과 리포트</h2></div>
+    <div class="card grade-hero"><div class="grade-badge g-${r.grade}">${r.grade}</div>
+      <div><div class="score-big">${r.score}점</div><div class="muted">질문 ${r.blocks.length}개</div></div></div>
+    ${r.blocks.map(b => `<div class="card" style="margin-top:10px"><b>${b.score}점</b> · ${esc(b.title)}</div>`).join('')}
+    <div class="menu-foot"><button class="btn" data-go="menu">메인으로</button></div>`;
+}
+
+/* ---------- 설정 화면 ---------- */
+function renderSettings() {
+  const s = settings();
+  $$('#scr-settings .seg').forEach(seg => {
+    const key = seg.dataset.set;
+    $$('button', seg).forEach(b => b.classList.toggle('on', String(s[key]) === b.dataset.v));
+  });
+  $('#ttsSupport').textContent = Voice.synth ? (Voice.ko ? '질문을 한국어 음성으로 읽어 줍니다' : '한국어 음성이 없으면 기본 음성으로 읽습니다') : '이 브라우저는 음성 합성을 지원하지 않습니다';
+  $('#sttSupport').textContent = Mic.supported ? '음성 인식 지원됨 (ko-KR)' : '이 브라우저는 음성 인식 미지원 → 타자 입력';
+}
+SCREEN_ENTER.settings = renderSettings;
+SCREEN_ENTER.menu = () => { if (typeof renderMenu === 'function') renderMenu(); };
+
 /* ---------- 시작 ---------- */
 function bindNav() {
   document.addEventListener('click', e => {
     const go = e.target.closest('[data-go]');
-    if (go) { show(go.dataset.go); return; }
+    if (go) { closeModal(); show(go.dataset.go); return; }
     const tab = e.target.closest('#bankTabs .tab');
-    if (tab) { bankTab = tab.dataset.tab; renderBank(); }
+    if (tab) { bankTab = tab.dataset.tab; renderBank(); return; }
+    const st = e.target.closest('[data-start]');
+    if (st) { startMode(st.dataset.start); return; }
+    const segBtn = e.target.closest('#scr-settings .seg button');
+    if (segBtn) {
+      const key = segBtn.closest('.seg').dataset.set; let v = segBtn.dataset.v;
+      v = v === 'true' ? true : v === 'false' ? false : /^\d+$/.test(v) ? +v : v;
+      settings()[key] = v; Store.save(); renderSettings();
+      if (key === 'voice' && !v) Voice.cancel();
+    }
   });
+  $('#ttsTest').addEventListener('click', () => {
+    if (!Voice.synth) return toast('이 브라우저는 음성 합성을 지원하지 않아요.');
+    const was = settings().voice; settings().voice = true;
+    Voice.speak('안녕하세요. 실무 면접관입니다. 준비되셨으면 시작하겠습니다.', 'tech').then(() => { settings().voice = was; });
+  });
+  $('#resetAll').addEventListener('click', () => {
+    if (!confirm('모든 기록을 지울까요? 되돌릴 수 없습니다.')) return;
+    const keep = { ...settings() }; Store.reset(); Store.d.settings = keep; Store.save(); toast('기록을 초기화했습니다.');
+  });
+  $('#submitBtn').addEventListener('click', () => finishAnswer(false));
+  $('#micBtn').addEventListener('click', () => (Mic.on ? Mic.stop() : Mic.start()));
+  $('#replayBtn').addEventListener('click', () => { if (lastSaid) { Voice.cancel(); if (settings().voice) Voice.speak(lastSaid.text, lastSaid.who); } });
+  $('#bubble').addEventListener('click', e => { if (!e.target.closest('#replayBtn')) Voice.skip(); });
+  $('#quitBtn').addEventListener('click', () => { if (confirm('면접을 중단할까요? 이번 기록은 저장되지 않습니다.')) { abortSession(); S = null; show('menu'); } });
+  $('#waitBack').addEventListener('click', () => { abortSession(); S = null; show('menu'); });
+  // 음성 인식 결과를 입력창에 붙이기
+  Mic.onFinal = t => { const ta = $('#answerText'); ta.value = (ta.value ? ta.value.replace(/\s+$/, '') + ' ' : '') + t; ta.scrollTop = ta.scrollHeight; };
+  Mic.onInterim = t => { $('#interim').textContent = t ? '🎙️ ' + t : ''; };
+  Mic.onState = on => { const b = $('#micBtn'); b.classList.toggle('rec', on); b.textContent = on ? '⏹ 녹음 멈추기' : '🎤 말로 답변'; if (!Mic.usable) updateInputNotice(); };
 }
 function boot() {
+  Store.load();
+  Voice.init();
+  buildStage();
   $('#targetLine').textContent = CONFIG.target;
   bindNav();
   show('splash');
