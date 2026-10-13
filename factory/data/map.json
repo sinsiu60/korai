@@ -1,0 +1,11 @@
+{
+  "_설명": "맵 생성 설정. ores의 각 항목은 광석 지대 종류. patches=지대 개수, radius=[최소,최대] 반지름(칸), nearStart=시작 지점 근처에 보장할 지대 수",
+  "width": 64,
+  "height": 64,
+  "hub": { "type": "hub" },
+  "startClearRadius": 5,
+  "ores": [
+    { "id": "iron",   "item": "iron_ore",   "name": "철광석 지대",   "patches": 9, "radius": [2, 4], "nearStart": 1, "color": "#7f93ab", "dark": "#56677c" },
+    { "id": "copper", "item": "copper_ore", "name": "구리광석 지대", "patches": 7, "radius": [2, 4], "nearStart": 1, "color": "#d9824b", "dark": "#9c5228" }
+  ]
+}

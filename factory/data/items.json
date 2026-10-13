@@ -1,0 +1,5 @@
+{
+  "_설명": "아이템 정의. color=아이콘 색, shape=아이콘 모양(circle/square/hex/gear/plate)",
+  "iron_ore":   { "name": "철광석",   "color": "#8aa0b8", "shape": "rock" },
+  "copper_ore": { "name": "구리광석", "color": "#d9824b", "shape": "rock" }
+}

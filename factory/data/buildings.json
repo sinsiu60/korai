@@ -1,0 +1,35 @@
+{
+  "_설명": "건물 정의. size=[가로,세로](오른쪽을 볼 때 기준), powerKW=소비 전력(4단계부터 사용), placeOn=설치 가능 지형, toolbar=하단 툴바 표시 여부",
+  "conveyor": {
+    "name": "컨베이어",
+    "desc": "아이템을 화살표 방향으로 한 칸씩 옮깁니다. 드래그하면 연속 설치됩니다.",
+    "size": [1, 1],
+    "rotatable": true,
+    "powerKW": 0,
+    "toolbar": true,
+    "order": 10,
+    "dragPlace": true,
+    "colors": { "body": "#3d4553", "accent": "#f2c14e" }
+  },
+  "miner": {
+    "name": "채굴기",
+    "desc": "광석 지대 위에 설치하면 일정 주기로 광석을 캐서 화살표 방향으로 내보냅니다.",
+    "size": [2, 2],
+    "rotatable": true,
+    "powerKW": 90,
+    "placeOn": "ore",
+    "toolbar": true,
+    "order": 20,
+    "colors": { "body": "#f0a83c", "accent": "#5a4632" }
+  },
+  "hub": {
+    "name": "납품소",
+    "desc": "맵 중앙에 고정된 건물입니다. 들어온 아이템을 집계해 목표 달성에 사용합니다.",
+    "size": [4, 4],
+    "rotatable": false,
+    "fixed": true,
+    "powerKW": 0,
+    "toolbar": false,
+    "colors": { "body": "#2aa198", "accent": "#e8fffb" }
+  }
+}

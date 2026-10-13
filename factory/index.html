@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#1b2230">
+<title>와트 팩토리 · 시우 공방</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <!-- 게임 캔버스 -->
+  <div id="game"></div>
+
+  <!-- 게임 중 HUD -->
+  <div id="hud" class="hidden">
+    <div id="topbar">
+      <button id="btn-menu" class="icon-btn" aria-label="메뉴">
+        <span class="burger"><i></i><i></i><i></i></span>
+      </button>
+      <div class="top-stats">
+        <span id="stat-buildings" class="chip">건물 0</span>
+      </div>
+      <div class="spacer"></div>
+      <span id="fps" class="chip fps">-- FPS</span>
+    </div>
+
+    <!-- 오른쪽: 회전 / 도구 취소 (손가락에 가리지 않는 화면 가장자리) -->
+    <div id="side-right">
+      <button id="btn-rotate" class="round-btn" aria-label="회전">
+        <span id="rotate-arrow" class="rot-arrow">➜</span>
+        <span class="round-label">회전</span>
+      </button>
+      <button id="btn-cancel" class="round-btn ghost hidden" aria-label="도구 해제">
+        <span class="x-mark">✕</span>
+        <span class="round-label">해제</span>
+      </button>
+    </div>
+
+    <!-- 하단 건물 툴바 -->
+    <div id="toolbar"></div>
+
+    <!-- 왼쪽: 정보 패널 -->
+    <div id="info-panel" class="hidden">
+      <div class="info-head">
+        <div id="info-icon"></div>
+        <div id="info-title">-</div>
+        <button id="info-close" class="icon-btn small" aria-label="닫기">✕</button>
+      </div>
+      <p id="info-desc"></p>
+      <div id="info-rows"></div>
+      <div class="info-actions">
+        <button id="info-rotate" class="pill-btn">⟳ 회전</button>
+        <button id="info-delete" class="pill-btn danger">삭제</button>
+      </div>
+      <p id="info-hint"></p>
+    </div>
+
+    <div id="toast" class="toast"></div>
+  </div>
+
+  <!-- 메뉴 (시작 / 일시정지) -->
+  <div id="menu" class="hidden">
+    <div class="menu-card">
+      <div class="menu-title">와트 팩토리</div>
+      <div id="menu-title-sub" class="menu-sub">시우 공방</div>
+      <div id="menu-buttons"></div>
+    </div>
+  </div>
+
+  <!-- 세로 모드 안내 -->
+  <div id="portrait-hint" class="hidden">
+    <div class="ph-card">
+      <div class="ph-icon">⟲</div>
+      <p>기기를 <b>가로</b>로 돌리면 더 편하게 플레이할 수 있어요.</p>
+      <button id="portrait-dismiss" class="menu-btn">그냥 계속하기</button>
+    </div>
+  </div>
+
+  <!-- 데이터 로드 실패 안내 -->
+  <div id="boot-error" class="hidden">
+    <div class="ph-card">
+      <h2>게임 데이터를 읽지 못했어요</h2>
+      <p>브라우저 보안 정책 때문에 <code>index.html</code>을 파일로 직접 열면 <code>data/*.json</code>을 읽을 수 없습니다.<br>
+      폴더에서 <code>python3 -m http.server</code> 또는 <code>npx serve .</code>를 실행한 뒤
+      <code>http://localhost:8000</code> 으로 열거나, GitHub Pages 같은 웹 호스팅에 올려서 접속해 주세요.</p>
+    </div>
+  </div>
+
+  <!-- 라이브러리 (빌드 도구 없이 로컬 파일로 포함) -->
+  <script src="lib/phaser.min.js"></script>
+
+  <!-- 게임 코드: 기능별 파일 -->
+  <script src="js/util.js"></script>
+  <script src="js/sound.js"></script>
+  <script src="js/art.js"></script>
+  <script src="js/grid.js"></script>
+  <script src="js/buildings.js"></script>
+  <script src="js/input.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/perf.js"></script>
+  <script src="js/scenes/boot.js"></script>
+  <script src="js/scenes/logo.js"></script>
+  <script src="js/scenes/game.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>
