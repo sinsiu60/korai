@@ -1,0 +1,30 @@
+{
+  "_설명": "해금 트리. start=처음부터 열린 것. nodes의 각 목표는 requires(선행 목표)가 모두 끝나면 나타나고, goal의 아이템을 납품소에 누적 납품하면 달성되어 unlocks가 열린다.",
+  "start": { "buildings": ["conveyor", "miner", "pole"], "recipes": [] },
+  "nodes": [
+    { "id": "smelting", "name": "제련의 시작", "desc": "철광석을 모아 제련 기술을 연다",
+      "requires": [], "goal": { "iron_ore": 30 },
+      "unlocks": { "buildings": ["smelter"], "recipes": ["smelt_iron", "smelt_copper"] } },
+    { "id": "logistics", "name": "물류 개선", "desc": "구리광석을 모아 분배기와 합류기를 연다",
+      "requires": [], "goal": { "copper_ore": 30 },
+      "unlocks": { "buildings": ["splitter", "merger"], "recipes": [] } },
+    { "id": "power", "name": "화력 발전", "desc": "철판으로 발전기를 만들어 전력을 늘린다",
+      "requires": ["smelting"], "goal": { "iron_plate": 40 },
+      "unlocks": { "buildings": ["generator"], "recipes": [] } },
+    { "id": "assembly", "name": "조립 라인", "desc": "판을 모아 조립기를 연다",
+      "requires": ["smelting"], "goal": { "iron_plate": 60, "copper_plate": 30 },
+      "unlocks": { "buildings": ["assembler"], "recipes": ["gear", "wire"] } },
+    { "id": "storage", "name": "창고 관리", "desc": "톱니를 납품해 창고를 연다",
+      "requires": ["assembly"], "goal": { "iron_gear": 30 },
+      "unlocks": { "buildings": ["storage"], "recipes": [] } },
+    { "id": "electronics", "name": "전자 공학", "desc": "구리선으로 회로 레시피를 연다",
+      "requires": ["assembly"], "goal": { "copper_wire": 60 },
+      "unlocks": { "buildings": [], "recipes": ["circuit"] } },
+    { "id": "automation", "name": "자동 제어", "desc": "회로로 PLC를 만들어 공장을 똑똑하게",
+      "requires": ["electronics", "storage", "power"], "goal": { "circuit": 25 },
+      "unlocks": { "buildings": ["plc"], "recipes": ["motor"] } },
+    { "id": "final", "name": "공장 완성", "desc": "모터를 납품해 공장을 완성하자",
+      "requires": ["automation"], "goal": { "motor": 30 },
+      "unlocks": { "buildings": [], "recipes": [] } }
+  ]
+}

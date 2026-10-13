@@ -59,6 +59,7 @@ class BuildingManager {
 
   /**
    * 건물 배치. 성공하면 building 객체, 실패하면 null
+   * @param {object} opts force=검사 생략, id=지정 id, st=복원할 내부 상태
    */
   place(type, x, y, dir = 0, opts = {}) {
     const def = this.defs[type];
@@ -66,12 +67,18 @@ class BuildingManager {
     if (!def.rotatable) dir = 0;
     if (!opts.force && !this.canPlace(type, x, y, dir).ok) return null;
     const fp = Util.footprint(def, dir);
+    // 불러오기일 때는 저장된 id를 그대로 사용 (PLC 연결이 id로 되어 있음)
+    let id = opts.id && !this.list.has(opts.id) ? opts.id : this.nextId;
+    while (this.list.has(id)) id++;
+    this.nextId = Math.max(this.nextId, id + 1);
     const b = {
-      id: this.nextId++,
+      id,
       type, x, y, dir,
       w: fp.w, h: fp.h,
       def,
       sprite: null,
+      st: opts.st || null,  // 각 시스템이 쓰는 내부 상태 (add 통지 때 채워짐)
+      on: true,             // 수동 ON/OFF
     };
     this.list.set(b.id, b);
     this.grid.setOccRect(x, y, fp.w, fp.h, b.id);

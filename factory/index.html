@@ -19,13 +19,21 @@
     <div id="topbar">
       <button id="btn-menu" class="icon-btn" aria-label="메뉴">
         <span class="burger"><i></i><i></i><i></i></span>
+        <span id="save-dot" title="자동 저장"></span>
       </button>
-      <div class="top-stats">
-        <span id="stat-buildings" class="chip">건물 0</span>
-      </div>
+      <!-- 전력망 게이지: 탭하면 트립된 차단기 재투입 -->
+      <button id="power-gauge" class="gauge none" aria-label="전력 상태">
+        <span class="g-icon">⚡</span>
+        <span class="g-bar"><i id="g-fill"></i></span>
+        <span id="g-text">전력망 없음</span>
+      </button>
+      <span id="stat-delivered" class="chip">납품 0</span>
       <div class="spacer"></div>
       <span id="fps" class="chip fps">-- FPS</span>
     </div>
+
+    <!-- 오른쪽 위: 진행 중인 목표 (탭하면 해금 트리) -->
+    <button id="goals" aria-label="목표"></button>
 
     <!-- 오른쪽: 회전 / 도구 취소 (손가락에 가리지 않는 화면 가장자리) -->
     <div id="side-right">
@@ -50,7 +58,11 @@
         <button id="info-close" class="icon-btn small" aria-label="닫기">✕</button>
       </div>
       <p id="info-desc"></p>
+      <div id="info-status" class="status-pill hidden"></div>
       <div id="info-rows"></div>
+      <div id="info-bars"></div>
+      <div id="info-inv"></div>
+      <div id="info-controls"></div>
       <div class="info-actions">
         <button id="info-rotate" class="pill-btn">⟳ 회전</button>
         <button id="info-delete" class="pill-btn danger">삭제</button>
@@ -59,6 +71,17 @@
     </div>
 
     <div id="toast" class="toast"></div>
+  </div>
+
+  <!-- 모달 (해금 트리, 목표 달성 알림) -->
+  <div id="modal" class="hidden">
+    <div class="modal-card">
+      <div class="modal-head">
+        <div id="modal-title"></div>
+        <button id="modal-close" class="icon-btn small" aria-label="닫기">✕</button>
+      </div>
+      <div id="modal-body"></div>
+    </div>
   </div>
 
   <!-- 메뉴 (시작 / 일시정지) -->
@@ -95,9 +118,16 @@
   <!-- 게임 코드: 기능별 파일 -->
   <script src="js/util.js"></script>
   <script src="js/sound.js"></script>
+  <script src="js/registry.js"></script>
   <script src="js/art.js"></script>
   <script src="js/grid.js"></script>
   <script src="js/buildings.js"></script>
+  <script src="js/conveyor.js"></script>
+  <script src="js/machines.js"></script>
+  <script src="js/power.js"></script>
+  <script src="js/plc.js"></script>
+  <script src="js/tech.js"></script>
+  <script src="js/save.js"></script>
   <script src="js/input.js"></script>
   <script src="js/ui.js"></script>
   <script src="js/perf.js"></script>

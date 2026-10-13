@@ -93,13 +93,30 @@ const Sfx = {
     this._tone('sine', 700, 900, 0.04, 0.2);
   },
 
-  // 납품 (2단계에서 사용)
+  // 납품
   deliver() {
     this._tone('sine', 880, 880, 0.08, 0.25);
     this._tone('sine', 1320, 1320, 0.1, 0.2, 0.06);
   },
 
-  // 차단기 트립 (4단계에서 사용)
+  // 과부하 경고: 짧은 경보음 두 번
+  warn() {
+    this._tone('square', 660, 660, 0.08, 0.18);
+    this._tone('square', 660, 660, 0.08, 0.18, 0.14);
+  },
+
+  // 차단기 재투입: 올라가는 웅- 소리
+  powerOn() {
+    this._tone('sawtooth', 80, 240, 0.35, 0.25);
+    this._noise(0.06, 0.25, 3000);
+  },
+
+  // 목표 달성: 짧은 팡파레
+  fanfare() {
+    [523, 659, 784, 1046].forEach((f, i) => this._tone('triangle', f, f, 0.16, 0.3, i * 0.09));
+  },
+
+  // 차단기 트립
   trip() {
     this._noise(0.25, 0.5, 600);
     this._tone('sawtooth', 120, 40, 0.5, 0.4);

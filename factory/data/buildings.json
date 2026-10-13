@@ -1,35 +1,132 @@
 {
-  "_설명": "건물 정의. size=[가로,세로](오른쪽을 볼 때 기준), powerKW=소비 전력(4단계부터 사용), placeOn=설치 가능 지형, toolbar=하단 툴바 표시 여부",
+  "_설명": "건물 정의. size=[가로,세로](오른쪽을 볼 때 기준), logic=동작 종류, powerKW=가동 중 소비 전력, supplyKW=공급 전력, placeOn=설치 가능 지형, order=툴바 순서. 툴바 표시는 tech.json 해금 상태를 따른다.",
+  "_power": {
+    "_설명": "전력 설정. tripSeconds=과부하가 이 시간(초) 이어지면 차단기 트립",
+    "tripSeconds": 6
+  },
   "conveyor": {
     "name": "컨베이어",
-    "desc": "아이템을 화살표 방향으로 한 칸씩 옮깁니다. 드래그하면 연속 설치됩니다.",
+    "logic": "conveyor",
+    "desc": "아이템을 화살표 방향으로 옮깁니다. 드래그하면 연속 설치되고, 옆에서 밀어 넣으면 합류합니다.",
     "size": [1, 1],
     "rotatable": true,
     "powerKW": 0,
-    "toolbar": true,
     "order": 10,
     "dragPlace": true,
+    "speed": 2.0,
     "colors": { "body": "#3d4553", "accent": "#f2c14e" }
+  },
+  "splitter": {
+    "name": "분배기",
+    "logic": "splitter",
+    "desc": "뒤에서 들어온 아이템을 앞·왼쪽·오른쪽으로 번갈아 나눠 보냅니다. 막힌 쪽은 건너뜁니다.",
+    "size": [1, 1],
+    "rotatable": true,
+    "powerKW": 0,
+    "order": 12,
+    "colors": { "body": "#3d4553", "accent": "#6fc3ff" }
+  },
+  "merger": {
+    "name": "합류기",
+    "logic": "merger",
+    "desc": "뒤·왼쪽·오른쪽에서 들어온 아이템을 번갈아 받아 앞으로 내보냅니다.",
+    "size": [1, 1],
+    "rotatable": true,
+    "powerKW": 0,
+    "order": 14,
+    "colors": { "body": "#3d4553", "accent": "#b48cff" }
   },
   "miner": {
     "name": "채굴기",
-    "desc": "광석 지대 위에 설치하면 일정 주기로 광석을 캐서 화살표 방향으로 내보냅니다.",
+    "logic": "miner",
+    "desc": "광석 지대 위에 설치하면 광석을 캐서 화살표 방향으로 내보냅니다. 광석 칸이 많을수록 빠릅니다.",
     "size": [2, 2],
     "rotatable": true,
     "powerKW": 90,
     "placeOn": "ore",
-    "toolbar": true,
     "order": 20,
+    "miningTime": 2.0,
     "colors": { "body": "#f0a83c", "accent": "#5a4632" }
+  },
+  "smelter": {
+    "name": "제련소",
+    "logic": "crafter",
+    "machine": "smelter",
+    "desc": "광석을 녹여 판으로 만듭니다. 들어온 광석에 맞춰 레시피가 자동으로 정해집니다.",
+    "size": [2, 2],
+    "rotatable": true,
+    "powerKW": 120,
+    "order": 30,
+    "colors": { "body": "#c8553d", "accent": "#ffcf5c" }
+  },
+  "assembler": {
+    "name": "조립기",
+    "logic": "crafter",
+    "machine": "assembler",
+    "selectRecipe": true,
+    "desc": "판을 조립해 부품을 만듭니다. 탭해서 레시피를 고르세요.",
+    "size": [2, 2],
+    "rotatable": true,
+    "powerKW": 150,
+    "order": 32,
+    "colors": { "body": "#3f7fd6", "accent": "#e8f1ff" }
+  },
+  "storage": {
+    "name": "창고",
+    "logic": "storage",
+    "desc": "아이템을 모아 두었다가 화살표 방향으로 내보냅니다. PLC 센서로 쓰기 좋습니다.",
+    "size": [2, 2],
+    "rotatable": true,
+    "powerKW": 0,
+    "order": 40,
+    "capacity": 100,
+    "colors": { "body": "#a7794a", "accent": "#6b4a2a" }
+  },
+  "pole": {
+    "name": "전신주",
+    "logic": "pole",
+    "desc": "주변 칸(파란 영역)의 기계에 전기를 공급하고, 가까운 전신주와 자동으로 연결됩니다.",
+    "size": [1, 1],
+    "rotatable": false,
+    "powerKW": 0,
+    "order": 50,
+    "reach": 8,
+    "supplyRadius": 2,
+    "colors": { "body": "#8b6a45", "accent": "#d9dee5" }
+  },
+  "generator": {
+    "name": "발전기",
+    "logic": "generator",
+    "desc": "석탄을 태워 전기를 만듭니다. 전력망의 수요만큼만 연료를 씁니다.",
+    "size": [2, 2],
+    "rotatable": false,
+    "powerKW": 0,
+    "order": 52,
+    "supplyKW": 600,
+    "fuel": "coal",
+    "fuelKJ": 2400,
+    "fuelCap": 10,
+    "colors": { "body": "#5d6b74", "accent": "#ffd23f" }
+  },
+  "plc": {
+    "name": "PLC",
+    "logic": "plc",
+    "desc": "센서 건물의 상태(가득 참, 비어 있음, 전력 부족 등)에 따라 대상 기계를 켜고 끕니다.",
+    "size": [1, 1],
+    "rotatable": false,
+    "powerKW": 5,
+    "order": 60,
+    "colors": { "body": "#263040", "accent": "#3ddc84" }
   },
   "hub": {
     "name": "납품소",
-    "desc": "맵 중앙에 고정된 건물입니다. 들어온 아이템을 집계해 목표 달성에 사용합니다.",
+    "logic": "hub",
+    "desc": "맵 중앙에 고정된 건물입니다. 사방에서 아이템을 받아 집계하고, 기본 전력도 공급합니다.",
     "size": [4, 4],
     "rotatable": false,
     "fixed": true,
     "powerKW": 0,
-    "toolbar": false,
+    "supplyKW": 400,
     "colors": { "body": "#2aa198", "accent": "#e8fffb" }
   }
 }

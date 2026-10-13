@@ -58,8 +58,14 @@ class TitleScene extends Phaser.Scene {
 
   create() {
     this.cameras.main.setBackgroundColor('#1b2230');
-    Menu.showMain(() => {
-      this.scene.start('Game', { seed: (Date.now() ^ (Math.random() * 1e9)) >>> 0 });
-    });
+    Menu.showMain(
+      () => {
+        // 이어하기: 저장이 깨졌으면 새 게임으로
+        const save = SaveSystem.read();
+        if (save) this.scene.start('Game', { save });
+        else this.scene.start('Game', { seed: (Date.now() ^ (Math.random() * 1e9)) >>> 0 });
+      },
+      () => this.scene.start('Game', { seed: (Date.now() ^ (Math.random() * 1e9)) >>> 0 }),
+    );
   }
 }

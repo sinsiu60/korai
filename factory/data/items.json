@@ -1,5 +1,12 @@
 {
-  "_설명": "아이템 정의. color=아이콘 색, shape=아이콘 모양(circle/square/hex/gear/plate)",
-  "iron_ore":   { "name": "철광석",   "color": "#8aa0b8", "shape": "rock" },
-  "copper_ore": { "name": "구리광석", "color": "#d9824b", "shape": "rock" }
+  "_설명": "아이템 정의. color=아이콘 색, shape=아이콘 모양(rock/plate/gear/wire/chip/motor)",
+  "iron_ore":     { "name": "철광석",   "color": "#8aa0b8", "shape": "rock" },
+  "copper_ore":   { "name": "구리광석", "color": "#d9824b", "shape": "rock" },
+  "coal":         { "name": "석탄",     "color": "#3a3f47", "shape": "rock" },
+  "iron_plate":   { "name": "철판",     "color": "#b9c6d4", "shape": "plate" },
+  "copper_plate": { "name": "구리판",   "color": "#e9925a", "shape": "plate" },
+  "iron_gear":    { "name": "톱니",     "color": "#9fb0c2", "shape": "gear" },
+  "copper_wire":  { "name": "구리선",   "color": "#f0a060", "shape": "wire" },
+  "circuit":      { "name": "회로",     "color": "#3fbf6f", "shape": "chip" },
+  "motor":        { "name": "모터",     "color": "#5b8def", "shape": "motor" }
 }

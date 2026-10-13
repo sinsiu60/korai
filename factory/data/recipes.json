@@ -1,0 +1,11 @@
+{
+  "_설명": "레시피. machine=사용하는 기계(buildings.json의 machine), in=입력 아이템:수량, out=출력, time=가공 시간(초, 전력 100% 기준)",
+  "recipes": [
+    { "id": "smelt_iron",   "name": "철판",   "machine": "smelter",   "in": { "iron_ore": 1 },   "out": { "iron_plate": 1 },   "time": 1.6 },
+    { "id": "smelt_copper", "name": "구리판", "machine": "smelter",   "in": { "copper_ore": 1 }, "out": { "copper_plate": 1 }, "time": 1.6 },
+    { "id": "gear",         "name": "톱니",   "machine": "assembler", "in": { "iron_plate": 2 },  "out": { "iron_gear": 1 },    "time": 1.5 },
+    { "id": "wire",         "name": "구리선", "machine": "assembler", "in": { "copper_plate": 1 }, "out": { "copper_wire": 2 }, "time": 1.0 },
+    { "id": "circuit",      "name": "회로",   "machine": "assembler", "in": { "iron_plate": 1, "copper_wire": 3 }, "out": { "circuit": 1 }, "time": 2.5 },
+    { "id": "motor",        "name": "모터",   "machine": "assembler", "in": { "iron_gear": 2, "circuit": 1, "iron_plate": 1 }, "out": { "motor": 1 }, "time": 4.0 }
+  ]
+}
