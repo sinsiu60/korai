@@ -54,6 +54,7 @@ class MainActivity : Activity(), BoardView.Listener {
     private lateinit var assetScroll: ScrollView
     private lateinit var assetText: TextView
     private val tabViews = ArrayList<TextView>()
+    private lateinit var mainLayout: LinearLayout
     private lateinit var overlay: LinearLayout
     private lateinit var overlayDot: View
     private lateinit var overlayTitle: TextView
@@ -184,6 +185,7 @@ class MainActivity : Activity(), BoardView.Listener {
         for (p in state.players) addTab(tabs, p.id)
         main.addView(tabs, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, Ui.dp(this, 58f)))
 
+        mainLayout = main
         root.addView(main)
         root.addView(buildOverlay())
         return root
@@ -420,6 +422,7 @@ class MainActivity : Activity(), BoardView.Listener {
         if (p.spaceTravelPending) info.append("\n우주여행! 원하는 칸으로 날아갈 수 있어요")
         overlayInfo.text = info
         overlay.visibility = View.VISIBLE
+        mainLayout.visibility = View.INVISIBLE // 가려진 보드는 그리지 않음 (오버드로우 방지)
         updateControls()
     }
 
@@ -427,6 +430,7 @@ class MainActivity : Activity(), BoardView.Listener {
         val p = engine.currentPlayer
         confirmedPlayer = p.id
         overlay.visibility = View.GONE
+        mainLayout.visibility = View.VISIBLE
         beeper.turn()
         addLog("── ${p.name}님 차례 ──")
         if (selectedTab >= 0) selectTab(-1)
@@ -507,8 +511,7 @@ class MainActivity : Activity(), BoardView.Listener {
 
     private fun finishPlayback() {
         playing = false
-        board.syncPieces()
-        board.refresh()
+        board.syncPieces() // 다시 그리기는 presentState() 의 refresh() 한 번으로
         storage.save(state) // 매 행동(턴 종료 포함) 후 자동 저장
         presentState()
     }

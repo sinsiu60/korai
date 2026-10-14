@@ -68,7 +68,11 @@ class BoardView(context: Context) : View(context) {
 
     /** 우주여행 칸 선택 모드 */
     var selectMode: Boolean = false
-        set(v) { field = v; invalidate() }
+        set(v) {
+            if (field == v) return
+            field = v
+            invalidate()
+        }
 
     // ── 미리 계산해 둔 동적 문자열 (onDraw 에서 문자열 연결 금지) ──
     private var fundText = ""
@@ -115,7 +119,7 @@ class BoardView(context: Context) : View(context) {
     /** 말 표시 위치를 실제 상태와 맞춘다 */
     fun syncPieces() {
         val s = state ?: return
-        for (k in s.players.indices) pieceTile[k] = s.players[k].position
+        for (k in 0 until s.players.size) pieceTile[k] = s.players[k].position
         movingPlayer = -1
     }
 
@@ -543,7 +547,7 @@ class BoardView(context: Context) : View(context) {
         // 말: 현재 플레이어를 맨 위에
         val cur = s.current
         val players = s.players
-        for (k in players.indices) {   // 인덱스 반복: Iterator 객체를 만들지 않는다
+        for (k in 0 until players.size) {   // 인덱스 반복: Iterator 객체를 만들지 않는다
             val p = players[k]
             if (p.bankrupt || k == cur) continue
             drawPiece(canvas, p.id, GameConfig.PLAYER_COLORS[p.colorIndex], false)

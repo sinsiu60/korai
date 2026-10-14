@@ -1,0 +1,65 @@
+name: 시우 마블 APK 빌드
+
+on:
+  push:
+    paths:
+      - "siwoo-marble/**"
+      - ".github/workflows/siwoo-marble.yml"
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: siwoo-marble
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Android SDK 34 준비
+        run: |
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-34" "build-tools;34.0.0" > /dev/null
+
+      - name: 규칙 엔진 단위 테스트
+        run: ./gradlew --no-daemon :core:test
+
+      - name: 런타임 의존성 (네이티브 라이브러리 점검용)
+        run: ./gradlew --no-daemon -q :app:dependencies --configuration releaseRuntimeClasspath
+
+      - name: 디버그/릴리스 APK 빌드 + lib/ 폴더 검사
+        run: ./gradlew --no-daemon :app:checkNoNativeLibs
+
+      - name: APK 점검 보고
+        run: |
+          AAPT2="$ANDROID_HOME/build-tools/34.0.0/aapt2"
+          {
+            echo "## 시우 마블 APK"
+            echo
+            echo "| APK | 크기 | lib/ 항목 수 | 권한 | native-code |"
+            echo "|---|---|---|---|---|"
+            for apk in $(find app/build/outputs/apk -name '*.apk' | sort); do
+              size=$(du -k "$apk" | cut -f1)
+              libs=$(unzip -l "$apk" | awk '{print $4}' | grep -c '^lib/' || true)
+              perms=$("$AAPT2" dump permissions "$apk" | grep -c 'uses-permission' || true)
+              native=$("$AAPT2" dump badging "$apk" | grep 'native-code' || echo '없음')
+              echo "| $(basename "$apk") | ${size} KB | ${libs} | ${perms} | ${native} |"
+            done
+            echo
+            echo '```'
+            "$AAPT2" dump badging app/build/outputs/apk/release/app-release.apk | grep -E "^(package|sdkVersion|targetSdkVersion|uses-permission|application-label)" || true
+            echo '```'
+          } | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: siwoo-marble-apk
+          path: |
+            siwoo-marble/app/build/outputs/apk/debug/app-debug.apk
+            siwoo-marble/app/build/outputs/apk/release/app-release.apk
+          if-no-files-found: error

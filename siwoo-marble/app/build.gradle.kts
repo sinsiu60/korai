@@ -20,11 +20,6 @@ android {
         // → armeabi-v7a(32비트)를 포함한 모든 기기에 그대로 설치된다.
     }
 
-    signingConfigs {
-        // 릴리스 APK도 디버그 키로 서명 (개인 배포용)
-        getByName("debug")
-    }
-
     buildTypes {
         release {
             isMinifyEnabled = true
@@ -33,6 +28,7 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            // 릴리스 APK도 디버그 키로 서명 (개인 배포용, 별도 키 관리 불필요)
             signingConfig = signingConfigs.getByName("debug")
         }
     }
@@ -40,12 +36,6 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_1_8
         targetCompatibility = JavaVersion.VERSION_1_8
-    }
-
-    kotlin {
-        compilerOptions {
-            jvmTarget.set(JvmTarget.JVM_1_8)
-        }
     }
 
     buildFeatures {
@@ -60,6 +50,12 @@ android {
 
     lint {
         abortOnError = false
+    }
+}
+
+kotlin {
+    compilerOptions {
+        jvmTarget.set(JvmTarget.JVM_1_8)
     }
 }
 
