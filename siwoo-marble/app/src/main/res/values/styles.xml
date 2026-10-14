@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="AppTheme" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/bg</item>
+        <item name="android:statusBarColor">@color/dark</item>
+        <item name="android:navigationBarColor">@color/dark</item>
+        <item name="android:colorPrimary">@color/dark</item>
+        <item name="android:colorAccent">@color/icon_bg</item>
+    </style>
+
+    <!-- 게임 화면: 창 배경을 없애 오버드로우를 줄인다 (각 영역이 자기 배경을 직접 칠함) -->
+    <style name="AppTheme.Game">
+        <item name="android:windowBackground">@null</item>
+    </style>
+</resources>
