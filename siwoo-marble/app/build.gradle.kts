@@ -14,8 +14,8 @@ android {
         applicationId = "com.siwoo.marble"
         minSdk = 26
         targetSdk = 34
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 2
+        versionName = "1.1"
         // 네이티브(.so) 라이브러리가 하나도 없으므로 ABI 필터가 필요 없다.
         // → armeabi-v7a(32비트)를 포함한 모든 기기에 그대로 설치된다.
     }

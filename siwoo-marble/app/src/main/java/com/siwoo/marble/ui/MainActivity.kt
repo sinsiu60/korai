@@ -13,7 +13,6 @@ import android.view.ViewGroup
 import android.widget.Button
 import android.widget.FrameLayout
 import android.widget.LinearLayout
-import android.widget.ScrollView
 import android.widget.TextView
 import com.siwoo.marble.GameConfig
 import com.siwoo.marble.data.BoardData
@@ -46,14 +45,12 @@ class MainActivity : Activity(), BoardView.Listener {
     private lateinit var playPanel: LinearLayout
     private lateinit var dot: View
     private lateinit var nameText: TextView
-    private lateinit var moneyText: TextView
     private lateinit var statusText: TextView
     private lateinit var logText: TextView
     private lateinit var rollButton: Button
     private lateinit var escapeButton: Button
-    private lateinit var assetScroll: ScrollView
-    private lateinit var assetText: TextView
-    private val tabViews = ArrayList<TextView>()
+    /** 플레이어 id → 모서리 자산 카드 */
+    private val cards = ArrayList<PlayerCardView>()
     private lateinit var mainLayout: LinearLayout
     private lateinit var overlay: LinearLayout
     private lateinit var overlayDot: View
@@ -68,7 +65,6 @@ class MainActivity : Activity(), BoardView.Listener {
     private var interrupted = false
     /** "○○님 차례" 화면에서 확인을 누른 플레이어 */
     private var confirmedPlayer = -1
-    private var selectedTab = -1
     private var dialog: Dialog? = null
 
     private val stepMs get() = if (storage.fastMove) GameConfig.MOVE_STEP_FAST_MS else GameConfig.MOVE_STEP_MS
@@ -150,40 +146,42 @@ class MainActivity : Activity(), BoardView.Listener {
 
     private fun buildUi(): View {
         val dm = resources.displayMetrics
-        val boardSide = minOf(dm.widthPixels, dm.heightPixels - Ui.dp(this, 300f))
+        val boardSide = minOf(dm.widthPixels, dm.heightPixels - Ui.dp(this, 350f))
 
         val root = FrameLayout(this)
         val main = Ui.vertical(this)
+
+        // 모서리 자산 카드: 차례 순서대로 시계 방향 (왼위 → 오른위 → 오른아래 → 왼아래)
+        val n = state.players.size
+        val corners = when (n) {
+            2 -> intArrayOf(TOP_LEFT, BOTTOM_RIGHT)
+            3 -> intArrayOf(TOP_LEFT, TOP_RIGHT, BOTTOM_RIGHT)
+            else -> intArrayOf(TOP_LEFT, TOP_RIGHT, BOTTOM_RIGHT, BOTTOM_LEFT)
+        }
+        val slots = arrayOfNulls<PlayerCardView>(4)
+        for (p in state.players) {
+            val corner = corners[p.id]
+            val card = PlayerCardView(this, mirrored = corner == TOP_RIGHT || corner == BOTTOM_RIGHT)
+            card.setOnClickListener { showAssets(p.id) }
+            slots[corner] = card
+            cards.add(card)
+        }
+        main.addView(cardStrip(slots[TOP_LEFT], slots[TOP_RIGHT]), Ui.matchWrap())
 
         // 보드: 폭에 맞춘 정사각형. 남는 좌우 여백만 배경색 (보드 영역은 비트맵이 덮으므로 배경 없음)
         board = BoardView(this)
         board.listener = this
         val boardHolder = FrameLayout(this)
-        if (boardSide < dm.widthPixels) boardHolder.setBackgroundColor(0xFF33691E.toInt())
+        if (boardSide < dm.widthPixels) boardHolder.setBackgroundColor(BOARD_FRAME)
         boardHolder.addView(board, FrameLayout.LayoutParams(boardSide, boardSide, Gravity.CENTER_HORIZONTAL))
         main.addView(boardHolder, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, boardSide))
+        main.addView(cardStrip(slots[BOTTOM_LEFT], slots[BOTTOM_RIGHT]), Ui.matchWrap())
 
-        // 가운데 영역 (진행 패널 / 자산 패널)
+        // 아래: 현재 차례 패널
         val content = FrameLayout(this)
         content.setBackgroundColor(Ui.PANEL)
         content.addView(buildPlayPanel())
-        assetText = Ui.text(this, "", 17f).apply {
-            val p = Ui.dp(this@MainActivity, 16f)
-            setPadding(p, p, p, p)
-            setLineSpacing(0f, 1.2f)
-        }
-        assetScroll = ScrollView(this).apply {
-            addView(assetText)
-            visibility = View.GONE
-        }
-        content.addView(assetScroll)
         main.addView(content, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f))
-
-        // 아래 탭
-        val tabs = Ui.horizontal(this).apply { setBackgroundColor(Ui.DARK) }
-        addTab(tabs, -1)
-        for (p in state.players) addTab(tabs, p.id)
-        main.addView(tabs, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, Ui.dp(this, 58f)))
 
         mainLayout = main
         root.addView(main)
@@ -209,8 +207,6 @@ class MainActivity : Activity(), BoardView.Listener {
         row.addView(settings, LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, Ui.dp(this, 44f)))
         playPanel.addView(row, Ui.matchWrap())
 
-        moneyText = Ui.text(this, "", 18f, Ui.TEXT, bold = true)
-        playPanel.addView(moneyText, Ui.matchWrap(Ui.dp(this, 4f)))
         statusText = Ui.text(this, "", 15f, Ui.SUB_TEXT)
         playPanel.addView(statusText, Ui.matchWrap(Ui.dp(this, 2f)))
 
@@ -240,14 +236,18 @@ class MainActivity : Activity(), BoardView.Listener {
         return playPanel
     }
 
-    private fun addTab(tabs: LinearLayout, playerId: Int) {
-        val tv = Ui.text(this, "", 14f, Color.WHITE, bold = true).apply {
-            gravity = Gravity.CENTER
-            maxLines = 2
-            setOnClickListener { selectTab(playerId) }
+    /** 보드 위/아래의 카드 한 줄 (왼쪽 카드, 오른쪽 카드). 빈 자리는 비워 둔다 */
+    private fun cardStrip(left: PlayerCardView?, right: PlayerCardView?): View {
+        val strip = Ui.horizontal(this).apply {
+            setBackgroundColor(BOARD_FRAME)
+            val p = Ui.dp(this@MainActivity, 3f)
+            setPadding(p, p, p, p)
         }
-        tabViews.add(tv)
-        tabs.addView(tv, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 1f))
+        val gap = Ui.dp(this, 3f)
+        // 빈 자리는 높이 0 (plain View 를 wrap_content 로 두면 남은 높이를 모두 차지하므로)
+        strip.addView(left ?: View(this), LinearLayout.LayoutParams(0, if (left == null) 0 else LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply { rightMargin = gap })
+        strip.addView(right ?: View(this), LinearLayout.LayoutParams(0, if (right == null) 0 else LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply { leftMargin = gap })
+        return strip
     }
 
     private fun buildOverlay(): View {
@@ -308,26 +308,23 @@ class MainActivity : Activity(), BoardView.Listener {
         val p = engine.currentPlayer
         dot.background = Ui.oval(color(p), Color.WHITE, Ui.dp(this, 2f))
         nameText.text = if (s.gameOver) "게임 종료" else "${p.name}님 차례"
-        moneyText.text = "현금 ${Money.won(p.money)}  ·  총자산 ${Money.won(engine.totalAssets(p.id))}"
         statusText.text = statusLine(p)
         logText.text = logLines.joinToString("\n")
         scrollLogToBottom()
 
-        for ((k, tv) in tabViews.withIndex()) {
-            val id = k - 1
-            if (id < 0) {
-                tv.text = "진행"
-            } else {
-                val q = s.players[id]
-                tv.text = if (q.bankrupt) "${q.name}\n파산" else "${q.name}\n${Money.short(q.money)}"
-                tv.setTextColor(if (q.bankrupt) 0xFF90A4AE.toInt() else Color.WHITE)
-            }
-            tv.background = if (id == selectedTab) {
-                Ui.rounded(if (id < 0) 0xFF546E7A.toInt() else color(s.players[id]), 0f)
-            } else null
-            if (id >= 0 && id == selectedTab && !s.players[id].bankrupt) tv.setTextColor(Ui.textOn(color(s.players[id])))
+        // 모서리 자산 카드
+        // 1위 표시는 총자산이 단독 최고일 때만
+        var best = -1
+        var bestTotal = -1
+        var tie = false
+        for (q in s.players) {
+            if (q.bankrupt) continue
+            val t = engine.totalAssets(q.id)
+            if (t > bestTotal) { bestTotal = t; best = q.id; tie = false } else if (t == bestTotal) tie = true
         }
-        if (selectedTab >= 0) assetText.text = assetReport(s.players[selectedTab])
+        for (q in s.players) {
+            cards[q.id].bind(q, engine.totalAssets(q.id), leader = q.id == best && !tie, isCurrent = q.id == s.current && !s.gameOver)
+        }
     }
 
     private fun statusLine(p: Player): String {
@@ -357,11 +354,11 @@ class MainActivity : Activity(), BoardView.Listener {
         escapeButton.visibility = if (ready && engine.canUseEscapeCard()) View.VISIBLE else View.GONE
     }
 
-    private fun selectTab(id: Int) {
-        selectedTab = id
-        playPanel.visibility = if (id < 0) View.VISIBLE else View.GONE
-        assetScroll.visibility = if (id < 0) View.GONE else View.VISIBLE
-        updatePanel()
+    /** 자산 카드를 누르면 상세 보유 현황 */
+    private fun showAssets(id: Int) {
+        if (playing || dialog?.isShowing == true || overlay.visibility == View.VISIBLE) return
+        val p = state.players[id]
+        showDialog("${p.name}님 자산", assetReport(p), listOf(DialogButton("닫기", Ui.GRAY) { }), cancelable = true, accent = darker(color(p)))
     }
 
     private fun assetReport(p: Player): String {
@@ -433,7 +430,6 @@ class MainActivity : Activity(), BoardView.Listener {
         mainLayout.visibility = View.VISIBLE
         beeper.turn()
         addLog("── ${p.name}님 차례 ──")
-        if (selectedTab >= 0) selectTab(-1)
         presentState()
     }
 
@@ -770,5 +766,13 @@ class MainActivity : Activity(), BoardView.Listener {
     ) {
         dialog?.dismiss()
         dialog = GameDialog.show(this, title, message, buttons, cancelable, accent)
+    }
+
+    companion object {
+        private const val TOP_LEFT = 0
+        private const val TOP_RIGHT = 1
+        private const val BOTTOM_RIGHT = 2
+        private const val BOTTOM_LEFT = 3
+        private const val BOARD_FRAME = 0xFF33691E.toInt()
     }
 }
