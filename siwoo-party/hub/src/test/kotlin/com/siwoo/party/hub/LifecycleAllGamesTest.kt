@@ -21,7 +21,11 @@ import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
+import org.junit.After
+import org.junit.Before
 import org.junit.Test
+import org.robolectric.shadows.ShadowChoreographer
+import java.time.Duration
 import org.junit.runner.RunWith
 import org.robolectric.Robolectric
 import org.robolectric.RobolectricTestRunner
@@ -45,6 +49,26 @@ class LifecycleAllGamesTest {
 
     private val app get() = RuntimeEnvironment.getApplication()
     private val all = listOf(PlayerInfo(0, "가람", 0), PlayerInfo(1, "나래", 1), PlayerInfo(2, "다온", 2), PlayerInfo(3, "라온", 3))
+
+    /**
+     * 실제 화면처럼 16ms 마다 프레임 (기본 설정이면 블록이 계속 움직이는 탑 쌓기처럼
+     * 입력을 기다리며 매 프레임 그리는 게임의 프레임 루프가 테스트 시계를 멈춰 버린다)
+     */
+    @Before
+    fun frames() {
+        ShadowChoreographer.setPaused(true)
+        ShadowChoreographer.setFrameDelay(Duration.ofMillis(16))
+    }
+
+    @After
+    fun resetFrames() {
+        ShadowChoreographer.setPaused(false)
+    }
+
+    /** 팝업 닫힘 연출이 끝날 때까지 (최대 5초) */
+    private fun waitUntil(cond: () -> Boolean) {
+        repeat(50) { if (cond()) return; idle(100) }
+    }
 
     private fun idle(ms: Long) = ShadowLooper.idleMainLooper(ms, TimeUnit.MILLISECONDS)
 
@@ -92,6 +116,7 @@ class LifecycleAllGamesTest {
         assertFalse("$name: 뒤로 → 규칙 닫힘", RulesPager.isShowing(popups()))
         // 3) 메뉴에서 뒤로 = 계속하기 → 다시 진행
         a.onBackPressed(); idle(500)
+        waitUntil { !PauseMenu.isShowing(popups()) && (paused == null || !paused()) }
         assertFalse("$name: 뒤로 → 메뉴 닫힘", PauseMenu.isShowing(popups()))
         if (a.isFinishing) { c.pause().stop().destroy(); println("$name: 판이 끝남(테스트 시계)"); return } // 테스트 시계가 건너뛰어 판이 끝난 경우: 정상 종료
         if (paused != null) assertFalse("$name: 계속하기 → 시간 다시 흐름", paused())
@@ -99,6 +124,7 @@ class LifecycleAllGamesTest {
         backUntilMenu(a, popups(), name)
         if (paused != null) assertTrue("$name: 메뉴 동안 멈춤", paused())
         click(a, "계속하기")
+        waitUntil { !PauseMenu.isShowing(popups()) }
         assertFalse("$name: 계속하기 → 메뉴 닫힘", PauseMenu.isShowing(popups()))
         // 5) 진행 중에 끝내도(예약된 타이머·애니메이션 정리) 죽지 않음
         c.pause().stop().destroy()

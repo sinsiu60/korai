@@ -3,6 +3,7 @@ package com.siwoo.party.hub
 import com.siwoo.party.common.ui.GameCategory
 import com.siwoo.party.common.ui.GameModule
 import com.siwoo.party.games.balloon.BalloonModule
+import com.siwoo.party.games.baseball.BaseballModule
 import com.siwoo.party.games.blackjack.BlackjackModule
 import com.siwoo.party.games.math.MathModule
 import com.siwoo.party.games.mole.MoleModule
@@ -12,6 +13,9 @@ import com.siwoo.party.games.redlight.RedlightModule
 import com.siwoo.party.games.alkkagi.AlkkagiModule
 import com.siwoo.party.games.bomb.BombModule
 import com.siwoo.party.games.boxes.BoxesModule
+import com.siwoo.party.games.connect4.Connect4Module
+import com.siwoo.party.games.ddakji.DdakjiModule
+import com.siwoo.party.games.gomoku.GomokuModule
 import com.siwoo.party.games.liar.LiarModule
 import com.siwoo.party.games.liardice.LiarDiceModule
 import com.siwoo.party.games.marble.MarbleModule
@@ -20,8 +24,10 @@ import com.siwoo.party.games.pirate.PirateModule
 import com.siwoo.party.games.reaction.ReactionModule
 import com.siwoo.party.games.rps.RpsModule
 import com.siwoo.party.games.sequence.SequenceModule
+import com.siwoo.party.games.stack.StackModule
 import com.siwoo.party.games.stroop.StroopModule
 import com.siwoo.party.games.tensec.TenSecModule
+import com.siwoo.party.games.updown.UpDownModule
 import com.siwoo.party.games.tug.TugModule
 import com.siwoo.party.games.yacht.YachtModule
 import com.siwoo.party.games.yut.YutModule
@@ -55,6 +61,12 @@ object GameRegistry {
         OldMaidModule,
         BlackjackModule,
         LiarDiceModule,
+        StackModule,
+        DdakjiModule,
+        GomokuModule,
+        Connect4Module,
+        BaseballModule,
+        UpDownModule,
     )
 
     fun byId(id: String?): GameModule? = games.firstOrNull { it.id == id }
