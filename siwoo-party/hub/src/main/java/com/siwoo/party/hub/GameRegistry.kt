@@ -3,13 +3,16 @@ package com.siwoo.party.hub
 import com.siwoo.party.common.ui.GameCategory
 import com.siwoo.party.common.ui.GameModule
 import com.siwoo.party.games.balloon.BalloonModule
+import com.siwoo.party.games.blackjack.BlackjackModule
 import com.siwoo.party.games.math.MathModule
 import com.siwoo.party.games.mole.MoleModule
+import com.siwoo.party.games.oldmaid.OldMaidModule
 import com.siwoo.party.games.redlight.RedlightModule
 import com.siwoo.party.games.alkkagi.AlkkagiModule
 import com.siwoo.party.games.bomb.BombModule
 import com.siwoo.party.games.boxes.BoxesModule
 import com.siwoo.party.games.liar.LiarModule
+import com.siwoo.party.games.liardice.LiarDiceModule
 import com.siwoo.party.games.marble.MarbleModule
 import com.siwoo.party.games.memory.MemoryModule
 import com.siwoo.party.games.pirate.PirateModule
@@ -47,6 +50,9 @@ object GameRegistry {
         MoleModule,
         BalloonModule,
         MathModule,
+        OldMaidModule,
+        BlackjackModule,
+        LiarDiceModule,
     )
 
     fun byId(id: String?): GameModule? = games.firstOrNull { it.id == id }
