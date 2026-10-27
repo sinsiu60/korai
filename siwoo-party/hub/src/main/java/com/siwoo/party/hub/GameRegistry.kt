@@ -2,6 +2,7 @@ package com.siwoo.party.hub
 
 import com.siwoo.party.common.ui.GameModule
 import com.siwoo.party.games.marble.MarbleModule
+import com.siwoo.party.games.pirate.PirateModule
 import com.siwoo.party.games.reaction.ReactionModule
 
 /**
@@ -12,6 +13,7 @@ object GameRegistry {
     val games: List<GameModule> = listOf(
         MarbleModule,
         ReactionModule,
+        PirateModule,
     )
 
     fun byId(id: String?): GameModule? = games.firstOrNull { it.id == id }

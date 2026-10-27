@@ -111,7 +111,7 @@ class PlayerStrip(context: Context, players: List<PlayerInfo>, vertical: Boolean
             namePaint.textSize = base * 0.26f
             valuePaint.textSize = base * 0.24f
             initPaint.textSize = base * 0.28f
-            stampPaint.textSize = base * 0.36f
+            stampPaint.textSize = base * 0.28f
             stroke.strokeWidth = Theme.dpf(context, 2f)
         }
 
@@ -157,14 +157,16 @@ class PlayerStrip(context: Context, players: List<PlayerInfo>, vertical: Boolean
             }
             if (value.isNotEmpty()) c.drawText(value, vx, vy, valuePaint)
             if (out) {
+                // 오른쪽에 비스듬한 도장 (이름·값 글자를 가리지 않게)
+                val tw = stampPaint.measureText(OUT) / 2f + sw * 3
+                val sx = rect.right - tw - sw * 4
                 c.save()
-                c.rotate(-15f, rect.centerX(), rect.centerY())
+                c.rotate(-15f, sx, rect.centerY())
                 stampPaint.style = Paint.Style.STROKE
                 stampPaint.strokeWidth = sw
-                val tw = stampPaint.measureText(OUT) / 2f + sw * 3
-                c.drawRect(rect.centerX() - tw, rect.centerY() - stampPaint.textSize * 0.8f, rect.centerX() + tw, rect.centerY() + stampPaint.textSize * 0.35f, stampPaint)
+                c.drawRect(sx - tw, rect.centerY() - stampPaint.textSize * 0.8f, sx + tw, rect.centerY() + stampPaint.textSize * 0.35f, stampPaint)
                 stampPaint.style = Paint.Style.FILL
-                c.drawText(OUT, rect.centerX(), rect.centerY() + stampPaint.textSize * 0.1f, stampPaint)
+                c.drawText(OUT, sx, rect.centerY() + stampPaint.textSize * 0.1f, stampPaint)
                 c.restore()
             }
         }
