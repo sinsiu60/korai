@@ -7,7 +7,9 @@ import com.siwoo.party.common.PlayerInfo
 import com.siwoo.party.common.ScoreRules
 import com.siwoo.party.common.Session
 import com.siwoo.party.common.ui.GameButton
+import com.siwoo.party.common.HubFilter
 import com.siwoo.party.common.ui.GameCategory
+import com.siwoo.party.common.ui.PlayMode
 import com.siwoo.party.common.ui.Party
 import com.siwoo.party.common.ui.PartySettings
 import com.siwoo.party.common.ui.ResultActivity
@@ -72,15 +74,23 @@ class AllGamesHubTest {
         for (n in 2..4) {
             val players = all.take(n)
             SessionStore(app).save(Session(players))
+            PartySettings(app).hubFilters = emptySet() // 못 하는 게임 카드도 보이게 (필터 끔)
             val hub = Robolectric.buildActivity(HubActivity::class.java).setup().get()
             idle(500)
             val pz = Robolectric.buildActivity(PartyZoneActivity::class.java).setup().get()
             idle(500)
-            assertEquals("허브 [전체] 탭 = 파티 존이 아닌 모든 게임 (카테고리 순)", GameCategory.HUB.flatMap { c -> GameRegistry.inCategory(c).map { it.id } }, cards(hub).map { it.module.id })
+            // [전체] 탭: 카테고리 → 방식(동시 터치 / 차례대로) 묶음 순
+            val expected = GameCategory.HUB.flatMap { c ->
+                val g = GameRegistry.inCategory(c)
+                g.filter { it.mode == PlayMode.SIMULTANEOUS } + g.filter { it.mode != PlayMode.SIMULTANEOUS }
+            }.map { it.id }
+            assertEquals("허브 [전체] 탭 = 파티 존이 아닌 모든 게임", expected, hub.shownIds())
             assertEquals("파티 존 = 파티 게임", GameRegistry.partyGames.map { it.id }, cards(pz).map { it.module.id })
-            assertEquals(GameRegistry.games.size, cards(hub).size + cards(pz).size)
+            assertEquals(GameRegistry.games.size, hub.shownIds().size + cards(pz).size)
             var played = 0
-            for (card in cards(hub) + cards(pz)) {
+            val cardGetters = hub.shownIds().map { { hub.cardFor(it)!! } } + cards(pz).map { c -> { c } }
+            for (getCard in cardGetters) {
+                val card = getCard()
                 val m = card.module
                 val host = card.context as GameHostActivity
                 assertEquals("${m.name} ${n}인 카드 활성/비활성", m.unavailableReason(n), card.unavailable)
@@ -138,10 +148,16 @@ class AllGamesHubTest {
     @Test
     fun changingPlayerCountUpdatesCardsImmediately() {
         SessionStore(app).save(Session(all))
+        val settings = PartySettings(app)
+        settings.hubFilters = emptySet()
         val hub = Robolectric.buildActivity(HubActivity::class.java).setup().get()
         idle(500)
-        fun state() = cards(hub).associate { it.module.id to (it.unavailable == null) }
+        fun state() = hub.shownIds().associateWith { hub.cardFor(it)!!.unavailable == null }
         assertEquals(GameRegistry.hubGames.associate { it.id to it.supports(4) }, state())
+        // [지금 인원 가능만] 켜면 못 하는 게임은 목록에서 빠짐
+        hub.filterBar.toggle(HubFilter.PLAYABLE_NOW); idle(200)
+        assertEquals(GameRegistry.hubGames.filter { it.supports(4) }.map { it.id }.toSet(), hub.shownIds().toSet())
+        hub.filterBar.toggle(HubFilter.PLAYABLE_NOW); idle(200)
         // 4인 → 3인
         click(hub, "플레이어 변경")
         click(hub, "인원 변경")
@@ -157,6 +173,8 @@ class AllGamesHubTest {
         click(hub, "플레이어 변경"); click(hub, "인원 변경"); idle(400); click(hub, "2인"); idle(800); click(hub, "완료"); idle(600)
         assertEquals(GameRegistry.hubGames.associate { it.id to it.supports(2) }, state())
         assertEquals(GameRegistry.hubGames.filter { it.supports(2) }, hub.eligibleGames())
+        hub.filterBar.toggle(HubFilter.PLAYABLE_NOW); idle(200)
+        assertEquals(GameRegistry.hubGames.filter { it.supports(2) }.map { it.id }.toSet(), hub.shownIds().toSet())
         // 점수는 이름으로 유지
         assertArrayEquals(intArrayOf(0, 1), hub.session.players.map { it.id }.toIntArray())
     }

@@ -1,5 +1,6 @@
 package com.siwoo.party.games.chosung
 
+import com.siwoo.party.common.Chosung
 import com.siwoo.party.common.Json
 
 /** 문제 후보 하나: 카테고리 번호 + 단어 */

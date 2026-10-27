@@ -4,6 +4,8 @@ import android.content.Context
 import android.hardware.Sensor
 import android.hardware.SensorManager
 import com.siwoo.party.common.DeviceCaps
+import com.siwoo.party.common.HubFilter
+import com.siwoo.party.common.HubSort
 import com.siwoo.party.common.Json
 import com.siwoo.party.common.PartyConfig
 import com.siwoo.party.common.RealPenalty
@@ -88,6 +90,37 @@ class PartySettings(context: Context) {
     var avoidRepeat: Boolean
         get() = prefs.getBoolean("avoidRepeat", true)
         set(v) = prefs.edit().putBoolean("avoidRepeat", v).apply()
+
+    // ── 허브 탐색 (즐겨찾기 · 플레이 횟수 · 탭 · 정렬 · 필터 · 검색어) — 모임이 바뀌어도 유지 ──
+
+    fun isFavorite(id: String): Boolean = prefs.getBoolean("fav_$id", false)
+
+    fun setFavorite(id: String, on: Boolean) = prefs.edit().putBoolean("fav_$id", on).apply()
+
+    /** 끝까지 한 횟수 ("많이 한 순" 정렬) */
+    fun plays(id: String): Int = prefs.getInt("plays_$id", 0)
+
+    fun addPlay(id: String) = prefs.edit().putInt("plays_$id", plays(id) + 1).apply()
+
+    /** 허브 탭 (0 즐겨찾기, 1 전체, 2.. 카테고리) */
+    var hubTab: Int
+        get() = prefs.getInt("hubTab", 1)
+        set(v) = prefs.edit().putInt("hubTab", v).apply()
+
+    var hubSort: HubSort
+        get() = HubSort.values().firstOrNull { it.name == prefs.getString("hubSort", null) } ?: HubSort.DEFAULT
+        set(v) = prefs.edit().putString("hubSort", v.name).apply()
+
+    var hubFilters: Set<HubFilter>
+        get() {
+            val raw = prefs.getString("hubFilters", null) ?: return HubFilter.DEFAULT
+            return raw.split(',').mapNotNull { n -> HubFilter.values().firstOrNull { it.name == n } }.toSet()
+        }
+        set(v) = prefs.edit().putString("hubFilters", v.joinToString(",") { it.name }).apply()
+
+    var hubQuery: String
+        get() = prefs.getString("hubQuery", "") ?: ""
+        set(v) = prefs.edit().putString("hubQuery", v).apply()
 
     /** 기기 조건 (동시 터치 수·가속도 센서) — 랜덤 후보 거르기용 */
     fun deviceCaps(context: Context): DeviceCaps {

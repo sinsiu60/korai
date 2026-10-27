@@ -90,12 +90,12 @@ class CatalogTest {
         val hub = Robolectric.buildActivity(HubActivity::class.java).setup().get()
         idle(600)
         RandomSettingsPopup.show(hub); idle(600)
-        assertEquals(GameRegistry.games.map { it.id }.toSet(), hub.randomScreen!!.gameToggles.keys)
+        assertEquals(GameRegistry.games.map { it.id }.toSet(), hub.randomScreen!!.ids.toSet())
         hub.popups.dismissAll(); idle(300)
         val pz = Robolectric.buildActivity(PartyZoneActivity::class.java).setup().get()
         idle(600)
         RandomSettingsPopup.show(pz, party = true); idle(600)
-        assertEquals(GameRegistry.partyGames.map { it.id }.toSet(), pz.randomScreen!!.gameToggles.keys)
+        assertEquals(GameRegistry.partyGames.map { it.id }.toSet(), pz.randomScreen!!.ids.toSet())
     }
 
     @Test

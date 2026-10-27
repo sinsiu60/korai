@@ -1,5 +1,6 @@
 package com.siwoo.party.games.chosung.ui
 
+import com.siwoo.party.common.Chosung
 import android.app.Activity
 import android.graphics.PointF
 import android.os.SystemClock
@@ -7,7 +8,6 @@ import android.view.MotionEvent
 import com.siwoo.party.common.PlayerInfo
 import com.siwoo.party.common.ui.Party
 import com.siwoo.party.common.ui.PauseMenu
-import com.siwoo.party.games.chosung.Chosung
 import com.siwoo.party.games.chosung.ChosungModule
 import com.siwoo.party.games.chosung.GameConfig
 import com.siwoo.party.games.chosung.Phase

@@ -133,6 +133,7 @@ abstract class GameHostActivity : Activity() {
         c.resumable = m.hasSavedGame(this, session.players)
         c.warning = deviceWarning(m, n)
         c.randomOn = if (partyRandom) settings.partyRandom(m) else settings.hubRandom(m)
+        c.favorite = settings.isFavorite(m.id)
     }
 
     /** 기기 조건이 모자라면 짧은 경고 (null = 괜찮음) */
@@ -156,7 +157,7 @@ abstract class GameHostActivity : Activity() {
         showIntro(card.module, card)
     }
 
-    /** 길게 누르기 → 빠른 메뉴: [랜덤에 포함 켜기/끄기] [규칙 보기] */
+    /** 길게 누르기 → 빠른 메뉴: [랜덤에 포함 켜기/끄기] [★ 즐겨찾기] [규칙 보기] */
     protected fun showQuickMenu(card: GameCardView, partyRandom: Boolean) {
         if (popups.isShowing) return
         val m = card.module
@@ -185,6 +186,22 @@ abstract class GameHostActivity : Activity() {
         box.addView(Theme.text(this, if (isOn()) "지금 ${which}에 들어 있어요" else "지금 ${which}에서 빠져 있어요", 13f, Theme.TEXT_SUB),
             Ui.wrapGap(this, 6f))
         box.addView(toggle, Theme.lp(Theme.MATCH, Theme.dp(this, 46f)).apply { topMargin = Theme.dp(this@GameHostActivity, 10f) })
+        val fav = Ui.button(this, "", Theme.GRAY, 15f) {}
+        fun favLabel() {
+            val on = settings.isFavorite(m.id)
+            fav.text = if (on) "★ 즐겨찾기 해제" else "☆ 즐겨찾기"
+            fav.color = if (on) Theme.GOLD_DARK else Theme.GRAY
+        }
+        fav.setOnClickListener {
+            settings.setFavorite(m.id, !settings.isFavorite(m.id))
+            favLabel()
+            card.favorite = settings.isFavorite(m.id)
+            beeper.step()
+            refresh()
+        }
+        fav.contentDescription = "즐겨찾기"
+        favLabel()
+        box.addView(fav, Theme.lp(Theme.MATCH, Theme.dp(this, 44f)).apply { topMargin = Theme.dp(this@GameHostActivity, 8f) })
         box.addView(Ui.buttonRow(this,
             Ui.button(this, "규칙 보기", Theme.BLUE, 15f) { RulesPager.show(popups, m.name, m.rules) },
             Ui.button(this, "닫기", Theme.GRAY, 15f) { popup?.dismiss() },
@@ -280,6 +297,7 @@ abstract class GameHostActivity : Activity() {
             return // 모임 플레이어와 맞지 않는 결과는 무시
         }
         store.save(session)
+        settings.addPlay(m.id)
         lastGameId = m.id
         val penalty = if (party) settings.partyPenalty else settings.penaltyAfterGame
         Transitions.start(this, ResultActivity.intent(this, m.id, m.name, ids, ranks, scored, penalty), REQ_RESULT)

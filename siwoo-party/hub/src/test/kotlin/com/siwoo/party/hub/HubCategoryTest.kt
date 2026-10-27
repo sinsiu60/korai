@@ -7,7 +7,10 @@ import com.siwoo.party.common.GroupState
 import com.siwoo.party.common.PlayerInfo
 import com.siwoo.party.common.Session
 import com.siwoo.party.common.ui.GameButton
+import com.siwoo.party.common.BrowseRow
+import com.siwoo.party.common.HubBrowse
 import com.siwoo.party.common.ui.GameCategory
+import com.siwoo.party.common.ui.PlayMode
 import com.siwoo.party.common.ui.Party
 import com.siwoo.party.common.ui.PartySettings
 import com.siwoo.party.common.ui.ResultActivity
@@ -82,17 +85,22 @@ class HubCategoryTest {
             "liar" to GameCategory.PARTY, "bomb" to GameCategory.PARTY,
         )
         for ((id, cat) in expect) assertEquals(id, cat, GameRegistry.byId(id)!!.category)
+        PartySettings(app).hubFilters = emptySet()
         val h = hub()
-        val tabs = findAll(h.window.decorView, { it is CategoryTabsView }).single() as CategoryTabsView
+        val tabs = h.tabs
+        assertEquals("처음 탭 = 전체", HubBrowse.TAB_ALL, h.tab)
         // 전체: 파티 게임 없음
-        assertFalse(cardIds(h).contains("liar"))
-        assertFalse(cardIds(h).contains("bomb"))
+        assertFalse(h.shownIds().contains("liar"))
+        assertFalse(h.shownIds().contains("bomb"))
         for ((k, cat) in GameCategory.HUB.withIndex()) {
-            tabs.tap(k + 1); idle(400)
-            assertEquals(cat.label, GameRegistry.inCategory(cat).map { it.id }, cardIds(h))
+            tabs.tap(HubBrowse.TAB_FIRST_GROUP + k); idle(400)
+            val g = GameRegistry.inCategory(cat)
+            // 카테고리 안은 방식 소제목(동시 터치 → 차례대로) 묶음
+            assertEquals(cat.label, (g.filter { it.mode == PlayMode.SIMULTANEOUS } + g.filter { it.mode != PlayMode.SIMULTANEOUS }).map { it.id }, h.shownIds())
+            assertTrue(h.shownRows().none { it is BrowseRow.Header })
         }
-        tabs.tap(0); idle(400)
-        assertEquals(GameRegistry.hubGames.size, cardIds(h).size)
+        tabs.tap(HubBrowse.TAB_ALL); idle(400)
+        assertEquals(GameRegistry.hubGames.size, h.shownIds().size)
         // 파티 존
         assertTrue(h.partyEntrance.glowing)
         h.partyEntrance.performClick(); idle(300)
@@ -109,29 +117,29 @@ class HubCategoryTest {
         RandomSettingsPopup.show(h); idle(600)
         val sc = h.randomScreen!!
         val board = GameRegistry.inCategory(GameCategory.BOARD)
-        assertEquals(GroupState.ON, sc.groupToggles[GameCategory.BOARD]!!.state)
-        assertEquals("파티 게임은 허브 랜덤 기본 끔", GroupState.OFF, sc.groupToggles[GameCategory.PARTY]!!.state)
+        assertEquals(GroupState.ON, sc.groupState(GameCategory.BOARD))
+        assertEquals("파티 게임은 허브 랜덤 기본 끔", GroupState.OFF, sc.groupState(GameCategory.PARTY))
         val before = sc.count()
         // 카테고리 스위치 끄기 → 안의 게임 전부 꺼짐
-        sc.groupToggles[GameCategory.BOARD]!!.performClick(); idle(300)
-        for (g in board) assertFalse(g.name, sc.gameToggles[g.id]!!.isOn)
-        assertEquals(GroupState.OFF, sc.groupToggles[GameCategory.BOARD]!!.state)
+        sc.toggleGroup(GameCategory.BOARD); idle(300)
+        for (g in board) assertFalse(g.name, sc.isOn(g.id))
+        assertEquals(GroupState.OFF, sc.groupState(GameCategory.BOARD))
         assertEquals(before - board.size, sc.count())
         assertTrue("실시간 개수 표시", sc.countText.text.toString().endsWith("${before - board.size}개"))
         // 게임 하나만 켜면 "일부"
-        sc.gameToggles["yut"]!!.performClick(); idle(300)
-        assertEquals(GroupState.PARTIAL, sc.groupToggles[GameCategory.BOARD]!!.state)
+        sc.toggle("yut"); idle(300)
+        assertEquals(GroupState.PARTIAL, sc.groupState(GameCategory.BOARD))
         // 일부 상태에서 카테고리 스위치 → 전부 켬
-        sc.groupToggles[GameCategory.BOARD]!!.performClick(); idle(300)
-        assertEquals(GroupState.ON, sc.groupToggles[GameCategory.BOARD]!!.state)
+        sc.toggleGroup(GameCategory.BOARD); idle(300)
+        assertEquals(GroupState.ON, sc.groupState(GameCategory.BOARD))
         // 다시 일부로 만들어 두고 앱 재시작
-        sc.gameToggles["marble"]!!.performClick(); idle(300)
+        sc.toggle("marble"); idle(300)
         assertFalse(PartySettings(app).hubRandom(GameRegistry.byId("marble")!!))
         val h2 = hub()
-        val marbleCard = findAll(h2.window.decorView, { it is GameCardView && it.module.id == "marble" }).single() as GameCardView
+        val marbleCard = h2.cardFor("marble")!!
         assertFalse("카드 주사위 배지도 꺼짐", marbleCard.randomOn)
         RandomSettingsPopup.show(h2); idle(600)
-        assertEquals(GroupState.PARTIAL, h2.randomScreen!!.groupToggles[GameCategory.BOARD]!!.state)
+        assertEquals(GroupState.PARTIAL, h2.randomScreen!!.groupState(GameCategory.BOARD))
         assertFalse("marble" in h2.eligibleGames().map { it.id })
     }
 
@@ -225,7 +233,7 @@ class HubCategoryTest {
     @Test
     fun `카드 길게 누르기 - 랜덤 포함 끄기와 규칙 보기`() {
         val h = hub()
-        val card = findAll(h.window.decorView, { it is GameCardView && it.module.id == "boxes" }).single() as GameCardView
+        val card = h.cardFor("boxes")!!
         assertTrue(card.randomOn)
         card.performLongClick(); idle(500)
         click(h, "🎲 랜덤에서 빼기")

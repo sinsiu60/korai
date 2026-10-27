@@ -4,12 +4,13 @@ import android.content.Context
 import android.graphics.Canvas
 import android.graphics.LinearGradient
 import android.graphics.Paint
-import android.graphics.Path
 import android.graphics.RectF
 import android.graphics.Shader
 import android.graphics.Typeface
 import android.view.MotionEvent
 import android.view.View
+import com.siwoo.party.common.aim.ArcGaugeDrawer
+import com.siwoo.party.common.aim.GaugeDrawer
 import com.siwoo.party.common.ui.Theme
 import com.siwoo.party.games.ddakji.DdakjiGame
 import com.siwoo.party.games.ddakji.GameConfig
@@ -22,6 +23,7 @@ import kotlin.random.Random
 
 /**
  * 딱지치기 마당: 흙바닥 + 분필 원 + 바닥의 상대(수비) 딱지 + 위에 든 공격자 딱지 + 힘 막대 게이지(왼쪽) + 각도 부채 게이지(오른쪽).
+ * 두 게이지는 공통 조준 모듈(common/aim)의 [GaugeDrawer] · [ArcGaugeDrawer] 로 그린다 (최적 구간은 게임의 Gauge 구간).
  * 연출(들어 올렸다 내리치기 → 들썩 → 뒤집힘 → 가져가기)과 게이지는 모두 게임 시계 [now] 로 계산한다.
  * Activity 의 프레임 루프가 now 를 넣고 invalidate — 이 View 는 스스로 반복해서 그리지 않는다. onDraw 할당 없음.
  */
@@ -72,19 +74,19 @@ class ArenaView(context: Context) : View(context) {
     private var arcCx = 0f
     private var arcCy = 0f
     private var arcR = 0f
-    private val arcBox = RectF()
 
     // ── 그리기 도구 ──
     private val ground = Paint()
     private val art = Paint(Paint.ANTI_ALIAS_FLAG)
     private val fill = Paint(Paint.ANTI_ALIAS_FLAG)
     private val line = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.STROKE; strokeCap = Paint.Cap.ROUND }
-    private val band = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.STROKE }
     private val hintPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { typeface = Typeface.DEFAULT_BOLD; textAlign = Paint.Align.CENTER; color = Theme.TEXT }
     private val hintStroke = Paint(Paint.ANTI_ALIAS_FLAG).apply { typeface = Typeface.DEFAULT_BOLD; textAlign = Paint.Align.CENTER; color = 0xCC2A1A08.toInt(); style = Paint.Style.STROKE }
     private val chancePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { typeface = Typeface.DEFAULT_BOLD; textAlign = Paint.Align.CENTER; color = Theme.GOLD }
-    private val label = Paint(Paint.ANTI_ALIAS_FLAG).apply { typeface = Typeface.DEFAULT_BOLD; textAlign = Paint.Align.CENTER }
-    private val tri = Path()
+    /** 왼쪽 힘 막대 게이지 */
+    private val powerGauge = GaugeDrawer(context).apply { label = POWER_LABEL }
+    /** 오른쪽 아래 각도 부채 게이지 (180° 가로 → 270° 세로) */
+    private val angleGauge = ArcGaugeDrawer(context).apply { label = ANGLE_LABEL }
     private val pebX = FloatArray(PEBBLES)
     private val pebY = FloatArray(PEBBLES)
     private val pebR = FloatArray(PEBBLES)
@@ -101,6 +103,8 @@ class ArenaView(context: Context) : View(context) {
     fun bind(g: DdakjiGame, playerColors: IntArray) {
         game = g
         colors = playerColors
+        powerGauge.zones = g.powerGauge.zones
+        angleGauge.zones = g.angleGauge.zones
         invalidate()
     }
 
@@ -149,12 +153,15 @@ class ArenaView(context: Context) : View(context) {
         // 왼쪽 힘 막대
         val bw = 24f * d
         bar.set(16f * d, h * 0.2f, 16f * d + bw, h - 26f * d)
+        powerGauge.layout(bar.left, bar.top, bar.right, bar.bottom)
+        powerGauge.labelX = bar.centerX() + 4f * d
         // 오른쪽 아래 각도 부채 (가로 → 세로 사분원)
         arcR = minOf(h * 0.36f, w * 0.27f)
         arcCx = w - 18f * d
         arcCy = h - 26f * d
-        arcBox.set(arcCx - arcR, arcCy - arcR, arcCx + arcR, arcCy + arcR)
-        band.strokeWidth = 16f * d
+        angleGauge.layout(arcCx, arcCy, arcR)
+        angleGauge.labelX = arcCx - arcR * 0.45f
+        angleGauge.labelY = arcCy - 8f * d
         // 딱지 자리: 막대와 부채 사이 가운데
         val left = bar.right + 10f * d
         val right = arcCx - arcR - 6f * d
@@ -167,7 +174,6 @@ class ArenaView(context: Context) : View(context) {
         hintStroke.textSize = 15f * d
         hintStroke.strokeWidth = 3.5f * d
         chancePaint.textSize = 17f * d
-        label.textSize = 12f * d
     }
 
     override fun onDraw(c: Canvas) {
@@ -281,38 +287,7 @@ class ArenaView(context: Context) : View(context) {
     private fun drawPower(c: Canvas, g: DdakjiGame) {
         val live = gaugeLive && g.phase == Phase.POWER
         val v = if (live) g.powerAt(now) else if (g.phase == Phase.POWER) 0f else g.power
-        val active = g.phase == Phase.POWER
-        val r = bar.width() / 2f
-        fill.color = 0xAA1A1030.toInt()
-        c.drawRoundRect(bar, r, r, fill)
-        val bh = bar.height()
-        // 채움
-        val fy = bar.bottom - bh * v
-        fill.color = if (active) 0xCCFF6B3D.toInt() else 0x88FF6B3D.toInt()
-        c.drawRect(bar.left + 4f * d, fy, bar.right - 4f * d, bar.bottom - 4f * d, fill)
-        // 최적 구간 (채움 위에 반투명 금색 + 테두리 — 늘 보이게)
-        val s0 = bar.bottom - bh * (GameConfig.POWER_SWEET + GameConfig.POWER_SWEET_HALF)
-        val s1 = bar.bottom - bh * (GameConfig.POWER_SWEET - GameConfig.POWER_SWEET_HALF)
-        fill.color = 0x40FFC93C
-        c.drawRect(bar.left, s0 - bh * 0.06f, bar.right, s1 + bh * 0.06f, fill)
-        fill.color = 0x99FFC93C.toInt()
-        c.drawRect(bar.left, s0, bar.right, s1, fill)
-        line.color = Theme.GOLD
-        line.strokeWidth = 2f * d
-        c.drawRect(bar.left, s0, bar.right, s1, line)
-        line.color = if (active) Theme.GOLD_LIGHT else 0x88FFFFFF.toInt()
-        line.strokeWidth = 2f * d
-        c.drawRoundRect(bar, r, r, line)
-        // 표시 삼각형
-        fill.color = if (active) Theme.TEXT else Theme.GOLD
-        tri.reset()
-        tri.moveTo(bar.right + 2f * d, fy)
-        tri.lineTo(bar.right + 12f * d, fy - 7f * d)
-        tri.lineTo(bar.right + 12f * d, fy + 7f * d)
-        tri.close()
-        c.drawPath(tri, fill)
-        label.color = if (active) Theme.GOLD else Theme.TEXT_SUB
-        c.drawText(POWER_LABEL, bar.centerX() + 4f * d, bar.top - 9f * d, label)
+        powerGauge.draw(c, v, active = g.phase == Phase.POWER)
     }
 
     private fun drawAngle(c: Canvas, g: DdakjiGame) {
@@ -320,23 +295,7 @@ class ArenaView(context: Context) : View(context) {
         val active = g.phase == Phase.ANGLE
         val done = g.phase == Phase.STRIKE || g.phase == Phase.OVER
         val v = if (live) g.angleAt(now) else if (done) g.angle else 0f
-        band.color = 0xAA1A1030.toInt()
-        c.drawArc(arcBox, 180f, 90f, false, band)
-        band.color = 0x66FFC93C
-        c.drawArc(arcBox, 180f + 90f * (GameConfig.ANGLE_SWEET - GameConfig.ANGLE_SWEET_HALF - 0.06f), 90f * (GameConfig.ANGLE_SWEET_HALF + 0.06f) * 2f, false, band)
-        band.color = Theme.GOLD
-        c.drawArc(arcBox, 180f + 90f * (GameConfig.ANGLE_SWEET - GameConfig.ANGLE_SWEET_HALF), 90f * GameConfig.ANGLE_SWEET_HALF * 2f, false, band)
-        // 바늘
-        if (active || done) {
-            val a = (PI + PI / 2.0 * v).toFloat()
-            line.color = if (active) Theme.TEXT else Theme.GOLD
-            line.strokeWidth = 4f * d
-            c.drawLine(arcCx, arcCy, arcCx + cos(a) * (arcR + 12f * d), arcCy + sin(a) * (arcR + 12f * d), line)
-        }
-        fill.color = if (active) Theme.GOLD_LIGHT else 0xAAFFFFFF.toInt()
-        c.drawCircle(arcCx, arcCy, 6f * d, fill)
-        label.color = if (active) Theme.GOLD else Theme.TEXT_SUB
-        c.drawText(ANGLE_LABEL, arcCx - arcR * 0.45f, arcCy - 8f * d, label)
+        angleGauge.draw(c, v, active, showNeedle = active || done)
     }
 
     override fun onTouchEvent(event: MotionEvent): Boolean {

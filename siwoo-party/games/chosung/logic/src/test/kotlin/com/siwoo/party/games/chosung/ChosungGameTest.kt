@@ -1,5 +1,6 @@
 package com.siwoo.party.games.chosung
 
+import com.siwoo.party.common.Chosung
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse

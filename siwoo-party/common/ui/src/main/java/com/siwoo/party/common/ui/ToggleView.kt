@@ -12,7 +12,11 @@ import com.siwoo.party.common.GroupState
  * 입체 스위치 (Canvas). 켬 / 끔 / 일부(카테고리 스위치: 게임이 일부만 켜짐 → 손잡이가 가운데 + 줄 표시).
  * 누르면 onToggle 이 불리고, 상태는 부르는 쪽이 setState 로 정한다 (연동 규칙은 SwitchGroup).
  */
-class ToggleView(context: Context, private val onColor: Int = Theme.GREEN) : View(context) {
+class ToggleView(context: Context, onColor: Int = Theme.GREEN) : View(context) {
+
+    /** 켜진 색 (목록에서 재사용할 때 바꿀 수 있음) */
+    var onColor: Int = onColor
+        set(v) { if (field != v) { field = v; invalidate() } }
 
     var state: GroupState = GroupState.OFF
         private set

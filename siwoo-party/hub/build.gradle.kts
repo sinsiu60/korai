@@ -71,6 +71,8 @@ dependencies {
     // games/<게임>/logic·ui 모듈은 자동으로 의존성에 들어간다 → 게임 추가 시 GameRegistry 에만 등록
     implementation(project(":common:logic"))
     implementation(project(":common:ui"))
+    // 허브 게임 목록·랜덤 설정 목록 (78종, 보이는 카드만 만들어 재사용 — 순수 Java, .so 없음)
+    implementation("androidx.recyclerview:recyclerview:1.3.2")
     rootProject.file("games").listFiles { f -> f.isDirectory }.orEmpty().sortedBy { it.name }.forEach { g ->
         if (File(g, "ui/build.gradle.kts").exists()) implementation(project(":games:${g.name}:ui"))
         if (File(g, "logic/build.gradle.kts").exists()) implementation(project(":games:${g.name}:logic"))

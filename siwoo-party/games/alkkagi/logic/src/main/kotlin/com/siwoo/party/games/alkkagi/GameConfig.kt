@@ -1,5 +1,7 @@
 package com.siwoo.party.games.alkkagi
 
+import com.siwoo.party.common.physics.PhysicsConfig
+
 /**
  * 알까기 수치. 길이는 "판 단위"(알 반지름 = 1), 속도는 판 단위/초, 시간은 ms.
  * 연출 시간은 화면에서 공통 속도 배율이 곱해진다. 물리·규칙 수치는 배율 없이 그대로.
@@ -30,12 +32,12 @@ object GameConfig {
     /** 최대 힘으로 튕긴 알의 처음 속도 (ALKKAGI_MAX_POWER, 판 단위/초). 힘은 끌기 거리에 비례 */
     const val ALKKAGI_MAX_POWER = 32f
 
-    // ── 물리 ──
+    // ── 물리 (공통 물리 com.siwoo.party.common.physics 에 넘기는 값) ──
     /** 고정 시간 단계 1/60초 (한 단계 = 1000 틱, 1ms = 60 틱 → 쪼개는 방법과 무관하게 정확히 같은 단계 수) */
-    const val STEPS_PER_SEC = 60
-    const val STEP_SEC = 1f / STEPS_PER_SEC
-    const val TICKS_PER_STEP = 1000L
-    const val TICKS_PER_MS = 60L
+    const val STEPS_PER_SEC = PhysicsConfig.STEPS_PER_SEC
+    const val STEP_SEC = PhysicsConfig.STEP_SEC
+    const val TICKS_PER_STEP = PhysicsConfig.TICKS_PER_STEP
+    const val TICKS_PER_MS = PhysicsConfig.TICKS_PER_MS
     /** 한 프레임에 따라잡는 최대 시간 (멈칫한 뒤 한꺼번에 몰아 계산하지 않게) */
     const val MAX_FRAME_MS = 100L
     /** 마찰 감속 (판 단위/초²) — 최대 힘이면 막힘 없이 약 32 단위를 미끄러진다 */

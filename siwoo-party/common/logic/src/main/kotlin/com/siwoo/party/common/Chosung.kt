@@ -1,4 +1,4 @@
-package com.siwoo.party.games.chosung
+package com.siwoo.party.common
 
 /**
  * 한글 초성 뽑기 (유니코드 분해).
@@ -36,6 +36,40 @@ object Chosung {
     fun masked(word: String, reveal: BooleanArray): String {
         val sb = StringBuilder(word.length)
         for ((i, c) in word.withIndex()) sb.append(if (reveal.getOrElse(i) { false }) c else initialOf(c))
+        return sb.toString()
+    }
+
+    /** 호환용 자모 중 초성으로 쓰이는 글자인지 (ㄱ~ㅎ) */
+    fun isInitial(c: Char): Boolean = INITIALS.indexOf(c) >= 0
+
+    /**
+     * 이름 검색: query 가 text 안 어딘가에 이어서 들어 있으면 true. 공백은 무시하고 영문은 대소문자 무시.
+     * 각 글자는 같은 글자이거나, query 쪽이 초성(ㄱ~ㅎ)이면 text 쪽 글자의 초성과 같으면 맞음.
+     * 예) "에어하키" ← "ㅇㅎㅋ", "ㅇㅇ하", "어하", "에어 하키" / 빈 query 는 항상 true
+     */
+    fun matches(text: String, query: String): Boolean {
+        val t = compact(text)
+        val q = compact(query)
+        if (q.isEmpty()) return true
+        if (q.length > t.length) return false
+        for (start in 0..t.length - q.length) {
+            var ok = true
+            for (k in q.indices) {
+                val qc = q[k]
+                val tc = t[start + k]
+                if (qc == tc) continue
+                if (isInitial(qc) && initialOf(tc) == qc) continue
+                ok = false
+                break
+            }
+            if (ok) return true
+        }
+        return false
+    }
+
+    private fun compact(s: String): String {
+        val sb = StringBuilder(s.length)
+        for (c in s) if (!c.isWhitespace()) sb.append(c.lowercaseChar())
         return sb.toString()
     }
 }

@@ -119,7 +119,7 @@ class PartyFlowTest {
         val hubC = Robolectric.buildActivity(HubActivity::class.java).setup()
         val hub = hubC.get()
         idle(500)
-        val card = findAll(hub.window.decorView, { it is GameCardView && it.module === MarbleModule }).single() as GameCardView
+        val card = hub.cardFor(MarbleModule.ID)!!
         assertTrue("저장된 같은 플레이어 게임 → 이어하기", card.resumable)
         assertNull(card.unavailable)
         card.performClick()

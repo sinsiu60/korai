@@ -1,5 +1,6 @@
 package com.siwoo.party.games.chosung
 
+import com.siwoo.party.common.Chosung
 import com.siwoo.party.common.Ranking
 import kotlin.random.Random
 

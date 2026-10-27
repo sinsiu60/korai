@@ -14,23 +14,23 @@ import com.siwoo.party.common.ui.GameCategory
 import com.siwoo.party.common.ui.Theme
 
 /**
- * 허브 상단 카테고리 탭: [전체] [🎲 보드게임] [🃏 카드·두뇌] [⚡ 순발력] [🎯 손맛·타이밍].
- * 탭마다 대표 색, 선택 탭 아래 밑줄이 미끄러지며 이동 (움직일 때만 다시 그림).
- * 선택 번호 0 = 전체, 1.. = GameCategory.HUB 순서.
+ * 허브 상단 카테고리 탭: [★ 즐겨찾기] [전체] [🎲 보드게임] [🃏 카드·두뇌] [⚡ 순발력] [🎯 손맛·타이밍].
+ * 탭마다 대표 색, 선택 탭 아래 밑줄이 미끄러지며 이동 (움직일 때만 다시 그림). 탭 이름 옆 작은 숫자 = 게임 수.
+ * 선택 번호 = HubBrowse 탭 번호: 0 즐겨찾기, 1 전체, 2.. = GameCategory.HUB 순서.
  */
 class CategoryTabsView(context: Context) : View(context) {
 
-    val labels: Array<String> = arrayOf("전체") + GameCategory.HUB.map { it.emoji + " " + it.label }
-    private val colors: IntArray = intArrayOf(Theme.GOLD_LIGHT) + GameCategory.HUB.map { it.color }
+    val labels: Array<String> = arrayOf("★ 즐겨찾기", "전체") + GameCategory.HUB.map { it.emoji + " " + it.label }
+    private val colors: IntArray = intArrayOf(Theme.GOLD, Theme.GOLD_LIGHT) + GameCategory.HUB.map { it.color }
     /** 탭별 게임 수 (글자 옆 작은 숫자) */
     private val counts = arrayOfNulls<String>(labels.size)
 
-    var selected = 0
+    var selected = 1
         private set
     var onSelect: ((Int) -> Unit)? = null
 
     /** 밑줄 위치 (탭 번호, 실수) */
-    private var lineAt = 0f
+    private var lineAt = 1f
     private var anim: ValueAnimator? = null
     private val rect = RectF()
     private val bg = Paint(Paint.ANTI_ALIAS_FLAG)
@@ -95,7 +95,7 @@ class CategoryTabsView(context: Context) : View(context) {
         // 글자가 탭보다 넓으면 줄인다
         val tw = w.toFloat() / labels.size
         for (l in labels) {
-            while (text.measureText(l) + h * 0.9f > tw && text.textSize > h * 0.25f) text.textSize *= 0.94f
+            while (text.measureText(l) + h * 0.62f > tw && text.textSize > h * 0.25f) text.textSize *= 0.95f
         }
     }
 
@@ -120,7 +120,7 @@ class CategoryTabsView(context: Context) : View(context) {
             val n = counts[i]
             if (n != null) {
                 small.color = if (i == selected) colors[i] else 0x88B8C3F0.toInt()
-                c.drawText(n, cx + text.measureText(labels[i]) / 2f + h * 0.08f, h * 0.36f, small)
+                c.drawText(n, minOf(cx + text.measureText(labels[i]) / 2f + h * 0.05f, (i + 1) * tw - small.measureText(n) - h * 0.04f), h * 0.36f, small)
             }
         }
         // 밑줄

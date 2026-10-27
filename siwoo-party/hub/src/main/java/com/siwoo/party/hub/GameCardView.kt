@@ -1,6 +1,7 @@
 package com.siwoo.party.hub
 
 import android.content.Context
+import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.LinearGradient
 import android.graphics.Paint
@@ -13,15 +14,24 @@ import android.text.TextPaint
 import android.text.TextUtils
 import android.view.View
 import com.siwoo.party.common.ui.GameModule
+import com.siwoo.party.common.ui.IconCache
 import com.siwoo.party.common.ui.Theme
 
 /**
  * 게임 카드 (Canvas): 왼쪽 아이콘, 오른쪽 이름·한 줄 소개, 아래 작은 배지
  * [인원] [동시/차례 · 파티 존은 말로 함/몸으로 함] [🎲 랜덤 포함(꺼지면 회색)].
  * 오른쪽 위 상태 배지: 지금 인원으로 못 함(어둡게) / 이어하기 / 기기 조건 부족.
- * party = true 면 파티 존 네온 스타일.
+ * 왼쪽 위 모서리 별: 즐겨찾기. 아이콘은 IconCache 비트맵 (스크롤 때 다시 그리지 않음).
+ * party = true 면 파티 존 네온 스타일. 허브 목록(RecyclerView)에서는 [bind] 로 다른 게임을 다시 붙인다.
  */
-class GameCardView(context: Context, val module: GameModule, private val party: Boolean = false) : View(context) {
+class GameCardView(context: Context, module: GameModule, private val party: Boolean = false) : View(context) {
+
+    var module: GameModule = module
+        private set
+
+    /** 즐겨찾기 (왼쪽 위 별) */
+    var favorite = false
+        set(v) { if (field != v) { field = v; invalidate() } }
 
     var resumable = false
         set(v) { field = v; fitName(); invalidate() }
@@ -38,40 +48,65 @@ class GameCardView(context: Context, val module: GameModule, private val party: 
     private val rect = RectF()
     private val bg = Paint(Paint.ANTI_ALIAS_FLAG)
     private val stroke = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.STROKE }
-    private val iconPaint = Paint(Paint.ANTI_ALIAS_FLAG)
+    private val iconPaint = Paint(Paint.FILTER_BITMAP_FLAG)
     private val namePaint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply { typeface = Typeface.DEFAULT_BOLD; color = Theme.TEXT }
     private val tagPaint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply { color = if (party) Theme.Party.TEXT_SUB else Theme.TEXT_SUB }
     private val badgePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { typeface = Typeface.DEFAULT_BOLD; textAlign = Paint.Align.CENTER }
     private var tagLayout: StaticLayout? = null
     private var shader: Shader? = null
     private var nameShown: CharSequence = module.name
+    private var icon: Bitmap? = null
+    private val starPath = android.graphics.Path()
 
     /** 아래 배지 글자: 인원, 방식(또는 파티 태그), 시간 */
-    private val pills: Array<String> = buildList {
-        add(module.playersLabel)
-        if (party && module.partyTags.isNotEmpty()) module.partyTags.forEach { add(it.label) } else add(module.mode.short)
-        add(module.minutes)
-    }.toTypedArray()
-    private val pillColors: IntArray = IntArray(pills.size) { k ->
-        when {
-            k == 0 -> 0x55000000
-            k == pills.size - 1 -> 0x33000000
-            party -> if (pills[k] == "몸으로 함") 0xAA1E8FB0.toInt() else 0xAAB0287E.toInt()
-            else -> 0x55000000
-        }
-    }
-    private val pillX = FloatArray(pills.size)
-    private val pillW = FloatArray(pills.size)
+    private var pills: Array<String> = emptyArray()
+    private var pillColors = IntArray(0)
+    private var pillX = FloatArray(0)
+    private var pillW = FloatArray(0)
     /** 주사위 배지와 겹치지 않게 들어가는 배지 수 */
-    private var pillCount = pills.size
+    private var pillCount = 0
 
     init {
         isClickable = true
         isLongClickable = true
-        contentDescription = module.name
+        makePills()
     }
 
-    override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
+    /** 다른 게임을 붙임 (목록 재사용) — 상태 배지는 부르는 쪽이 다시 정한다 */
+    fun bind(m: GameModule) {
+        if (m === module) return
+        module = m
+        nameShown = m.name
+        icon = null
+        makePills()
+        if (width > 0) layoutContent(width, height)
+        invalidate()
+    }
+
+    private fun makePills() {
+        val m = module
+        contentDescription = m.name
+        pills = buildList {
+            add(m.playersLabel)
+            if (party && m.partyTags.isNotEmpty()) m.partyTags.forEach { add(it.label) } else add(m.mode.short)
+            add(m.minutes)
+        }.toTypedArray()
+        pillColors = IntArray(pills.size) { k ->
+            when {
+                k == 0 -> 0x55000000
+                k == pills.size - 1 -> 0x33000000
+                party -> if (pills[k] == "몸으로 함") 0xAA1E8FB0.toInt() else 0xAAB0287E.toInt()
+                else -> 0x55000000
+            }
+        }
+        pillX = FloatArray(pills.size)
+        pillW = FloatArray(pills.size)
+        pillCount = pills.size
+    }
+
+    override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) = layoutContent(w, h)
+
+    private fun layoutContent(w: Int, h: Int) {
         val c = module.color
         shader = if (party) LinearGradient(0f, 0f, w.toFloat(), h.toFloat(), Theme.Party.CARD_LIGHT, Theme.Party.BG_BOTTOM, Shader.TileMode.CLAMP)
         else LinearGradient(0f, 0f, w.toFloat(), h.toFloat(), Theme.shade(c, 0.75f), Theme.CARD, Shader.TileMode.CLAMP)
@@ -98,6 +133,20 @@ class GameCardView(context: Context, val module: GameModule, private val party: 
             x += pillW[k] + gap
             if (pillX[k] + pillW[k] <= limit) pillCount = k + 1 else break
         }
+        icon = IconCache.get(module, (h * 0.7f * 0.9f).toInt())
+        // 즐겨찾기 별 (왼쪽 위 모서리)
+        starPath.reset()
+        val sr = h * 0.11f
+        val scx = h * 0.12f
+        val scy = h * 0.12f
+        for (k in 0 until 10) {
+            val a = Math.PI * (k * 36.0 - 90.0) / 180.0
+            val rr = if (k % 2 == 0) sr else sr * 0.45f
+            val x = scx + (rr * Math.cos(a)).toFloat()
+            val y = scy + (rr * Math.sin(a)).toFloat()
+            if (k == 0) starPath.moveTo(x, y) else starPath.lineTo(x, y)
+        }
+        starPath.close()
     }
 
     private fun textLeft(h: Float) = h * 0.9f
@@ -143,9 +192,14 @@ class GameCardView(context: Context, val module: GameModule, private val party: 
         val icy = h / 2f
         bg.color = 0x33000000
         c.drawRoundRect(icx - isz / 2f, icy - isz / 2f, icx + isz / 2f, icy + isz / 2f, r, r, bg)
-        iconPaint.reset()
-        iconPaint.isAntiAlias = true
-        module.drawIcon(c, icx, icy, isz * 0.9f, iconPaint)
+        icon?.let { c.drawBitmap(it, icx - it.width / 2f, icy - it.height / 2f, iconPaint) }
+        if (favorite) {
+            bg.color = Theme.GOLD
+            c.drawPath(starPath, bg)
+            stroke.color = Theme.INK
+            stroke.strokeWidth = sw * 0.6f
+            c.drawPath(starPath, stroke)
+        }
 
         val tx = textLeft(h)
         c.drawText(nameShown, 0, nameShown.length, tx, h * 0.28f, namePaint)
