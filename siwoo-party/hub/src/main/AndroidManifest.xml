@@ -43,5 +43,24 @@
             android:exported="false"
             android:screenOrientation="sensorLandscape"
             android:windowSoftInputMode="adjustPan" />
+        <!-- 도구 (점수 없음): 손가락 추첨 · 사다리 타기 · 순서 정하기 -->
+        <activity
+            android:name=".hub.tools.FingerPickActivity"
+            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboardHidden"
+            android:exported="false"
+            android:screenOrientation="sensorLandscape"
+            android:windowSoftInputMode="adjustPan" />
+        <activity
+            android:name=".hub.tools.LadderActivity"
+            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboardHidden"
+            android:exported="false"
+            android:screenOrientation="sensorLandscape"
+            android:windowSoftInputMode="adjustPan" />
+        <activity
+            android:name=".hub.tools.OrderActivity"
+            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboardHidden"
+            android:exported="false"
+            android:screenOrientation="sensorLandscape"
+            android:windowSoftInputMode="adjustPan" />
     </application>
 </manifest>

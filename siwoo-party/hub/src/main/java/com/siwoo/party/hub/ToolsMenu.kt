@@ -4,6 +4,10 @@ import android.view.Gravity
 import com.siwoo.party.common.ui.PopupLayer
 import com.siwoo.party.common.ui.Theme
 import com.siwoo.party.common.ui.Ui
+import com.siwoo.party.hub.tools.FingerPickActivity
+import com.siwoo.party.hub.tools.LadderActivity
+import com.siwoo.party.hub.tools.OrderActivity
+import com.siwoo.party.hub.tools.ToolActivity
 
 /**
  * [🛠️ 도구] 메뉴: 점수와 상관없는 모임 도구 (손가락 추첨 · 사다리 타기 · 순서 정하기).
@@ -12,11 +16,17 @@ object ToolsMenu {
 
     class Tool(val emoji: String, val name: String, val desc: String, val open: ((GameHostActivity) -> Unit)?)
 
-    /** 도구 목록 (open 이 null 이면 아직 준비 중) */
+    /** 도구 목록 (open 이 null 이면 아직 준비 중). 지금 모임 플레이어 이름·색을 넘긴다 */
     val tools: List<Tool> = listOf(
-        Tool("☝️", "손가락 추첨", "화면에 손가락을 올리면 한 명(또는 팀)을 뽑아요", null),
-        Tool("🪜", "사다리 타기", "이름과 결과를 넣고 사다리를 타요", null),
-        Tool("🔢", "순서 정하기", "이름 카드를 섞어 1번부터 공개해요", null),
+        Tool("☝️", "손가락 추첨", "화면에 손가락을 올리면 한 명(또는 팀)을 뽑아요") { host ->
+            ToolActivity.open(host, FingerPickActivity::class.java, host.session.players)
+        },
+        Tool("🔀", "사다리 타기", "이름과 결과를 넣고 사다리를 타요") { host ->
+            ToolActivity.open(host, LadderActivity::class.java, host.session.players)
+        },
+        Tool("🔢", "순서 정하기", "이름 카드를 섞어 1번부터 공개해요") { host ->
+            ToolActivity.open(host, OrderActivity::class.java, host.session.players)
+        },
     )
 
     fun show(host: GameHostActivity): PopupLayer.Popup {
