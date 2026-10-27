@@ -37,6 +37,7 @@ import com.siwoo.party.games.janggi.JanggiModule
 import com.siwoo.party.games.ludo.LudoModule
 import com.siwoo.party.games.polyblock.PolyblockModule
 import com.siwoo.party.games.reversi.ReversiModule
+import com.siwoo.party.games.rhythm.RhythmModule
 import com.siwoo.party.games.sevens.SevensModule
 import com.siwoo.party.games.shutbox.ShutBoxModule
 import com.siwoo.party.games.simon.SimonModule
@@ -118,6 +119,7 @@ object GameRegistry {
         SimonModule,
         ShutBoxModule,
         SpeedModule,
+        RhythmModule,
     )
 
     fun byId(id: String?): GameModule? = games.firstOrNull { it.id == id }
