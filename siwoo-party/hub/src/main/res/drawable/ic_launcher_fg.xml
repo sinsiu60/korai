@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 런처 아이콘: 이미지 파일 대신 벡터로 그린 금색 별 + 꽃가루 (시우 파티) -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#FFB8860B"
+        android:pathData="M55.2,32.0L61.7,49.1L79.9,50.0L65.7,61.4L70.5,79.0L55.2,69.0L39.9,79.0L44.7,61.4L30.5,50.0L48.7,49.1z" />
+    <path
+        android:fillColor="#FFFFC93C"
+        android:pathData="M54.0,30.0L60.5,47.1L78.7,48.0L64.5,59.4L69.3,77.0L54.0,67.0L38.7,77.0L43.5,59.4L29.3,48.0L47.5,47.1z" />
+    <path
+        android:fillColor="#FFFF5252"
+        android:pathData="M30,34h6v3h-6z M76,30h3v6h-3z" />
+    <path
+        android:fillColor="#FF448AFF"
+        android:pathData="M78,72h6v3h-6z M28,70h3v6h-3z" />
+    <path
+        android:fillColor="#FF00D27A"
+        android:pathData="M40,80m-2.5,0a2.5,2.5 0 1,0 5,0a2.5,2.5 0 1,0 -5,0 M70,24m-2,0a2,2 0 1,0 4,0a2,2 0 1,0 -4,0" />
+</vector>

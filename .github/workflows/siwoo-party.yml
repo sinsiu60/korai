@@ -1,0 +1,121 @@
+name: 시우 파티 APK 빌드
+
+on:
+  push:
+    paths:
+      - "siwoo-party/**"
+      - ".github/workflows/siwoo-party.yml"
+  workflow_dispatch:
+    inputs:
+      release:
+        description: "GitHub 릴리스로 배포"
+        type: boolean
+        default: true
+
+# 릴리스 생성(태그 + APK 첨부)에 필요
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: siwoo-party
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Android SDK 34 준비
+        run: |
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-34" "build-tools;34.0.0" > /dev/null
+
+      - name: 로직 단위 테스트 (공통 점수·세션·벌칙 문구·터치 구역 + 시우 마블 규칙 엔진)
+        run: ./gradlew --no-daemon :common:logic:test :games:marble:logic:test
+
+      - name: UI 흐름 테스트 (Robolectric · 마블 화면 + 허브→마블→결과→허브 점수 누적)
+        run: ./gradlew --no-daemon :games:marble:ui:testDebugUnitTest :hub:testDebugUnitTest
+
+      - name: 테스트 결과 요약
+        if: always()
+        run: |
+          {
+            echo "## 테스트"
+            for f in common/logic/build/test-results/test/*.xml games/marble/logic/build/test-results/test/*.xml \
+                     games/marble/ui/build/test-results/testDebugUnitTest/*.xml hub/build/test-results/testDebugUnitTest/*.xml; do
+              [ -f "$f" ] && grep -o 'testsuite name="[^"]*" tests="[0-9]*" skipped="[0-9]*" failures="[0-9]*" errors="[0-9]*"' "$f" | head -1
+            done
+          } | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: 런타임 의존성 (네이티브 라이브러리 점검용)
+        run: ./gradlew --no-daemon -q :hub:dependencies --configuration releaseRuntimeClasspath
+
+      - name: 디버그/릴리스 APK 빌드 + lib/ 폴더 검사
+        run: ./gradlew --no-daemon :hub:checkNoNativeLibs
+
+      - name: APK 점검 보고
+        run: |
+          AAPT2="$ANDROID_HOME/build-tools/34.0.0/aapt2"
+          {
+            echo "## 시우 파티 APK"
+            echo
+            echo "| APK | 크기 | lib/ 항목 수 | 권한 | native-code |"
+            echo "|---|---|---|---|---|"
+            for apk in $(find hub/build/outputs/apk -name '*.apk' | sort); do
+              size=$(du -k "$apk" | cut -f1)
+              libs=$(unzip -l "$apk" | awk '{print $4}' | grep -c '^lib/' || true)
+              perms=$("$AAPT2" dump permissions "$apk" | grep -c 'uses-permission' || true)
+              native=$("$AAPT2" dump badging "$apk" | grep 'native-code' || echo '없음')
+              echo "| $(basename "$apk") | ${size} KB | ${libs} | ${perms} | ${native} |"
+            done
+            echo
+            echo '```'
+            "$AAPT2" dump badging hub/build/outputs/apk/release/hub-release.apk | grep -E "^(package|sdkVersion|targetSdkVersion|uses-permission|application-label)" || true
+            echo '```'
+          } | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: siwoo-party-apk
+          path: |
+            siwoo-party/hub/build/outputs/apk/debug/hub-debug.apk
+            siwoo-party/hub/build/outputs/apk/release/hub-release.apk
+          if-no-files-found: error
+
+      # 커밋 메시지에 [release] 가 있거나 수동 실행(release=true)이면 GitHub 릴리스로 배포
+      - name: GitHub 릴리스 배포
+        if: contains(github.event.head_commit.message, '[release]') || (github.event_name == 'workflow_dispatch' && inputs.release)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VERSION=$(grep -oP 'versionName = "\K[^"]+' hub/build.gradle.kts)
+          TAG="siwoo-party-v${VERSION}-build${{ github.run_number }}"
+          mkdir -p dist
+          cp hub/build/outputs/apk/release/hub-release.apk "dist/siwoo-party-${VERSION}-release.apk"
+          cp hub/build/outputs/apk/debug/hub-debug.apk "dist/siwoo-party-${VERSION}-debug.apk"
+          {
+            echo "## 시우 파티 ${VERSION} (빌드 ${{ github.run_number }})"
+            echo
+            echo "한 대의 폰으로 2~4명이 함께 하는 파티 게임 모음집입니다 (시우 마블 포함). 인터넷·권한 없음."
+            echo
+            echo "### 설치"
+            echo "1. 아래 **siwoo-party-${VERSION}-release.apk** 를 폰에서 내려받습니다."
+            echo "2. 파일을 열고, 안내가 나오면 **설정 → 이 출처 허용**(알 수 없는 출처)을 켭니다."
+            echo "3. 설치를 누릅니다. (Play 프로텍트 경고가 나오면 '무시하고 설치')"
+            echo
+            echo "- 안드로이드 8.0(API 26) 이상, 32비트(armeabi-v7a)·64비트 모두 지원 (네이티브 라이브러리 없음)"
+            echo "- release: R8 축소, 디버그 키 서명 / debug: 디버깅용"
+            echo
+            echo "커밋: ${GITHUB_SHA}"
+          } > dist/notes.md
+          gh release create "$TAG" dist/*.apk \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "$GITHUB_SHA" \
+            --title "시우 파티 ${VERSION} (빌드 ${{ github.run_number }})" \
+            --notes-file dist/notes.md
+          echo "릴리스: https://github.com/${GITHUB_REPOSITORY}/releases/tag/${TAG}" | tee -a "$GITHUB_STEP_SUMMARY"

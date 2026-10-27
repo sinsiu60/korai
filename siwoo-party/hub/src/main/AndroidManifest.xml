@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 권한 없음: 인터넷·저장소 권한을 요청하지 않는다 (저장은 앱 내부 저장소만 사용) -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- 동시 터치 게임용 (필수 아님: 없는 기기도 설치되고 허브에서 안내) -->
+    <uses-feature android:name="android.hardware.touchscreen.multitouch" android:required="false" />
+
+    <application
+        android:allowBackup="false"
+        android:hardwareAccelerated="true"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:largeHeap="false"
+        android:supportsRtl="false"
+        android:theme="@style/AppTheme">
+
+        <!-- 가로 고정: 기기를 어느 쪽으로 돌려도 가로 유지 -->
+        <!-- 로고 "시우 공방" → 타이틀 "시우 파티" → 모임 이어하기/새 모임 → 플레이어 설정 -->
+        <activity
+            android:name=".hub.SplashActivity"
+            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboardHidden"
+            android:exported="true"
+            android:screenOrientation="sensorLandscape"
+            android:windowSoftInputMode="adjustPan">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!-- 허브: 게임 카드, 랜덤 게임, 플레이어 변경, 설정, 모임 종료 -->
+        <activity
+            android:name=".hub.HubActivity"
+            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboardHidden"
+            android:exported="false"
+            android:screenOrientation="sensorLandscape"
+            android:windowSoftInputMode="adjustPan" />
+    </application>
+</manifest>
