@@ -49,6 +49,7 @@ import com.siwoo.party.games.marbles.MarblesModule
 import com.siwoo.party.games.minigolf.MinigolfModule
 import com.siwoo.party.games.bowling.BowlingModule
 import com.siwoo.party.games.spintop.SpinTopModule
+import com.siwoo.party.games.artillery.ArtilleryModule
 import com.siwoo.party.games.ludo.LudoModule
 import com.siwoo.party.games.polyblock.PolyblockModule
 import com.siwoo.party.games.reversi.ReversiModule
@@ -152,6 +153,7 @@ object GameRegistry {
         MinigolfModule,
         BowlingModule,
         SpinTopModule,
+        ArtilleryModule,
     )
 
     fun byId(id: String?): GameModule? = games.firstOrNull { it.id == id }
