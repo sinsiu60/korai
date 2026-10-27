@@ -3,13 +3,15 @@ package com.siwoo.marble.model
 import com.siwoo.marble.GameConfig
 
 enum class PendingKind {
-    USE_TOLL_FREE, // 통행료 면제권 사용 여부 (지불 전에 묻는다)
+    USE_TOLL_FREE,    // 통행료 면제권 사용 여부 (지불 전에 묻는다)
+    USE_PENALTY_FREE, // 벌칙 면제권 사용 여부 (룰렛 전에 묻는다)
+    PENALTY_SPIN,     // 벌칙 룰렛을 돌려야 함
 }
 
 /**
- * 플레이어의 대답을 기다리는 상태. (현재는 통행료 면제권 사용 여부만)
- * @param amount 통행료
- * @param creditor 통행료를 받을 플레이어 id
+ * 플레이어의 대답을 기다리는 상태.
+ * @param amount 통행료 (USE_TOLL_FREE)
+ * @param creditor 통행료를 받을 플레이어 id (USE_TOLL_FREE)
  */
 class Pending(
     val kind: PendingKind,

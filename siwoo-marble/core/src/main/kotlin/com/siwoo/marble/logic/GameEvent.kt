@@ -57,6 +57,21 @@ sealed class GameEvent {
     /** 현금이 마이너스가 됨 → 판매/거래 안내 */
     class Debt(val playerId: Int, val money: Int) : GameEvent()
 
+    /** 벌칙 칸 도착: 칸이 빨갛게 3번 깜빡이고 "벌칙 당첨!" */
+    class PenaltyLanded(val playerId: Int, val tile: Int) : GameEvent()
+
+    /**
+     * 벌칙 룰렛 결과 (회전 전에 엔진이 확률로 미리 결정). 룰렛은 slot 칸에 멈추도록 연출만 한다.
+     * 뒤따르는 이벤트(돈 이동·이동 등)가 실제 효과.
+     */
+    class PenaltySpun(val playerId: Int, val slot: Int, val grade: Int, val penaltyId: Int) : GameEvent()
+
+    /** 벌칙: 건물 1단계 철거 */
+    class Demolished(val playerId: Int, val tile: Int, val level: Int) : GameEvent()
+
+    /** 1턴 쉬기로 차례를 건너뜀 */
+    class TurnSkipped(val playerId: Int) : GameEvent()
+
     class Bankrupt(val playerId: Int) : GameEvent()
 
     class TurnChanged(val playerId: Int) : GameEvent()

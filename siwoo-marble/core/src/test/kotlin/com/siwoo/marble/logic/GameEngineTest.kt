@@ -2,10 +2,14 @@ package com.siwoo.marble.logic
 
 import com.siwoo.marble.GameConfig
 import com.siwoo.marble.data.CardData
+import com.siwoo.marble.data.PenaltyData
 import com.siwoo.marble.data.SaveCodec
 import com.siwoo.marble.model.CardEffect
 import com.siwoo.marble.model.GameState
 import com.siwoo.marble.model.OfferKind
+import com.siwoo.marble.model.Pending
+import com.siwoo.marble.model.PenaltyEffect
+import com.siwoo.marble.model.PenaltyGrade
 import com.siwoo.marble.model.PendingKind
 import com.siwoo.marble.model.Player
 import com.siwoo.marble.model.PlayerSetup
@@ -31,13 +35,15 @@ class GameEngineTest {
     private val SALARY = GameConfig.SALARY
 
     /** 플레이어 A(0), B(1) … 순서가 고정된 게임 */
-    private fun game(vararg faces: Int, players: Int = 2): Pair<GameEngine, GameState> {
+    private fun game(vararg faces: Int, players: Int = 2, random: Random = Random(7)): Pair<GameEngine, GameState> {
         val list = (0 until players).map { i ->
             Player(i, "P${'A' + i}", i).apply { money = START }
         }
         val state = GameState(list, deck = CardData.cards.map { it.id }.toMutableList())
-        return GameEngine(state, ScriptedDice(*faces)) to state
+        return GameEngine(state, ScriptedDice(*faces), random) to state
     }
+
+    private fun penaltyId(effect: PenaltyEffect) = PenaltyData.penalties.first { it.effect == effect }.id
 
     private fun GameState.p(i: Int) = players[i]
 
@@ -683,6 +689,265 @@ class GameEngineTest {
     }
 
     // ─────────────────────────────────────────────
+    // 벌칙 룰렛 (PART 12)
+    // ─────────────────────────────────────────────
+
+    @Test
+    fun `벌칙 칸은 7번과 22번이고 도착하면 룰렛 대기 상태가 된다`() {
+        assertEquals(com.siwoo.marble.model.TileType.PENALTY, com.siwoo.marble.data.BoardData.tiles[7].type)
+        assertEquals(com.siwoo.marble.model.TileType.PENALTY, com.siwoo.marble.data.BoardData.tiles[22].type)
+        assertEquals(16, CardData.cards.size)  // 기존 15장 + 벌칙 면제권
+        val (e, s) = game(3, 4)
+        val ev = e.roll()                       // → 7
+        assertEquals(PendingKind.PENALTY_SPIN, s.pending!!.kind)
+        assertTrue(ev.any { it is GameEvent.PenaltyLanded && it.tile == 7 })
+        assertTrue(ev.any { it is GameEvent.Banner && it.text == "벌칙 당첨!" })
+        assertFalse(e.canEndTurn())
+        assertFalse(e.canRoll())
+        assertTrue(e.canSpinPenalty())
+        val spin = e.spinPenalty()
+        val sp = spin.first { it is GameEvent.PenaltySpun } as GameEvent.PenaltySpun
+        val pen = PenaltyData.byId(sp.penaltyId)
+        assertEquals(pen.grade.ordinal, sp.grade)
+        assertEquals("룰렛 칸 등급 = 결과 등급", pen.grade, PenaltyData.ROULETTE[sp.slot])
+        assertNull(s.pending)
+    }
+
+    @Test
+    fun `등급 확률은 기본 60-30-10, 꼴찌는 대형 3%, 1위는 대형 15%`() {
+        val (e, s) = game(players = 3)
+        assertEquals(listOf(60, 30, 10), e.penaltyOdds(0).toList())      // 모두 동점 → 보정 없음
+        s.p(0).money = START + 500_000                                     // A 단독 1위
+        assertEquals(listOf(55, 30, 15), e.penaltyOdds(0).toList())
+        s.p(1).money = START - 500_000                                     // B 단독 꼴찌
+        assertEquals(listOf(67, 30, 3), e.penaltyOdds(1).toList())
+        assertEquals(listOf(60, 30, 10), e.penaltyOdds(2).toList())        // C 중간
+        s.p(2).money = START + 500_000                                     // A·C 공동 1위 → 보정 없음
+        assertEquals(listOf(60, 30, 10), e.penaltyOdds(0).toList())
+        for (k in 0 until 3) assertEquals(100, e.penaltyOdds(k).sum())
+    }
+
+    @Test
+    fun `룰렛 결과는 보정된 확률대로 나온다 (2만 번 표본)`() {
+        val rnd = Random(42)
+        val count = IntArray(3)
+        val n = 20_000
+        repeat(n) {
+            val (e, s) = game(players = 2, random = rnd)
+            s.p(0).money = START + 1_000_000      // 1위 → 55/30/15
+            s.pending = Pending(PendingKind.PENALTY_SPIN, 7)
+            val sp = e.spinPenalty().first { it is GameEvent.PenaltySpun } as GameEvent.PenaltySpun
+            count[sp.grade]++
+        }
+        val pct = count.map { it * 100.0 / n }
+        assertEquals(55.0, pct[0], 1.5)
+        assertEquals(30.0, pct[1], 1.5)
+        assertEquals(15.0, pct[2], 1.2)
+    }
+
+    @Test
+    fun `벌칙 손실은 총자산의 25%를 넘지 않는다`() {
+        // 총자산 10만 → 상한 2.5만
+        val (e, s) = game(players = 4)
+        val a = s.p(0)
+        a.money = 100_000
+        assertEquals(25_000, e.penaltyCap(0))
+        e.applyPenaltyForTest(penaltyId(PenaltyEffect.FINE))               // 5만 → 2.5만
+        assertEquals(75_000, a.money)
+        a.money = 100_000
+        e.applyPenaltyForTest(penaltyId(PenaltyEffect.PAY_ALL))            // 3명 × 3만 = 9만 → 2.5만/3
+        assertEquals(100_000 - 3 * (25_000 / 3), a.money)
+        assertEquals(START + 25_000 / 3, s.p(1).money)
+        a.money = 100_000
+        e.applyPenaltyForTest(penaltyId(PenaltyEffect.DONATE_RATE))        // 20% = 2만 (상한 이내)
+        assertEquals(80_000, a.money)
+        assertEquals(20_000, s.welfareFund)
+    }
+
+    @Test
+    fun `강제 매각과 철거도 잃는 가치가 상한을 넘지 않는다`() {
+        val (e, s) = game()
+        val a = s.p(0)
+        a.money = 0
+        s.owner[39] = 0                         // 서울 100만 → 총자산 100만, 상한 25만
+        val ev = e.applyPenaltyForTest(penaltyId(PenaltyEffect.FORCED_SALE))
+        // 판매가 50만의 절반 = 25만이면 75만을 잃으므로, 잃는 가치 25만에 맞춰 75만을 받는다
+        assertEquals(750_000, a.money)
+        assertEquals(-1, s.owner[39])
+        assertTrue(ev.any { it is GameEvent.Sold && it.amount == 750_000 })
+
+        val (e2, s2) = game()
+        val b = s2.p(0)
+        b.money = 0
+        s2.owner[34] = 0; s2.level[34] = 3      // 로마 호텔: 자산 가치 128만 → 상한 32만, 호텔 48만
+        e2.applyPenaltyForTest(penaltyId(PenaltyEffect.DEMOLISH))
+        assertEquals(2, s2.level[34])
+        assertEquals(480_000 - 320_000, b.money) // 넘는 16만은 돌려받음
+        assertEquals(1_280_000 - 320_000, e2.totalAssets(0))
+    }
+
+    @Test
+    fun `강제 매각은 가장 비싼 땅을 판매가의 절반에 판다`() {
+        val (e, s) = game()
+        val a = s.p(0)
+        s.owner[3] = 0                          // 베이징 8만
+        s.owner[26] = 0; s.level[26] = 1        // 하와이 26 + 13 = 39만 (가장 비쌈)
+        e.applyPenaltyForTest(penaltyId(PenaltyEffect.FORCED_SALE))
+        assertEquals(-1, s.owner[26])
+        assertEquals(0, s.owner[3])
+        assertEquals(START + 390_000 / 2 / 2, a.money)
+    }
+
+    @Test
+    fun `건물이 없으면 철거 대신 벌금 10만, 땅이 없으면 강제 매각 대신 벌금 20만`() {
+        val (e, s) = game()
+        val a = s.p(0)
+        s.owner[3] = 0                          // 땅은 있지만 건물 없음
+        val ev = e.applyPenaltyForTest(penaltyId(PenaltyEffect.DEMOLISH))
+        assertEquals(START - 100_000, a.money)
+        assertTrue(ev.any { it is GameEvent.Banner && it.text == "대체 벌칙" })
+        assertEquals(0, s.owner[3])
+
+        val (e2, s2) = game()
+        e2.applyPenaltyForTest(penaltyId(PenaltyEffect.FORCED_SALE))
+        assertEquals(START - 200_000, s2.p(0).money)
+    }
+
+    @Test
+    fun `주사위 1개 벌칙은 다음 굴림 한 번만 적용되고 사라진다`() {
+        val (e, s) = game(3, 2, 2)
+        val a = s.p(0)
+        e.applyPenaltyForTest(penaltyId(PenaltyEffect.ONE_DIE))
+        assertTrue(a.oneDieNext)
+        val ev = e.roll()                       // 주사위 1개: 3
+        val d = ev.first { it is GameEvent.DiceRolled } as GameEvent.DiceRolled
+        assertEquals(0, d.die2)
+        assertEquals(3, a.position)
+        assertFalse(a.oneDieNext)
+        e.endTurn()
+        e.roll()                                // B: 다시 2개
+        assertEquals(4, s.p(1).position)
+    }
+
+    @Test
+    fun `월급 절반 벌칙은 다음 월급에만 적용된다`() {
+        val (e, s) = game(1, 2, 1, 2, 1, 2)
+        val a = s.p(0)
+        s.park(1)
+        e.applyPenaltyForTest(penaltyId(PenaltyEffect.HALF_SALARY))
+        a.position = 38
+        e.roll(); e.endTurn()                  // 출발 통과
+        assertEquals(START + SALARY / 2, a.money)
+        assertFalse(a.halfSalaryNext)
+        e.roll(); e.endTurn()                  // B
+        a.position = 38
+        e.roll()
+        assertEquals(START + SALARY / 2 + SALARY, a.money)
+    }
+
+    @Test
+    fun `통행료 2배 벌칙은 다음 통행료에만 적용된다`() {
+        val (e, s) = game(1, 2, 1, 2, 1, 2)
+        val a = s.p(0)
+        s.park(1)
+        s.owner[3] = 1                          // 베이징 통행료 8천
+        e.applyPenaltyForTest(penaltyId(PenaltyEffect.DOUBLE_TOLL))
+        assertTrue(a.doubleTollNext)
+        e.roll(); e.endTurn()
+        assertEquals(START - 16_000, a.money)
+        assertFalse(a.doubleTollNext)
+        e.roll(); e.endTurn()
+        a.position = 0
+        e.roll()
+        assertEquals(START - 16_000 - 8_000, a.money)
+    }
+
+    @Test
+    fun `1턴 쉬기는 다음 차례를 건너뛰고 사라진다`() {
+        val (e, s) = game(1, 2, 1, 2, 1, 2, 1, 2)
+        val a = s.p(0)
+        e.applyPenaltyForTest(penaltyId(PenaltyEffect.SKIP_TURN))
+        assertEquals(1, a.skipTurns)
+        e.roll(); e.endTurn()                  // A → B
+        e.roll()
+        val ev = e.endTurn()                   // B → (A 쉼) → B
+        assertTrue(ev.any { it is GameEvent.TurnSkipped && it.playerId == 0 })
+        assertEquals(1, s.current)
+        assertEquals(0, a.skipTurns)
+        assertEquals(2, s.round)               // A 가 건너뛴 차례도 2라운드에 속함
+        e.roll()
+        e.endTurn()
+        assertEquals(0, s.current)             // 다음에는 다시 A 차례
+    }
+
+    @Test
+    fun `무인도 직행 벌칙은 더블 보너스도 없앤다`() {
+        val (e, s) = game(3, 4)
+        e.applyPenaltyForTest(penaltyId(PenaltyEffect.ISLAND))
+        assertEquals(GameConfig.TILE_ISLAND, s.p(0).position)
+        assertEquals(GameConfig.ISLAND_TURNS, s.p(0).islandTurns)
+        assertFalse(s.extraRoll)
+    }
+
+    @Test
+    fun `벌칙 면제권이 있으면 룰렛 전에 묻고, 쓰면 룰렛 없이 넘어간다`() {
+        val (e, s) = game(3, 4)
+        val a = s.p(0)
+        val id = CardData.idOf(CardEffect.KEEP_PENALTY_FREE)
+        s.deck.remove(id)
+        a.penaltyFreeCards = 1
+        e.roll()                                // → 7 벌칙
+        assertEquals(PendingKind.USE_PENALTY_FREE, s.pending!!.kind)
+        val ev = e.answerPenaltyFree(true)
+        assertNull(s.pending)
+        assertEquals(0, a.penaltyFreeCards)
+        assertEquals(id, s.deck.last())
+        assertTrue(ev.any { it is GameEvent.Banner && it.text == "벌칙 면제!" })
+        assertTrue(e.canEndTurn())
+        assertEquals(START, a.money)
+
+        val (e2, s2) = game(3, 4)
+        s2.p(0).penaltyFreeCards = 1
+        e2.roll()
+        e2.answerPenaltyFree(false)             // 아끼면 룰렛
+        assertEquals(PendingKind.PENALTY_SPIN, s2.pending!!.kind)
+        assertEquals(1, s2.p(0).penaltyFreeCards)
+    }
+
+    @Test
+    fun `벌칙 면제권은 황금열쇠 덱에 있고 뽑으면 보관한다`() {
+        val (e, s) = game(1, 1)
+        val id = CardData.idOf(CardEffect.KEEP_PENALTY_FREE)
+        s.deck.remove(id); s.deck.add(0, id)
+        e.roll()
+        assertEquals(1, s.p(0).penaltyFreeCards)
+        assertFalse(s.deck.contains(id))
+    }
+
+    @Test
+    fun `벌칙 지속 효과와 면제권도 저장된다`() {
+        val (_, s) = game()
+        s.p(0).oneDieNext = true; s.p(0).halfSalaryNext = true
+        s.p(1).doubleTollNext = true; s.p(1).skipTurns = 1; s.p(1).penaltyFreeCards = 1
+        s.pending = Pending(PendingKind.PENALTY_SPIN, 22)
+        val r = SaveCodec.decode(SaveCodec.encode(s))
+        assertTrue(r.players[0].oneDieNext && r.players[0].halfSalaryNext)
+        assertTrue(r.players[1].doubleTollNext)
+        assertEquals(1, r.players[1].skipTurns)
+        assertEquals(1, r.players[1].penaltyFreeCards)
+        assertEquals(PendingKind.PENALTY_SPIN, r.pending!!.kind)
+    }
+
+    @Test
+    fun `벌칙 등급별 목록 (소형4 중형4 대형3)과 룰렛 8칸`() {
+        assertEquals(4, PenaltyData.ofGrade(PenaltyGrade.SMALL).size)
+        assertEquals(4, PenaltyData.ofGrade(PenaltyGrade.MEDIUM).size)
+        assertEquals(3, PenaltyData.ofGrade(PenaltyGrade.LARGE).size)
+        assertEquals(8, PenaltyData.ROULETTE.size)
+        for (g in PenaltyGrade.values()) assertTrue(PenaltyData.ROULETTE.contains(g))
+    }
+
+    // ─────────────────────────────────────────────
     // 무작위 전체 게임 시뮬레이션 (예외·불변식 검사)
     // ─────────────────────────────────────────────
 
@@ -691,16 +956,19 @@ class GameEngineTest {
         var bankruptEnds = 0
         var limitEnds = 0
         var trades = 0
+        var spins = 0
         repeat(200) { seed ->
             val rnd = Random(seed)
             val n = 2 + seed % 3
             val s = GameEngine.newGame((0 until n).map { PlayerSetup("P$it", it) }, if (seed % 4 == 0) 20 else 0, rnd)
-            val e = GameEngine(s, Dice(rnd))
+            val e = GameEngine(s, Dice(rnd), rnd)
             var steps = 0
             while (!s.gameOver && steps < 8_000) {
                 val p = s.currentPlayer
                 when {
-                    s.pending != null -> e.answer(rnd.nextBoolean())
+                    s.pending?.kind == PendingKind.USE_TOLL_FREE -> e.answer(rnd.nextBoolean())
+                    s.pending?.kind == PendingKind.USE_PENALTY_FREE -> e.answerPenaltyFree(rnd.nextBoolean())
+                    s.pending?.kind == PendingKind.PENALTY_SPIN -> { e.spinPenalty(); spins++ }
                     p.money < 0 -> {
                         // 빚: 가끔 거래로 돈을 받고, 아니면 싼 땅부터 판다
                         val others = s.players.filter { !it.bankrupt && it.id != p.id && it.money > 0 }
@@ -734,7 +1002,8 @@ class GameEngineTest {
             if (s.gameOver && s.turnLimit > 0 && s.aliveCount() > 1) limitEnds++
             assertEquals(SaveCodec.encode(s), SaveCodec.encode(SaveCodec.decode(SaveCodec.encode(s))))
         }
-        println("시뮬레이션: 파산 종료 $bankruptEnds, 턴 제한 종료 $limitEnds, 거래 $trades / 200판")
+        println("시뮬레이션: 파산 종료 $bankruptEnds, 턴 제한 종료 $limitEnds, 거래 $trades, 벌칙 룰렛 $spins / 200판")
+        assertTrue(spins > 100)
         assertTrue(bankruptEnds > 50)
         assertTrue(limitEnds > 0)
         assertTrue(trades > 0)
@@ -757,7 +1026,7 @@ class GameEngineTest {
             if (s.offerKind == OfferKind.BUY) assertEquals(-1, s.owner[s.offerTile])
             else assertEquals(s.current, s.owner[s.offerTile])
         }
-        val held = s.players.sumOf { it.escapeCards + it.tollFreeCards + it.halfBuildCards }
+        val held = s.players.sumOf { it.escapeCards + it.tollFreeCards + it.halfBuildCards + it.penaltyFreeCards }
         assertEquals(CardData.cards.size, s.deck.size + held)
         assertEquals(s.deck.size, s.deck.toSet().size)
         assertTrue(s.tradesThisTurn <= GameConfig.MAX_TRADES_PER_TURN)

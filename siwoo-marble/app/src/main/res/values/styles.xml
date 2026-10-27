@@ -1,15 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="AppTheme" parent="android:Theme.Material.Light.NoActionBar">
+    <!-- 전체 화면(상태 표시줄 없음). 창 배경 없음: 각 화면 루트가 남색 그라데이션을 한 번만 그린다 -->
+    <style name="AppTheme" parent="android:Theme.Material.NoActionBar.Fullscreen">
         <item name="android:windowBackground">@color/bg</item>
-        <item name="android:statusBarColor">@color/dark</item>
-        <item name="android:navigationBarColor">@color/dark</item>
-        <item name="android:colorPrimary">@color/dark</item>
-        <item name="android:colorAccent">@color/icon_bg</item>
-    </style>
-
-    <!-- 게임 화면: 창 배경을 없애 오버드로우를 줄인다 (각 영역이 자기 배경을 직접 칠함) -->
-    <style name="AppTheme.Game">
-        <item name="android:windowBackground">@null</item>
+        <item name="android:navigationBarColor">@color/bg</item>
+        <item name="android:colorPrimary">@color/bg</item>
+        <item name="android:colorAccent">@color/gold</item>
     </style>
 </resources>

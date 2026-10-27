@@ -28,6 +28,7 @@ object CardData {
         Card(12, "반값 건설권", "다음 건물 건설비가 절반이 됩니다. (보관, 자동 적용)", CardEffect.KEEP_HALF_BUILD),
         Card(13, "건물 수리비", "건물을 수리합니다. 별장 3만, 빌딩 6만, 호텔 10만 원씩 냅니다.", CardEffect.REPAIR, 30_000, 60_000, 100_000),
         Card(14, "사회복지기금 기부", "사회복지기금에 10만 원을 기부합니다.", CardEffect.DONATE, 100_000),
+        Card(15, "벌칙 면제권", "벌칙 칸에서 룰렛을 돌리지 않고 넘어갈 수 있습니다. (보관)", CardEffect.KEEP_PENALTY_FREE),
     )
 
     init {

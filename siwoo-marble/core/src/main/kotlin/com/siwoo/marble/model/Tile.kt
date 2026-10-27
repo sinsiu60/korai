@@ -9,6 +9,7 @@ enum class TileType {
     WELFARE_RECEIVE, // 사회복지기금 (수령)
     WELFARE_PAY,     // 사회복지기금 접수처 (기부)
     SPACE,           // 우주여행
+    PENALTY,         // 벌칙 (룰렛)
 }
 
 /**

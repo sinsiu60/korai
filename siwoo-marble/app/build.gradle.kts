@@ -14,8 +14,8 @@ android {
         applicationId = "com.siwoo.marble"
         minSdk = 26
         targetSdk = 34
-        versionCode = 2
-        versionName = "1.1"
+        versionCode = 3
+        versionName = "2.0"
         // 네이티브(.so) 라이브러리가 하나도 없으므로 ABI 필터가 필요 없다.
         // → armeabi-v7a(32비트)를 포함한 모든 기기에 그대로 설치된다.
     }
@@ -51,6 +51,12 @@ android {
     lint {
         abortOnError = false
     }
+
+    testOptions {
+        // Robolectric UI 테스트 (가로 화면 배치·연출 큐 순서·자동 플레이)
+        unitTests.isIncludeAndroidResources = true
+        unitTests.all { it.maxHeapSize = "2g" }
+    }
 }
 
 kotlin {
@@ -60,8 +66,12 @@ kotlin {
 }
 
 dependencies {
-    // AndroidX/AppCompat 없이 프레임워크 위젯 + 커스텀 Canvas View만 사용 (APK 크기·메모리 절약)
+    // AppCompat 없이 프레임워크 위젯 + 커스텀 Canvas View. AndroidX 는 판매/거래 목록용 RecyclerView 만 (순수 Java, .so 없음)
     implementation(project(":core"))
+    implementation("androidx.recyclerview:recyclerview:1.3.2")
+
+    testImplementation("junit:junit:4.13.2")
+    testImplementation("org.robolectric:robolectric:4.13")
 }
 
 // 빌드된 APK 안에 lib/(네이티브 라이브러리)가 없는지 검사한다.

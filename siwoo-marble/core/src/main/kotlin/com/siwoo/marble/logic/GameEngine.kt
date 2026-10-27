@@ -3,12 +3,16 @@ package com.siwoo.marble.logic
 import com.siwoo.marble.GameConfig
 import com.siwoo.marble.data.BoardData
 import com.siwoo.marble.data.CardData
+import com.siwoo.marble.data.PenaltyData
 import com.siwoo.marble.logic.GameEvent.Tone
 import com.siwoo.marble.model.Card
 import com.siwoo.marble.model.CardEffect
 import com.siwoo.marble.model.GameState
 import com.siwoo.marble.model.OfferKind
 import com.siwoo.marble.model.Pending
+import com.siwoo.marble.model.Penalty
+import com.siwoo.marble.model.PenaltyEffect
+import com.siwoo.marble.model.PenaltyGrade
 import com.siwoo.marble.model.PendingKind
 import com.siwoo.marble.model.Player
 import com.siwoo.marble.model.PlayerSetup
@@ -24,6 +28,8 @@ import kotlin.random.Random
  *  1. 시작: canRoll() 이면 roll() / 우주여행 대기면 spaceTravel(칸) / 무인도면 useEscapeCard() 가능
  *  2. 도착 결과로 offerTile 이 생기면 칸 터치 → buy() 또는 build() (안 하면 턴 종료 시 포기)
  *  3. 통행료 면제권이 있으면 pending(USE_TOLL_FREE) → answer(사용 여부)
+ *     벌칙 칸: 면제권이 있으면 pending(USE_PENALTY_FREE) → answerPenaltyFree(사용 여부),
+ *     그다음 pending(PENALTY_SPIN) → spinPenalty() (결과는 엔진이 확률로 결정)
  *  4. 언제든(자기 차례) sell(땅들), trade(제안, 수락 여부)
  *  5. canEndTurn() 이면 endTurn(). 더블이면 다시 굴려야 하고, 현금이 마이너스면 끝낼 수 없다.
  * 각 함수는 연출용 GameEvent 목록을 돌려준다.
@@ -31,6 +37,8 @@ import kotlin.random.Random
 class GameEngine(
     val state: GameState,
     private val dice: Dice = Dice(),
+    /** 벌칙 룰렛 결과용 난수 */
+    private val random: Random = Random.Default,
 ) {
     private val tiles: Array<Tile> = BoardData.tiles
     private var events = ArrayList<GameEvent>()
@@ -151,6 +159,38 @@ class GameEngine(
         return sum
     }
 
+    fun canSpinPenalty(): Boolean = !state.gameOver && state.pending?.kind == PendingKind.PENALTY_SPIN
+
+    /**
+     * 벌칙 등급 확률(%) [소형, 중형, 대형].
+     * 총자산 꼴찌는 대형이 줄고(차이는 소형에), 총자산 1위는 대형이 는다(차이는 소형에서).
+     * 동점이면 보정하지 않는다.
+     */
+    fun penaltyOdds(playerId: Int): IntArray {
+        var small = GameConfig.PENALTY_SMALL_PCT
+        val medium = GameConfig.PENALTY_MEDIUM_PCT
+        var large = GameConfig.PENALTY_LARGE_PCT
+        val others = state.players.filter { !it.bankrupt && it.id != playerId }
+        if (others.isNotEmpty()) {
+            val mine = totalAssets(playerId)
+            val totals = others.map { totalAssets(it.id) }
+            when {
+                totals.all { mine > it } -> {
+                    small -= GameConfig.PENALTY_LARGE_PCT_FIRST - large
+                    large = GameConfig.PENALTY_LARGE_PCT_FIRST
+                }
+                totals.all { mine < it } -> {
+                    small += large - GameConfig.PENALTY_LARGE_PCT_LAST
+                    large = GameConfig.PENALTY_LARGE_PCT_LAST
+                }
+            }
+        }
+        return intArrayOf(small, medium, large)
+    }
+
+    /** 한 번의 벌칙으로 잃을 수 있는 최대 금액 = 총자산 × PENALTY_MAX_RATE */
+    fun penaltyCap(playerId: Int): Int = maxOf(0, (totalAssets(playerId) * GameConfig.PENALTY_MAX_RATE).toInt())
+
     // ─────────────────────────────────────────────
     // 행동
     // ─────────────────────────────────────────────
@@ -160,14 +200,18 @@ class GameEngine(
         check(canRoll()) { "지금은 주사위를 굴릴 수 없습니다" }
         val p = currentPlayer
         state.clearOffer() // 다시 굴리면 이전 칸의 구매 기회는 포기
+        // 벌칙 "주사위 1개": 이번 굴림은 1개만 (더블 없음)
+        val oneDie = p.oneDieNext
+        p.oneDieNext = false
         val d1 = dice.rollOne()
-        val d2 = dice.rollOne()
+        val d2 = if (oneDie) 0 else dice.rollOne()
         state.lastDie1 = d1
         state.lastDie2 = d2
         state.hasRolled = true
         state.extraRoll = false
         emit(GameEvent.DiceRolled(p.id, d1, d2))
-        val isDouble = d1 == d2
+        if (oneDie) msg("벌칙: 이번에는 주사위 1개만 굴렸습니다.", Tone.BAD)
+        val isDouble = !oneDie && d1 == d2
         val sum = d1 + d2
 
         // 무인도: 더블이면 즉시 탈출해 그 눈만큼 이동 (추가 굴림 없음)
@@ -276,6 +320,51 @@ class GameEngine(
         afterLanding(p)
     }
 
+    /** 벌칙 면제권 사용 여부 (룰렛 전) */
+    fun answerPenaltyFree(useCard: Boolean): List<GameEvent> = act {
+        val pd = state.pending ?: error("대기 중인 선택이 없습니다")
+        check(pd.kind == PendingKind.USE_PENALTY_FREE)
+        val p = currentPlayer
+        if (useCard && p.penaltyFreeCards > 0) {
+            state.pending = null
+            p.penaltyFreeCards--
+            returnCard(CardEffect.KEEP_PENALTY_FREE)
+            banner("벌칙 면제!", "벌칙 면제권을 사용했습니다", Tone.GOOD)
+            afterLanding(p)
+        } else {
+            state.pending = Pending(PendingKind.PENALTY_SPIN, p.position)
+        }
+    }
+
+    /**
+     * 벌칙 룰렛: 결과(등급·벌칙·멈출 칸)를 여기서 확률로 미리 정하고 바로 효과를 적용한다.
+     * UI 는 PenaltySpun 이벤트의 slot 에 멈추도록 회전 연출만 한다.
+     */
+    fun spinPenalty(): List<GameEvent> = act {
+        check(canSpinPenalty()) { "돌릴 룰렛이 없습니다" }
+        val p = currentPlayer
+        state.pending = null
+        val odds = penaltyOdds(p.id)
+        val r = random.nextInt(100)
+        val grade = when {
+            r < odds[0] -> PenaltyGrade.SMALL
+            r < odds[0] + odds[1] -> PenaltyGrade.MEDIUM
+            else -> PenaltyGrade.LARGE
+        }
+        val list = PenaltyData.ofGrade(grade)
+        val penalty = list[random.nextInt(list.size)]
+        val slots = PenaltyData.ROULETTE.indices.filter { PenaltyData.ROULETTE[it] == grade }
+        val slot = slots[random.nextInt(slots.size)]
+        emit(GameEvent.PenaltySpun(p.id, slot, grade.ordinal, penalty.id))
+        applyPenalty(p, penalty)
+        if (!p.bankrupt) afterLanding(p)
+    }
+
+    /** 테스트용: 특정 벌칙을 바로 적용 */
+    internal fun applyPenaltyForTest(penaltyId: Int): List<GameEvent> = act {
+        applyPenalty(currentPlayer, PenaltyData.byId(penaltyId))
+    }
+
     /**
      * 내 땅(건물 포함)을 은행에 판다. 판매가 = 자산 가치 × SELL_RATE.
      * 팔고도 마이너스인데 남은 땅이 없으면 파산.
@@ -350,10 +439,13 @@ class GameEngine(
     private fun banner(text: String, sub: String = "", tone: Tone = Tone.INFO) = emit(GameEvent.Banner(text, sub, tone))
 
     private fun paySalary(p: Player) {
-        p.money += GameConfig.SALARY
+        val half = p.halfSalaryNext
+        p.halfSalaryNext = false
+        val salary = if (half) GameConfig.SALARY / 2 else GameConfig.SALARY
+        p.money += salary
         p.laps++
-        emit(GameEvent.Transfer(GameState.BANK, p.id, GameConfig.SALARY, GameConfig.TILE_START))
-        msg("출발 칸 통과! 월급 ${Money.won(GameConfig.SALARY)}을 받습니다.", Tone.GOOD)
+        emit(GameEvent.Transfer(GameState.BANK, p.id, salary, GameConfig.TILE_START))
+        msg(if (half) "벌칙: 월급이 절반! ${Money.won(salary)}을 받습니다." else "출발 칸 통과! 월급 ${Money.won(salary)}을 받습니다.", if (half) Tone.BAD else Tone.GOOD)
     }
 
     /** 한 칸씩 앞으로 걸어간다. 출발 칸을 지나거나 도착하면 월급 */
@@ -416,6 +508,14 @@ class GameEngine(
                 state.extraRoll = false
                 banner("우주여행!", "다음 턴에 원하는 칸으로 날아갑니다", Tone.GOOD)
             }
+            TileType.PENALTY -> {
+                emit(GameEvent.PenaltyLanded(p.id, p.position))
+                banner("벌칙 당첨!", "룰렛을 돌려 벌칙을 정합니다", Tone.BAD)
+                state.pending = Pending(
+                    if (p.penaltyFreeCards > 0) PendingKind.USE_PENALTY_FREE else PendingKind.PENALTY_SPIN,
+                    p.position,
+                )
+            }
         }
     }
 
@@ -453,8 +553,16 @@ class GameEngine(
     }
 
     private fun payToll(p: Player, tile: Int, toll: Int, ownerId: Int) {
-        banner("통행료 수거!", Money.won(toll), Tone.BAD)
-        charge(p, toll, ownerId, "${state.players[ownerId].name}님에게 통행료", tile)
+        var amount = toll
+        if (p.doubleTollNext) {
+            // 벌칙 "통행료 2배": 늘어난 몫도 벌칙 손실 상한을 넘지 않는다
+            p.doubleTollNext = false
+            amount += minOf(toll, penaltyCap(p.id))
+            banner("통행료 수거!", Money.won(amount) + " (벌칙 2배)", Tone.BAD)
+        } else {
+            banner("통행료 수거!", Money.won(amount), Tone.BAD)
+        }
+        charge(p, amount, ownerId, "${state.players[ownerId].name}님에게 통행료", tile)
     }
 
     /** 대답(면제권) 뒤에 이어지는 처리: 더블 안내 */
@@ -507,6 +615,7 @@ class GameEngine(
             CardEffect.KEEP_ESCAPE -> { p.escapeCards++; msg("무인도 탈출권을 보관했습니다.", Tone.GOOD) }
             CardEffect.KEEP_TOLL_FREE -> { p.tollFreeCards++; msg("통행료 면제권을 보관했습니다.", Tone.GOOD) }
             CardEffect.KEEP_HALF_BUILD -> { p.halfBuildCards++; msg("반값 건설권을 보관했습니다.", Tone.GOOD) }
+            CardEffect.KEEP_PENALTY_FREE -> { p.penaltyFreeCards++; msg("벌칙 면제권을 보관했습니다.", Tone.GOOD) }
             CardEffect.REPAIR -> {
                 var cost = 0
                 for (t in tiles) {
@@ -520,6 +629,89 @@ class GameEngine(
                 else charge(p, cost, GameState.BANK, c.title, -1)
             }
             CardEffect.DONATE -> charge(p, c.value, GameState.FUND, c.title, -1)
+        }
+    }
+
+    /** 벌칙 효과 적용. 잃는 금액은 총자산 × PENALTY_MAX_RATE 를 넘지 않는다 */
+    private fun applyPenalty(p: Player, pen: Penalty) {
+        val cap = penaltyCap(p.id)
+        msg("벌칙: ${pen.title} - ${pen.description}", Tone.BAD)
+        when (pen.effect) {
+            PenaltyEffect.FINE -> charge(p, minOf(pen.value, cap), GameState.BANK, "벌칙 벌금", -1)
+            PenaltyEffect.MOVE_BACK -> {
+                moveBack(p, pen.value)
+                resolveLanding(p)
+            }
+            PenaltyEffect.ONE_DIE -> p.oneDieNext = true
+            PenaltyEffect.HALF_SALARY -> p.halfSalaryNext = true
+            PenaltyEffect.DOUBLE_TOLL -> p.doubleTollNext = true
+            PenaltyEffect.SKIP_TURN -> p.skipTurns++
+            PenaltyEffect.PAY_ALL -> {
+                val others = state.players.filter { !it.bankrupt && it.id != p.id }
+                if (others.isNotEmpty()) {
+                    val each = minOf(pen.value, cap / others.size)
+                    for (q in others) {
+                        if (each <= 0) break
+                        p.money -= each
+                        q.money += each
+                        emit(GameEvent.Transfer(p.id, q.id, each))
+                    }
+                    checkSolvency(p)
+                }
+            }
+            PenaltyEffect.DEMOLISH -> {
+                var best = -1
+                var bestCost = -1
+                for (i in 0 until GameConfig.BOARD_SIZE) {
+                    if (state.owner[i] != p.id || state.level[i] == 0) continue
+                    val c = tiles[i].buildCost(state.level[i])
+                    if (c > bestCost) { best = i; bestCost = c }
+                }
+                if (best < 0) {
+                    banner("대체 벌칙", "철거할 건물이 없어 벌금 ${Money.won(minOf(pen.value, cap))}", Tone.BAD)
+                    charge(p, minOf(pen.value, cap), GameState.BANK, "벌칙 벌금", -1)
+                } else {
+                    state.level[best]--
+                    if (state.offerTile == best) state.clearOffer()
+                    emit(GameEvent.Demolished(p.id, best, state.level[best]))
+                    msg("${tiles[best].name}의 ${Tile.LEVEL_NAMES[state.level[best] + 1]}을(를) 철거했습니다.", Tone.BAD)
+                    // 잃은 건물 가치가 상한을 넘으면 넘는 만큼 돌려받는다
+                    val refund = bestCost - cap
+                    if (refund > 0) {
+                        p.money += refund
+                        emit(GameEvent.Transfer(GameState.BANK, p.id, refund, best))
+                    }
+                }
+            }
+            PenaltyEffect.ISLAND -> sendToIsland(p)
+            PenaltyEffect.DONATE_RATE -> {
+                val amount = minOf(maxOf(0, p.money) * pen.value / 100, cap)
+                if (amount > 0) charge(p, amount, GameState.FUND, "벌칙 기부", -1)
+                else msg("기부할 현금이 없습니다.")
+            }
+            PenaltyEffect.FORCED_SALE -> {
+                var best = -1
+                var bestValue = -1
+                for (i in 0 until GameConfig.BOARD_SIZE) {
+                    if (state.owner[i] != p.id) continue
+                    val v = assetValue(i)
+                    if (v > bestValue) { best = i; bestValue = v }
+                }
+                if (best < 0) {
+                    banner("대체 벌칙", "땅이 없어 벌금 ${Money.won(minOf(pen.value, cap))}", Tone.BAD)
+                    charge(p, minOf(pen.value, cap), GameState.BANK, "벌칙 벌금", -1)
+                } else {
+                    // 판매가의 절반. 단, 잃는 가치(자산 가치 - 받는 돈)가 상한을 넘지 않게
+                    val payout = maxOf(saleValue(best) / 2, bestValue - cap).coerceAtMost(bestValue)
+                    state.owner[best] = -1
+                    state.level[best] = 0
+                    if (state.offerTile == best) state.clearOffer()
+                    p.money += payout
+                    emit(GameEvent.Sold(p.id, intArrayOf(best), payout))
+                    msg("${tiles[best].name}을(를) ${Money.won(payout)}에 강제로 팔았습니다.", Tone.BAD)
+                    checkSolvency(p)
+                }
+            }
         }
     }
 
@@ -567,7 +759,9 @@ class GameEngine(
         repeat(p.escapeCards) { returnCard(CardEffect.KEEP_ESCAPE) }
         repeat(p.tollFreeCards) { returnCard(CardEffect.KEEP_TOLL_FREE) }
         repeat(p.halfBuildCards) { returnCard(CardEffect.KEEP_HALF_BUILD) }
-        p.escapeCards = 0; p.tollFreeCards = 0; p.halfBuildCards = 0
+        repeat(p.penaltyFreeCards) { returnCard(CardEffect.KEEP_PENALTY_FREE) }
+        p.escapeCards = 0; p.tollFreeCards = 0; p.halfBuildCards = 0; p.penaltyFreeCards = 0
+        p.oneDieNext = false; p.halfSalaryNext = false; p.doubleTollNext = false; p.skipTurns = 0
         p.islandTurns = 0
         p.spaceTravelPending = false
         p.bankrupt = true
@@ -594,13 +788,26 @@ class GameEngine(
         }
         val n = state.players.size
         var next = state.current
-        do { next = (next + 1) % n } while (state.players[next].bankrupt)
-        if (next <= state.current) {
-            state.round++
-            if (state.turnLimit > 0 && state.round > state.turnLimit) {
-                finish(ranking().first().id, byTurnLimit = true)
-                return
+        while (true) {
+            next++
+            if (next >= n) {
+                next = 0
+                state.round++
+                if (state.turnLimit > 0 && state.round > state.turnLimit) {
+                    finish(ranking().first().id, byTurnLimit = true)
+                    return
+                }
             }
+            val q = state.players[next]
+            if (q.bankrupt) continue
+            if (q.skipTurns > 0) {
+                // 벌칙 "1턴 쉬기": 이번 차례를 건너뛰고 효과는 사라진다
+                q.skipTurns--
+                emit(GameEvent.TurnSkipped(q.id))
+                msg("${q.name}님은 벌칙으로 이번 차례를 쉽니다.", Tone.BAD)
+                continue
+            }
+            break
         }
         state.current = next
         emit(GameEvent.TurnChanged(next))

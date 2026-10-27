@@ -26,4 +26,15 @@ class Player(
     var escapeCards: Int = 0
     var tollFreeCards: Int = 0
     var halfBuildCards: Int = 0
+    var penaltyFreeCards: Int = 0
+
+    // 벌칙 지속 효과 (적용되면 사라짐)
+    /** 다음 굴림은 주사위 1개만 */
+    var oneDieNext: Boolean = false
+    /** 다음 월급 절반 */
+    var halfSalaryNext: Boolean = false
+    /** 다음에 내는 통행료 2배 */
+    var doubleTollNext: Boolean = false
+    /** 쉬어야 하는 턴 수 */
+    var skipTurns: Int = 0
 }

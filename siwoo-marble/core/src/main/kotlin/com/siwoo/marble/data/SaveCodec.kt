@@ -22,6 +22,8 @@ object SaveCodec {
                     "money" to p.money, "pos" to p.position, "island" to p.islandTurns,
                     "space" to p.spaceTravelPending, "bankrupt" to p.bankrupt, "laps" to p.laps,
                     "escape" to p.escapeCards, "tollFree" to p.tollFreeCards, "halfBuild" to p.halfBuildCards,
+                    "penaltyFree" to p.penaltyFreeCards, "oneDie" to p.oneDieNext, "halfSalary" to p.halfSalaryNext,
+                    "doubleToll" to p.doubleTollNext, "skip" to p.skipTurns,
                 )
             },
             "owner" to s.owner,
@@ -59,6 +61,9 @@ object SaveCodec {
                 spaceTravelPending = m["space"] as Boolean; bankrupt = m["bankrupt"] as Boolean
                 laps = m.int("laps"); escapeCards = m.int("escape"); tollFreeCards = m.int("tollFree")
                 halfBuildCards = m.int("halfBuild")
+                penaltyFreeCards = m.int("penaltyFree"); oneDieNext = m["oneDie"] as Boolean
+                halfSalaryNext = m["halfSalary"] as Boolean; doubleTollNext = m["doubleToll"] as Boolean
+                skipTurns = m.int("skip")
             }
         }
         require(players.size in GameConfig.MIN_PLAYERS..GameConfig.MAX_PLAYERS)

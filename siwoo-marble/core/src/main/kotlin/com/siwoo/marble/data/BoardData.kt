@@ -6,6 +6,7 @@ import com.siwoo.marble.model.TileType
 
 /**
  * 40칸 보드 정의 (시계 방향, 0번 = 출발).
+ * 황금열쇠: 2, 12, 17, 35 / 벌칙(룰렛): 7(아래 줄), 22(위 줄)
  * 땅값·건설비·통행료를 바꾸려면 아래 숫자만 고치면 된다.
  *
  * city(칸번호, 이름, 보드표시이름, 색그룹, 땅값, build(별장, 빌딩, 호텔), toll(땅, 별장, 빌딩, 호텔))
@@ -35,7 +36,7 @@ object BoardData {
         city(4, "마닐라", "마닐라", 0, 80_000, build(40_000, 80_000, 120_000), toll(8_000, 40_000, 120_000, 240_000)),
         special(5, "제주도", "제주도", 200_000, 300_000),
         city(6, "싱가포르", "싱가포르", 1, 100_000, build(50_000, 100_000, 150_000), toll(10_000, 50_000, 150_000, 300_000)),
-        key(7),
+        penalty(7),
         city(8, "카이로", "카이로", 1, 100_000, build(50_000, 100_000, 150_000), toll(10_000, 50_000, 150_000, 300_000)),
         city(9, "이스탄불", "이스탄불", 1, 120_000, build(60_000, 120_000, 180_000), toll(12_000, 60_000, 180_000, 360_000)),
         corner(GameConfig.TILE_ISLAND, TileType.ISLAND, "무인도"),
@@ -50,7 +51,7 @@ object BoardData {
         city(19, "몬트리올", "몬트리올", 3, 200_000, build(100_000, 200_000, 300_000), toll(20_000, 100_000, 300_000, 600_000)),
         corner(GameConfig.TILE_WELFARE_RECEIVE, TileType.WELFARE_RECEIVE, "사회복지기금"),
         city(21, "부에노스아이레스", "부에노스", 4, 220_000, build(110_000, 220_000, 330_000), toll(22_000, 110_000, 330_000, 660_000)),
-        key(22),
+        penalty(22),
         city(23, "상파울루", "상파울루", 4, 240_000, build(120_000, 240_000, 360_000), toll(24_000, 120_000, 360_000, 720_000)),
         city(24, "시드니", "시드니", 4, 240_000, build(120_000, 240_000, 360_000), toll(24_000, 120_000, 360_000, 720_000)),
         special(25, "부산", "부산", 500_000, 600_000),
@@ -85,6 +86,8 @@ object BoardData {
         Tile(i, TileType.SPECIAL, name, short, -1, price, Tile.EMPTY, intArrayOf(toll))
 
     private fun key(i: Int) = Tile(i, TileType.GOLDEN_KEY, "황금열쇠", "황금열쇠")
+
+    private fun penalty(i: Int) = Tile(i, TileType.PENALTY, "벌칙", "벌칙")
 
     private fun corner(i: Int, type: TileType, name: String) = Tile(i, type, name)
 }

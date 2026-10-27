@@ -9,6 +9,7 @@ enum class CardEffect {
     KEEP_ESCAPE,      // 무인도 탈출권 (보관)
     KEEP_TOLL_FREE,   // 통행료 1회 면제권 (보관)
     KEEP_HALF_BUILD,  // 반값 건설권 (보관, 다음 건설 시 자동 적용)
+    KEEP_PENALTY_FREE, // 벌칙 면제권 (보관, 벌칙 칸에서 사용 여부를 묻는다)
     REPAIR,           // value/value2/value3 = 별장/빌딩/호텔 1채당 수리비
     DONATE,           // value = 사회복지기금 기부액
 }
@@ -26,5 +27,6 @@ class Card(
     val isKeepable: Boolean
         get() = effect == CardEffect.KEEP_ESCAPE ||
             effect == CardEffect.KEEP_TOLL_FREE ||
-            effect == CardEffect.KEEP_HALF_BUILD
+            effect == CardEffect.KEEP_HALF_BUILD ||
+            effect == CardEffect.KEEP_PENALTY_FREE
 }

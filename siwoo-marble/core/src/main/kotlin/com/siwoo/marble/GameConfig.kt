@@ -44,6 +44,18 @@ object GameConfig {
     const val TRADE_STEP_SMALL = 10_000
     const val TRADE_STEP_BIG = 100_000
 
+    // ── 벌칙 룰렛 ────────────────────────────────
+    /** 등급 확률(%): 소형 / 중형 / 대형 */
+    const val PENALTY_SMALL_PCT = 60
+    const val PENALTY_MEDIUM_PCT = 30
+    const val PENALTY_LARGE_PCT = 10
+    /** 총자산 꼴찌의 대형 확률 (차이는 소형에 더함) */
+    const val PENALTY_LARGE_PCT_LAST = 3
+    /** 총자산 1위의 대형 확률 (차이는 소형에서 뺌) */
+    const val PENALTY_LARGE_PCT_FIRST = 15
+    /** 한 번의 벌칙으로 잃는 금액 상한 = 총자산 × 이 비율 */
+    const val PENALTY_MAX_RATE = 0.25
+
     // ── 턴 제한 모드 ─────────────────────────────
     /** 시작 팝업에서 고를 수 있는 라운드 수 (0 = 턴 제한 없음, 최후 1인 승리) */
     val TURN_LIMIT_OPTIONS = intArrayOf(0, 15, 20, 30)
@@ -72,6 +84,10 @@ object GameConfig {
     const val JUMP_MS = 700L
     /** 칸 번쩍임(통행료) */
     const val TILE_FLASH_MS = 600L
+    /** 벌칙 칸 빨간 깜빡임 (3번) */
+    const val PENALTY_FLASH_MS = 1200L
+    /** 벌칙 룰렛 회전 */
+    const val ROULETTE_SPIN_MS = 3000L
 
     /** 연출 속도 배율: 느리게 / 보통 / 빠르게 */
     val SPEED_FACTORS = floatArrayOf(1.0f, 0.7f, 0.4f)

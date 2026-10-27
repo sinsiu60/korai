@@ -1,6 +1,8 @@
 package com.siwoo.marble.ui
 
 import android.content.Context
+import com.siwoo.marble.GameConfig
+import com.siwoo.marble.data.Json
 import com.siwoo.marble.data.SaveCodec
 import com.siwoo.marble.model.GameState
 import java.io.File
@@ -37,11 +39,43 @@ class GameStorage(context: Context) {
         file.delete()
     }
 
-    var fastMove: Boolean
-        get() = prefs.getBoolean("fast", false)
-        set(v) = prefs.edit().putBoolean("fast", v).apply()
+    /** 연출 속도: 0 느리게(1.0배) / 1 보통(0.7배) / 2 빠르게(0.4배) */
+    var speedIndex: Int
+        get() = prefs.getInt("speed", GameConfig.DEFAULT_SPEED_INDEX).coerceIn(0, GameConfig.SPEED_FACTORS.size - 1)
+        set(v) = prefs.edit().putInt("speed", v).apply()
+
+    val speedFactor: Float get() = GameConfig.SPEED_FACTORS[speedIndex]
 
     var sound: Boolean
         get() = prefs.getBoolean("sound", true)
         set(v) = prefs.edit().putBoolean("sound", v).apply()
+
+    /** 현실 벌칙 모드 (대형 벌칙 때 현실 벌칙 문구도 표시). 기본 끔 */
+    var realPenaltyMode: Boolean
+        get() = prefs.getBoolean("realPenalty", false)
+        set(v) = prefs.edit().putBoolean("realPenalty", v).apply()
+
+    /** 현실 벌칙 문구 목록 (게임 시작 팝업에서 편집) */
+    var realPenalties: List<String>
+        get() {
+            val raw = prefs.getString("realPenaltyList", null) ?: return DEFAULT_REAL_PENALTIES
+            return try {
+                (Json.parse(raw) as List<*>).map { it.toString() }.filter { it.isNotBlank() }
+            } catch (e: Exception) {
+                DEFAULT_REAL_PENALTIES
+            }
+        }
+        set(v) = prefs.edit().putString("realPenaltyList", Json.write(v.map { it.trim() }.filter { it.isNotEmpty() })).apply()
+
+    companion object {
+        val DEFAULT_REAL_PENALTIES = listOf(
+            "노래 한 소절 부르기",
+            "다음 내 차례까지 존댓말 쓰기",
+            "모두에게 칭찬 한마디씩 하기",
+            "10초 동안 가장 웃긴 표정 짓기",
+            "오른쪽 사람 어깨 30초 주물러 주기",
+        )
+        const val MAX_REAL_PENALTIES = 20
+        const val MAX_REAL_PENALTY_LEN = 30
+    }
 }
