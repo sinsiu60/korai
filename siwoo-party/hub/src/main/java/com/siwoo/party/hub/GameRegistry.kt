@@ -23,7 +23,9 @@ import com.siwoo.party.games.ddakji.DdakjiModule
 import com.siwoo.party.games.gomoku.GomokuModule
 import com.siwoo.party.games.liar.LiarModule
 import com.siwoo.party.games.liardice.LiarDiceModule
+import com.siwoo.party.games.janggi.JanggiModule
 import com.siwoo.party.games.ludo.LudoModule
+import com.siwoo.party.games.snakeladder.SnakeLadderModule
 import com.siwoo.party.games.marble.MarbleModule
 import com.siwoo.party.games.memory.MemoryModule
 import com.siwoo.party.games.pirate.PirateModule
@@ -79,7 +81,9 @@ object GameRegistry {
         Clap369Module,
         CharadesModule,
         // ── 2차 확장 ──
+        SnakeLadderModule,
         LudoModule,
+        JanggiModule,
     )
 
     fun byId(id: String?): GameModule? = games.firstOrNull { it.id == id }
