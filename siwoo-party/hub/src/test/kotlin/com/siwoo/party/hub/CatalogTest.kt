@@ -46,17 +46,39 @@ class CatalogTest {
         return out
     }
 
+    /** 최종 분류 (단원 19): 보드 14 · 카드·두뇌 18 · 순발력 23 · 손맛·타이밍 16 · 파티 7 = 78종 */
+    private val finalCatalog: Map<GameCategory, List<String>> = mapOf(
+        GameCategory.BOARD to listOf("marble", "yut", "yacht", "liardice", "boxes",
+            "snakeladder", "ludo", "horserace", "janggi", "umul", "reversi", "polyblock", "bingo", "flood"),
+        GameCategory.CARD_BRAIN to listOf("onecard", "oldmaid", "blackjack", "memory", "gomoku", "connect4", "baseball", "updown",
+            "highlow", "sevens", "doubt", "codetile", "colorcode", "minefield", "matches", "avoidbid", "simon", "shutbox"),
+        GameCategory.REFLEX to listOf("reaction", "tug", "redlight", "mole", "stroop", "sequence", "tensec", "rps", "balloon", "math",
+            "speed", "airhockey", "spotdiff", "oddone", "rhythm", "jumprope", "bobber", "count", "digitmemo", "crown", "eggcatch", "sprint", "traceshape"),
+        GameCategory.TIMING to listOf("alkkagi", "pirate", "stack", "ddakji",
+            "curling", "marbles", "minigolf", "bowling", "spintop", "artillery", "darts", "archery", "tuho", "basket", "jegi", "gonggi"),
+        GameCategory.PARTY to listOf("liar", "bomb", "forehead", "drawing", "chosung", "clap369", "charades"),
+    )
+
     @Test
-    fun `카테고리별 게임 수 34종과 도구 3종`() {
-        val count = GameCategory.values().associateWith { c -> GameRegistry.inCategory(c).size }
-        assertEquals(5, count[GameCategory.BOARD])
-        assertEquals(8, count[GameCategory.CARD_BRAIN])
-        assertEquals(10, count[GameCategory.REFLEX])
-        assertEquals(4, count[GameCategory.TIMING])
-        assertEquals(7, count[GameCategory.PARTY])
-        assertEquals(34, GameRegistry.games.size)
-        assertEquals("id 중복 없음", 34, GameRegistry.games.map { it.id }.toSet().size)
-        assertEquals("이름 중복 없음", 34, GameRegistry.games.map { it.name }.toSet().size)
+    fun `카테고리 분류 - 등록된 게임은 최종 분류와 같은 카테고리, 도구 3종`() {
+        assertEquals(14, finalCatalog[GameCategory.BOARD]!!.size)
+        assertEquals(18, finalCatalog[GameCategory.CARD_BRAIN]!!.size)
+        assertEquals(23, finalCatalog[GameCategory.REFLEX]!!.size)
+        assertEquals(16, finalCatalog[GameCategory.TIMING]!!.size)
+        assertEquals(7, finalCatalog[GameCategory.PARTY]!!.size)
+        assertEquals(78, finalCatalog.values.flatten().toSet().size)
+        val categoryOf = finalCatalog.flatMap { (c, ids) -> ids.map { it to c } }.toMap()
+        for (m in GameRegistry.games) assertEquals(m.id, categoryOf[m.id], m.category)
+        // 1차 34종은 모두 등록
+        for (id in listOf("marble", "yut", "yacht", "liardice", "boxes", "onecard", "oldmaid", "blackjack", "memory", "gomoku", "connect4",
+            "baseball", "updown", "reaction", "tug", "redlight", "mole", "stroop", "sequence", "tensec", "rps", "balloon", "math",
+            "alkkagi", "pirate", "stack", "ddakji", "liar", "bomb", "forehead", "drawing", "chosung", "clap369", "charades")) {
+            assertTrue(id, GameRegistry.byId(id) != null)
+        }
+        // 허브 탭 수 = 카테고리별 등록 수
+        for (c in GameCategory.values()) assertEquals(c.label, GameRegistry.games.count { it.category == c }, GameRegistry.inCategory(c).size)
+        assertEquals("id 중복 없음", GameRegistry.games.size, GameRegistry.games.map { it.id }.toSet().size)
+        assertEquals("이름 중복 없음", GameRegistry.games.size, GameRegistry.games.map { it.name }.toSet().size)
         assertEquals(3, ToolsMenu.tools.size)
         assertTrue("도구 3종 모두 열 수 있음", ToolsMenu.tools.all { it.open != null })
     }
