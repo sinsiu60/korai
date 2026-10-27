@@ -1,10 +1,12 @@
 package com.siwoo.party.hub
 
 import com.siwoo.party.common.ui.GameModule
+import com.siwoo.party.games.bomb.BombModule
 import com.siwoo.party.games.marble.MarbleModule
 import com.siwoo.party.games.memory.MemoryModule
 import com.siwoo.party.games.pirate.PirateModule
 import com.siwoo.party.games.reaction.ReactionModule
+import com.siwoo.party.games.tug.TugModule
 
 /**
  * 모음집에 들어 있는 게임 목록 (구현된 게임만 등록).
@@ -14,6 +16,8 @@ object GameRegistry {
     val games: List<GameModule> = listOf(
         MarbleModule,
         ReactionModule,
+        TugModule,
+        BombModule,
         PirateModule,
         MemoryModule,
     )

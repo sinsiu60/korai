@@ -40,7 +40,7 @@ class GameCardView(context: Context, val module: GameModule?) : View(context) {
     private var tagLayout: StaticLayout? = null
     private var shader: Shader? = null
     private val name = module?.name ?: "곧 추가될 게임"
-    private val info = module?.let { "${it.playersLabel} · ${it.mode.label} · ${it.minutes}" } ?: "반응 속도 · 줄다리기 · 폭탄 돌리기 …"
+    private val info = module?.let { "${it.playersLabel} · ${it.mode.label} · ${it.minutes}" } ?: "야추 · 땅따먹기 · 라이어 게임 …"
 
     init {
         isClickable = true
