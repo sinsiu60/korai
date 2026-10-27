@@ -7,6 +7,7 @@ import com.siwoo.party.games.bingo.BingoModule
 import com.siwoo.party.games.baseball.BaseballModule
 import com.siwoo.party.games.blackjack.BlackjackModule
 import com.siwoo.party.games.math.MathModule
+import com.siwoo.party.games.minefield.MinefieldModule
 import com.siwoo.party.games.mole.MoleModule
 import com.siwoo.party.games.oldmaid.OldMaidModule
 import com.siwoo.party.games.onecard.OneCardModule
@@ -106,6 +107,7 @@ object GameRegistry {
         DoubtModule,
         CodeTileModule,
         ColorCodeModule,
+        MinefieldModule,
     )
 
     fun byId(id: String?): GameModule? = games.firstOrNull { it.id == id }
