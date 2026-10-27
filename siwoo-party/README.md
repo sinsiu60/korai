@@ -414,7 +414,7 @@ siwoo-party/
 - 런타임 의존성: `kotlin-stdlib`, 프로젝트 모듈, `androidx.recyclerview`(+ androidx core/annotation 등). 모두 순수 Java/Kotlin 바이트코드로 `.so`가 없습니다.
 - APK에 `lib/` 폴더가 없으면 ABI에 상관없이 설치·실행됩니다. `:hub:checkNoNativeLibs`와 CI가 빌드 때마다 확인합니다.
 - minSdk 26 / targetSdk 34 / compileSdk 34, 가로 고정(sensorLandscape), 시스템 기본 폰트, **권한 없음**(인터넷 포함).
-- APK 크기: 릴리스(R8 축소) 약 @REL@, 디버그 약 @DBG@ — 목표 12MB 이하. 외부 이미지·사운드·폰트 파일 없음 (카드·아이콘·판 모두 Canvas 코드 그림).
+- APK 크기: 릴리스(R8 축소) 약 0.75MB (752KB), 디버그 약 3.2MB — 목표 12MB 이하. 외부 이미지·사운드·폰트 파일 없음 (카드·아이콘·판 모두 Canvas 코드 그림).
 
 ### 저사양 최적화
 - **모든 게임**의 커스텀 View·그림 함수의 onDraw 경로에 객체 생성이 없음을 바이트코드로 확인 (그라데이션·경로·문구는 크기가 바뀔 때만 만듦).
