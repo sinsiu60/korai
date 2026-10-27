@@ -19,6 +19,7 @@ import com.siwoo.party.games.charades.CharadesModule
 import com.siwoo.party.games.chosung.ChosungModule
 import com.siwoo.party.games.clap369.Clap369Module
 import com.siwoo.party.games.drawing.DrawingModule
+import com.siwoo.party.games.flood.FloodModule
 import com.siwoo.party.games.forehead.ForeheadModule
 import com.siwoo.party.games.ddakji.DdakjiModule
 import com.siwoo.party.games.gomoku.GomokuModule
@@ -94,6 +95,7 @@ object GameRegistry {
         ReversiModule,
         PolyblockModule,
         BingoModule,
+        FloodModule,
     )
 
     fun byId(id: String?): GameModule? = games.firstOrNull { it.id == id }
