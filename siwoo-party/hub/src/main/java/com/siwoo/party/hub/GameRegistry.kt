@@ -44,6 +44,7 @@ import com.siwoo.party.games.crown.CrownModule
 import com.siwoo.party.games.eggcatch.EggCatchModule
 import com.siwoo.party.games.sprint.SprintModule
 import com.siwoo.party.games.traceshape.TraceShapeModule
+import com.siwoo.party.games.curling.CurlingModule
 import com.siwoo.party.games.ludo.LudoModule
 import com.siwoo.party.games.polyblock.PolyblockModule
 import com.siwoo.party.games.reversi.ReversiModule
@@ -142,6 +143,7 @@ object GameRegistry {
         EggCatchModule,
         SprintModule,
         TraceShapeModule,
+        CurlingModule,
     )
 
     fun byId(id: String?): GameModule? = games.firstOrNull { it.id == id }
