@@ -51,6 +51,7 @@ import com.siwoo.party.games.bowling.BowlingModule
 import com.siwoo.party.games.spintop.SpinTopModule
 import com.siwoo.party.games.artillery.ArtilleryModule
 import com.siwoo.party.games.darts.DartsModule
+import com.siwoo.party.games.archery.ArcheryModule
 import com.siwoo.party.games.tuho.TuhoModule
 import com.siwoo.party.games.ludo.LudoModule
 import com.siwoo.party.games.polyblock.PolyblockModule
@@ -157,6 +158,7 @@ object GameRegistry {
         SpinTopModule,
         ArtilleryModule,
         DartsModule,
+        ArcheryModule,
         TuhoModule,
     )
 
