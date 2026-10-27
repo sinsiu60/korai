@@ -35,6 +35,7 @@ import com.siwoo.party.games.liar.LiarModule
 import com.siwoo.party.games.liardice.LiarDiceModule
 import com.siwoo.party.games.horserace.HorseRaceModule
 import com.siwoo.party.games.janggi.JanggiModule
+import com.siwoo.party.games.jumprope.JumpRopeModule
 import com.siwoo.party.games.ludo.LudoModule
 import com.siwoo.party.games.polyblock.PolyblockModule
 import com.siwoo.party.games.reversi.ReversiModule
@@ -124,6 +125,7 @@ object GameRegistry {
         RhythmModule,
         SpotDiffModule,
         OddOneModule,
+        JumpRopeModule,
     )
 
     fun byId(id: String?): GameModule? = games.firstOrNull { it.id == id }
