@@ -7,6 +7,7 @@ import com.siwoo.party.games.blackjack.BlackjackModule
 import com.siwoo.party.games.math.MathModule
 import com.siwoo.party.games.mole.MoleModule
 import com.siwoo.party.games.oldmaid.OldMaidModule
+import com.siwoo.party.games.onecard.OneCardModule
 import com.siwoo.party.games.redlight.RedlightModule
 import com.siwoo.party.games.alkkagi.AlkkagiModule
 import com.siwoo.party.games.bomb.BombModule
@@ -50,6 +51,7 @@ object GameRegistry {
         MoleModule,
         BalloonModule,
         MathModule,
+        OneCardModule,
         OldMaidModule,
         BlackjackModule,
         LiarDiceModule,
