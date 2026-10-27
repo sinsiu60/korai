@@ -56,7 +56,15 @@ android {
     testOptions {
         // Robolectric 흐름 테스트 (허브 → 게임 → 결과 → 허브 점수 누적)
         unitTests.isIncludeAndroidResources = true
-        unitTests.all { it.maxHeapSize = "2g" }
+        unitTests.all {
+            it.maxHeapSize = "2g"
+            // CI 로그에 실패한 테스트 이름과 이유가 나오게
+            it.testLogging {
+                events("failed", "skipped")
+                exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
+                showStandardStreams = false
+            }
+        }
     }
 }
 
