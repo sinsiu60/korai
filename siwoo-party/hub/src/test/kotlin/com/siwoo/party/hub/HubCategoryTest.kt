@@ -99,7 +99,7 @@ class HubCategoryTest {
         assertEquals(PartyZoneActivity::class.java.name, shadowOf(h).nextStartedActivity.component!!.className)
         val pz = Robolectric.buildActivity(PartyZoneActivity::class.java).setup().get()
         idle(600)
-        assertEquals(listOf("bomb", "liar").sorted(), cardIds(pz).sorted())
+        assertEquals(GameRegistry.partyGames.map { it.id }.sorted(), cardIds(pz).sorted())
         assertTrue(findAll(pz.window.decorView, { it is GameCardView }).all { (it as GameCardView).module.partyTags.isNotEmpty() })
     }
 

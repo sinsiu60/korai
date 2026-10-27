@@ -14,6 +14,11 @@ import com.siwoo.party.games.alkkagi.AlkkagiModule
 import com.siwoo.party.games.bomb.BombModule
 import com.siwoo.party.games.boxes.BoxesModule
 import com.siwoo.party.games.connect4.Connect4Module
+import com.siwoo.party.games.charades.CharadesModule
+import com.siwoo.party.games.chosung.ChosungModule
+import com.siwoo.party.games.clap369.Clap369Module
+import com.siwoo.party.games.drawing.DrawingModule
+import com.siwoo.party.games.forehead.ForeheadModule
 import com.siwoo.party.games.ddakji.DdakjiModule
 import com.siwoo.party.games.gomoku.GomokuModule
 import com.siwoo.party.games.liar.LiarModule
@@ -67,6 +72,11 @@ object GameRegistry {
         Connect4Module,
         BaseballModule,
         UpDownModule,
+        ForeheadModule,
+        DrawingModule,
+        ChosungModule,
+        Clap369Module,
+        CharadesModule,
     )
 
     fun byId(id: String?): GameModule? = games.firstOrNull { it.id == id }
