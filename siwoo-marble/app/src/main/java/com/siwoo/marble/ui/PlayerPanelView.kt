@@ -36,6 +36,13 @@ class PlayerPanelView(context: Context) : View(context) {
     private var infoText = ""
     private var statusText = ""
     private var isCurrent = false
+    // 벌칙 지속 효과 아이콘
+    private var fxOneDie = false
+    private var fxDoubleToll = false
+    private var fxHalfSalary = false
+    private var fxSkip = false
+    private val badgePaint = Paint(Paint.ANTI_ALIAS_FLAG)
+    private val badgeText = Paint(Paint.ANTI_ALIAS_FLAG).apply { typeface = Typeface.DEFAULT_BOLD; textAlign = Paint.Align.CENTER; color = Color.WHITE }
     private var bankrupt = false
 
     // ── 연출 상태 ──
@@ -91,6 +98,13 @@ class PlayerPanelView(context: Context) : View(context) {
         infoText = "땅 ${lands}곳 · 총 ${Money.comma(total)}"
         statusText = status
         contentDescription = "$name ${Money.won(shownMoney)} $infoText"
+        invalidate()
+    }
+
+    /** 벌칙 지속 효과 (적용되면 사라짐) */
+    fun setEffects(oneDie: Boolean, doubleToll: Boolean, halfSalary: Boolean, skip: Boolean) {
+        if (oneDie == fxOneDie && doubleToll == fxDoubleToll && halfSalary == fxHalfSalary && skip == fxSkip) return
+        fxOneDie = oneDie; fxDoubleToll = doubleToll; fxHalfSalary = halfSalary; fxSkip = skip
         invalidate()
     }
 
@@ -248,6 +262,9 @@ class PlayerPanelView(context: Context) : View(context) {
         namePaint.color = if (bankrupt) 0xFFB0B4C0.toInt() else Theme.TEXT
         c.drawText(name, pad + ar * 2f + base * 0.45f, acy + namePaint.textSize * 0.36f, namePaint)
 
+        // 벌칙 지속 효과 아이콘 (오른쪽 위)
+        if (!bankrupt) drawEffects(c, card.right - base * 0.75f, acy, base * 0.62f)
+
         // 돈
         moneyX = pad
         moneyY = acy + ar + base * 1.75f
@@ -287,6 +304,29 @@ class PlayerPanelView(context: Context) : View(context) {
             c.drawText(STAMP, 0f, 0f, stampPaint)
             c.restore()
         }
+    }
+
+    /** 작은 아이콘: 주사위1(파랑) / 통행료×2(빨강) / 월급½(주황) / 쉬기(회색) — 오른쪽에서 왼쪽으로 */
+    private fun drawEffects(c: Canvas, right: Float, cy: Float, rad: Float) {
+        var x = right
+        badgeText.textSize = rad * 0.95f
+        if (fxSkip) { badge(c, x, cy, rad, 0xFF78909C.toInt(), "쉼"); x -= rad * 2.3f }
+        if (fxHalfSalary) { badge(c, x, cy, rad, 0xFFFF8F00.toInt(), "½"); x -= rad * 2.3f }
+        if (fxDoubleToll) { badge(c, x, cy, rad, 0xFFE53935.toInt(), "×2"); x -= rad * 2.3f }
+        if (fxOneDie) {
+            // 눈이 하나인 주사위
+            tmp.set(x - rad, cy - rad, x + rad, cy + rad)
+            badgePaint.color = Color.WHITE
+            c.drawRoundRect(tmp, rad * 0.35f, rad * 0.35f, badgePaint)
+            badgePaint.color = 0xFF1565C0.toInt()
+            c.drawCircle(x, cy, rad * 0.32f, badgePaint)
+        }
+    }
+
+    private fun badge(c: Canvas, x: Float, cy: Float, rad: Float, color: Int, text: String) {
+        badgePaint.color = color
+        c.drawCircle(x, cy, rad, badgePaint)
+        c.drawText(text, x, cy + badgeText.textSize * 0.36f, badgeText)
     }
 
     fun cancelAnimations() {

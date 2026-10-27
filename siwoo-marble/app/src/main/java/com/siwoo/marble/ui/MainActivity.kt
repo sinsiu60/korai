@@ -15,6 +15,7 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import com.siwoo.marble.GameConfig
 import com.siwoo.marble.data.BoardData
+import com.siwoo.marble.data.PenaltyData
 import com.siwoo.marble.logic.GameEngine
 import com.siwoo.marble.logic.GameEvent
 import com.siwoo.marble.logic.Money
@@ -22,6 +23,7 @@ import com.siwoo.marble.model.Card
 import com.siwoo.marble.model.GameState
 import com.siwoo.marble.model.OfferKind
 import com.siwoo.marble.model.PendingKind
+import com.siwoo.marble.model.PenaltyGrade
 import com.siwoo.marble.model.Player
 import com.siwoo.marble.model.Tile
 import com.siwoo.marble.model.TileType
@@ -65,6 +67,10 @@ class MainActivity : Activity(), BoardView.Listener {
     private var tollPopup: PopupLayer.Popup? = null
     private var gameOverPopup: PopupLayer.Popup? = null
     private var cardPopup: PopupLayer.Popup? = null
+    private var penaltyFreePopup: PopupLayer.Popup? = null
+    private var roulettePopup: PopupLayer.Popup? = null
+    private var rouletteView: RouletteView? = null
+    private var rouletteCardBox: LinearLayout? = null
     private var turnOverlayDone: (() -> Unit)? = null
 
     private val pa = PointF()
@@ -89,7 +95,7 @@ class MainActivity : Activity(), BoardView.Listener {
             return
         }
         state = loaded
-        engine = GameEngine(state)
+        engine = GameEngine(state, diceOverride ?: com.siwoo.marble.logic.Dice())
         beeper.enabled = storage.sound
         Immersive.apply(window)
         setContentView(buildUi())
@@ -124,6 +130,9 @@ class MainActivity : Activity(), BoardView.Listener {
             hideTurnOverlay(callDone = false)
             cardPopup?.dismiss(animate = false)
             cardPopup = null
+            roulettePopup?.dismiss(animate = false)
+            root.translationX = 0f
+            root.translationY = 0f
             needPresent = true
         }
         storage.save(state)
@@ -258,8 +267,10 @@ class MainActivity : Activity(), BoardView.Listener {
             if (p.spaceTravelPending) sb.append("우주여행  ")
             if (p.escapeCards > 0) sb.append("탈출권 ")
             if (p.tollFreeCards > 0) sb.append("면제권 ")
-            if (p.halfBuildCards > 0) sb.append("반값건설")
+            if (p.halfBuildCards > 0) sb.append("반값건설 ")
+            if (p.penaltyFreeCards > 0) sb.append("벌칙면제")
             panels[p.id].setInfo(engine.landCount(p.id), engine.totalAssets(p.id), sb.toString().trim())
+            panels[p.id].setEffects(p.oneDieNext, p.doubleTollNext, p.halfSalaryNext, p.skipTurns > 0)
         }
         board.refreshTexts()
     }
@@ -272,6 +283,7 @@ class MainActivity : Activity(), BoardView.Listener {
         val p = engine.currentPlayer
         for (v in panels) v.setCurrent(!over && v.playerId == state.current)
         board.diceReady = !b && !over && engine.canRoll()
+        if (board.diceReady) board.setNextSingleDie(p.oneDieNext)
         btnSell.isEnabled = !b && !over && engine.canSell()
         btnSell.blinking = !over && p.money < 0
         btnTrade.isEnabled = !b && !over && engine.canTrade()
@@ -298,8 +310,12 @@ class MainActivity : Activity(), BoardView.Listener {
         if (state.gameOver) {
             if (gameOverPopup == null) showGameOver()
         } else {
-            val pd = state.pending
-            if (pd != null && pd.kind == PendingKind.USE_TOLL_FREE && tollPopup == null) showTollFree()
+            when (state.pending?.kind) {
+                PendingKind.USE_TOLL_FREE -> if (tollPopup == null) showTollFree()
+                PendingKind.USE_PENALTY_FREE -> if (penaltyFreePopup == null) showPenaltyFree()
+                PendingKind.PENALTY_SPIN -> if (roulettePopup == null) showRoulette()
+                null -> Unit
+            }
         }
         refreshControls()
     }
@@ -407,6 +423,21 @@ class MainActivity : Activity(), BoardView.Listener {
                     showTurnOverlay(state.players[e.playerId], null) { done() }
                 }
                 is GameEvent.GameOver -> queue.add("gameover") { done -> done() }
+                is GameEvent.PenaltyLanded -> queue.add("penaltyFlash") { done ->
+                    board.flash(e.tile, Theme.RED, t(GameConfig.PENALTY_FLASH_MS), pulses = 3) // 빨갛게 3번
+                    beeper.bad()
+                    later(t(GameConfig.PENALTY_FLASH_MS), done)
+                }
+                is GameEvent.PenaltySpun -> queue.add("roulette") { done -> spinRoulette(e) { done() } }
+                is GameEvent.Demolished -> queue.add("demolish") { done ->
+                    board.setBuilt(e.tile, e.level)
+                    beeper.bad()
+                    later(t(FLAG_MS), done)
+                }
+                is GameEvent.TurnSkipped -> queue.add("skip") { done ->
+                    showBanner("1턴 쉬기", state.players[e.playerId].name + "님은 이번 차례를 쉽니다", GameEvent.Tone.BAD)
+                    later(t(GameConfig.CENTER_BANNER_MS), done)
+                }
             }
         }
     }
@@ -787,6 +818,95 @@ class MainActivity : Activity(), BoardView.Listener {
         }
     }
 
+    // ─────────────────────────────────────────────
+    // 벌칙 룰렛 (PART 12)
+    // ─────────────────────────────────────────────
+
+    private fun showPenaltyFree() {
+        val p = engine.currentPlayer
+        val card = darkCard()
+        card.addView(Theme.text(this, "벌칙 면제권 사용?", 20f, Theme.GOLD, bold = true))
+        card.addView(Theme.text(this, "벌칙 룰렛을 돌리지 않고 넘어갈 수 있습니다.\n(남은 벌칙 면제권 ${p.penaltyFreeCards}장)", 15f, Theme.TEXT).apply { setLineSpacing(0f, 1.2f) },
+            Theme.lp(Theme.WRAP, Theme.WRAP).apply { topMargin = Theme.dp(this@MainActivity, 10f) })
+        card.addView(buttonRow(
+            button("면제권 사용", Theme.GREEN_DARK) { penaltyFreePopup?.dismiss(); penaltyFreePopup = null; perform { engine.answerPenaltyFree(true) } },
+            button("룰렛 돌리기", Theme.RED_DARK) { penaltyFreePopup?.dismiss(); penaltyFreePopup = null; perform { engine.answerPenaltyFree(false) } },
+        ), Theme.lp(Theme.MATCH, Theme.WRAP).apply { topMargin = Theme.dp(this@MainActivity, 16f) })
+        penaltyFreePopup = popups.show(card, cancelable = false, widthPx = Theme.dp(this, 380f), onDismiss = { penaltyFreePopup = null; refreshControls() })
+    }
+
+    /** 룰렛 팝업: 확대 등장 → "터치하여 돌리기" → 터치하면 엔진이 결과를 정하고 회전 연출 */
+    private fun showRoulette() {
+        if (roulettePopup != null) return
+        val p = engine.currentPlayer
+        val odds = engine.penaltyOdds(p.id)
+        val card = Theme.vertical(this).apply {
+            background = Theme.verticalCard(this@MainActivity, 0xFF3A1730.toInt(), Theme.BG_DEEP, 20f)
+            elevation = Theme.dpf(this@MainActivity, 14f)
+            val pd = Theme.dp(this@MainActivity, 12f)
+            setPadding(pd, Theme.dp(this@MainActivity, 8f), pd, Theme.dp(this@MainActivity, 8f))
+        }
+        val head = Theme.horizontal(this)
+        head.addView(Theme.text(this, "벌칙 룰렛", 20f, 0xFFFF6B78.toInt(), bold = true))
+        head.addView(Theme.text(this, "   ${p.name}님 · 소형 ${odds[0]}% · 중형 ${odds[1]}% · 대형 ${odds[2]}%", 12f, Theme.TEXT_SUB), Theme.lp(0, Theme.WRAP, 1f))
+        card.addView(head)
+        val body = Theme.horizontal(this)
+        val size = minOf((root.height * 0.74f).toInt(), Theme.dp(this, 270f))
+        val wheel = RouletteView(this)
+        wheel.onSpinRequest = {
+            if (engine.canSpinPenalty() && !queue.running) perform { engine.spinPenalty() }
+        }
+        body.addView(wheel, LinearLayout.LayoutParams(size, size))
+        val cardBox = Theme.vertical(this).apply { gravity = Gravity.CENTER }
+        body.addView(cardBox, LinearLayout.LayoutParams(Theme.dp(this, 280f), size).apply { leftMargin = Theme.dp(this@MainActivity, 8f) })
+        cardBox.visibility = View.INVISIBLE // 자리는 미리 잡아 두어 결과가 나와도 팝업 크기가 그대로
+        card.addView(body, Theme.lp(Theme.WRAP, Theme.WRAP).apply { topMargin = Theme.dp(this@MainActivity, 4f) })
+        rouletteView = wheel
+        rouletteCardBox = cardBox
+        roulettePopup = popups.show(card, cancelable = false, onDismiss = {
+            roulettePopup = null
+            rouletteView = null
+            rouletteCardBox = null
+            root.translationX = 0f
+            root.translationY = 0f
+            refreshControls()
+        })
+    }
+
+    /** 회전(3초, 점점 느려짐, 칸마다 틱) → 결과 칸 확대 → 벌칙 카드 뒤집기 → [확인] → 효과 연출 */
+    private fun spinRoulette(e: GameEvent.PenaltySpun, onDone: () -> Unit) {
+        if (rouletteView == null) showRoulette()
+        val wheel = rouletteView ?: run { onDone(); return }
+        val pen = PenaltyData.byId(e.penaltyId)
+        val large = e.grade == PenaltyGrade.LARGE.ordinal
+        wheel.spin(e.slot, t(GameConfig.ROULETTE_SPIN_MS), large,
+            onTick = { beeper.step() },
+            onShake = { amp ->
+                root.translationX = if (amp > 0f) (Math.random().toFloat() - 0.5f) * 2f * amp else 0f
+                root.translationY = if (amp > 0f) (Math.random().toFloat() - 0.5f) * 2f * amp else 0f
+            },
+        ) {
+            if (large) beeper.bad() else beeper.good()
+            val box = rouletteCardBox ?: run { onDone(); return@spin }
+            val real = if (large && storage.realPenaltyMode) storage.realPenalties.randomOrNull() else null
+            val view = KeyCardView(this)
+            view.setPenalty(pen, real)
+            box.removeAllViews()
+            box.addView(view, LinearLayout.LayoutParams(Theme.dp(this, 270f), Theme.dp(this, if (real != null) 190f else 165f)))
+            val ok = button("확인", Theme.RED_DARK) {
+                roulettePopup?.dismiss()
+                onDone()
+            }
+            ok.visibility = View.INVISIBLE
+            box.addView(ok, LinearLayout.LayoutParams(Theme.dp(this, 150f), Theme.dp(this, 44f)).apply { topMargin = Theme.dp(this@MainActivity, 8f) })
+            box.visibility = View.VISIBLE
+            view.flip(t(GameConfig.CARD_FLIP_MS)) {
+                ok.visibility = View.VISIBLE
+                ok.bounce()
+            }
+        }
+    }
+
     private fun showAssets(id: Int) {
         val p = state.players[id]
         val card = darkCard()
@@ -834,6 +954,13 @@ class MainActivity : Activity(), BoardView.Listener {
             speeds.addView(b, Theme.lp(0, Theme.dp(this, 44f), 1f).apply { if (k > 0) leftMargin = Theme.dp(this@MainActivity, 6f) })
         }
         card.addView(speeds, Theme.lp(Theme.MATCH, Theme.WRAP).apply { topMargin = Theme.dp(this@MainActivity, 4f) })
+        card.addView(buttonRow(
+            button("현실 벌칙: " + if (storage.realPenaltyMode) "켬" else "끔", if (storage.realPenaltyMode) Theme.RED_DARK else Theme.GRAY) {
+                storage.realPenaltyMode = !storage.realPenaltyMode
+                popup?.dismiss(animate = false)
+                showSettings()
+            },
+        ), Theme.lp(Theme.MATCH, Theme.WRAP).apply { topMargin = Theme.dp(this@MainActivity, 8f) })
         card.addView(buttonRow(
             button("효과음: " + if (storage.sound) "켜짐" else "꺼짐", Theme.BLUE) {
                 storage.sound = !storage.sound
@@ -994,7 +1121,14 @@ class MainActivity : Activity(), BoardView.Listener {
         return col
     }
 
+    /** UI 테스트용: 현재 게임 상태 / 차례 전환 화면 표시 여부 */
+    internal val stateForTest: GameState get() = state
+    internal val turnOverlayShowing: Boolean get() = turnOverlay.visibility == View.VISIBLE
+
     companion object {
+        /** UI 테스트용 주사위 (null 이면 무작위) */
+        internal var diceOverride: com.siwoo.marble.logic.Dice? = null
+
         private const val MODE_INFO = 0
         private const val MODE_BUY = 1
         private const val MODE_BUILD = 2

@@ -38,8 +38,9 @@ class MoneyStepper(context: Context, private val onChange: (Int) -> Unit) : Line
             inputType = InputType.TYPE_CLASS_NUMBER
             imeOptions = EditorInfo.IME_ACTION_DONE or EditorInfo.IME_FLAG_NO_EXTRACT_UI or EditorInfo.IME_FLAG_NO_FULLSCREEN
             filters = arrayOf(InputFilter.LengthFilter(9))
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
             setTextColor(Theme.INK)
+            minWidth = Theme.dp(context, 72f)
             gravity = Gravity.CENTER
             setPadding(Theme.dp(context, 4f), 0, Theme.dp(context, 4f), 0)
             background = Theme.card(context, Theme.PAPER, 10f, Theme.GOLD_DARK, 1f)
@@ -65,11 +66,11 @@ class MoneyStepper(context: Context, private val onChange: (Int) -> Unit) : Line
     }
 
     private fun addStep(label: String, delta: Int, h: Int) {
-        val b = GameButton(context, if (delta < 0) Theme.GRAY else Theme.BLUE, 11f)
+        val b = GameButton(context, if (delta < 0) Theme.GRAY else Theme.BLUE, 10f)
         b.text = label
-        b.setPadding(Theme.dp(context, 4f), 0, Theme.dp(context, 4f), Theme.dp(context, 3f))
+        b.setPadding(Theme.dp(context, 1f), 0, Theme.dp(context, 1f), Theme.dp(context, 3f))
         b.setOnClickListener { setValue((value + delta).coerceIn(0, max)); onChange(value) }
-        addView(b, LayoutParams(Theme.dp(context, 44f), h).apply { leftMargin = Theme.dp(context, 1f); rightMargin = Theme.dp(context, 1f) })
+        addView(b, LayoutParams(Theme.dp(context, 38f), h).apply { leftMargin = Theme.dp(context, 1f); rightMargin = Theme.dp(context, 1f) })
     }
 
     fun setValue(v: Int) {

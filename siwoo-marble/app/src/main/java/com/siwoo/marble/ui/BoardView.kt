@@ -85,7 +85,14 @@ class BoardView(context: Context) : View(context) {
     private var die2 = 1
     var diceReady: Boolean = false
         set(v) { if (field != v) { field = v; updateAmbient(); invalidate() } }
+
+    /** 다음 굴림이 주사위 1개인지 (대기 중 표시용) */
+    fun setNextSingleDie(single: Boolean) {
+        if (!rolling && singleDie != single) { singleDie = single; invalidate() }
+    }
     private var rolling = false
+    /** 벌칙 "주사위 1개" 굴림이면 주사위를 하나만 그린다 */
+    private var singleDie = false
     private var rollAnim: ValueAnimator? = null
     private var nextFaceAt = 0L
     private var shake1X = 0f; private var shake1Y = 0f; private var rot1 = 0f
@@ -102,6 +109,7 @@ class BoardView(context: Context) : View(context) {
     private var flashColor = 0
     private var flashStart = 0L
     private var flashDur = 1L
+    private var flashPulses = 2
     private var plantTile = -1
     private var plantStart = 0L
     private var plantDur = 1L
@@ -165,7 +173,7 @@ class BoardView(context: Context) : View(context) {
     fun bind(s: GameState) {
         state = s
         for (p in s.players) playerColors[p.id] = Theme.playerColor(p.colorIndex)
-        if (s.lastDie1 > 0) { die1 = s.lastDie1; die2 = s.lastDie2 }
+        if (s.lastDie1 > 0) { die1 = s.lastDie1; die2 = if (s.lastDie2 > 0) s.lastDie2 else 1; singleDie = s.lastDie2 == 0 }
         syncFromState()
     }
 
@@ -216,8 +224,9 @@ class BoardView(context: Context) : View(context) {
         invalidate()
     }
 
-    /** 칸이 소유자 색으로 번쩍임 (두 번) */
-    fun flash(tile: Int, color: Int, durMs: Long) {
+    /** 칸이 색으로 번쩍임 (pulses 번: 통행료 2번, 벌칙 3번) */
+    fun flash(tile: Int, color: Int, durMs: Long, pulses: Int = 2) {
+        flashPulses = pulses
         flashTile = tile
         flashColor = color
         flashStart = SystemClock.uptimeMillis()
@@ -278,7 +287,7 @@ class BoardView(context: Context) : View(context) {
         flashTile = -1
         plantTile = -1
         popTile = -1
-        state?.let { if (it.lastDie1 > 0) { die1 = it.lastDie1; die2 = it.lastDie2 } }
+        state?.let { if (it.lastDie1 > 0) { die1 = it.lastDie1; die2 = if (it.lastDie2 > 0) it.lastDie2 else 1; singleDie = it.lastDie2 == 0 } }
         syncFromState()
     }
 
@@ -286,6 +295,7 @@ class BoardView(context: Context) : View(context) {
     fun rollDice(d1: Int, d2: Int, rollMs: Long, holdMs: Long, onTick: () -> Unit, onEnd: () -> Unit) {
         rollAnim?.cancel()
         rolling = true
+        singleDie = d2 == 0
         nextFaceAt = 0L
         val anim = ValueAnimator.ofFloat(0f, 1f)
         anim.duration = rollMs.coerceAtLeast(1)
@@ -310,7 +320,7 @@ class BoardView(context: Context) : View(context) {
             override fun onAnimationEnd(animation: Animator) {
                 rolling = false
                 die1 = d1
-                die2 = d2
+                die2 = if (d2 == 0) 1 else d2
                 shake1X = 0f; shake1Y = 0f; shake2X = 0f; shake2Y = 0f; rot1 = 0f; rot2 = 0f
                 resultSum = d1 + d2
                 resultText = resultSum.toString()
@@ -557,6 +567,7 @@ class BoardView(context: Context) : View(context) {
             TileType.ISLAND -> 0xFFD6F2FF.toInt()
             TileType.WELFARE_RECEIVE, TileType.WELFARE_PAY -> 0xFFFCE0EE.toInt()
             TileType.SPACE -> 0xFF14206B.toInt()
+            TileType.PENALTY -> 0xFFC62828.toInt()
         }
         c.drawRect(r, fill)
 
@@ -599,6 +610,13 @@ class BoardView(context: Context) : View(context) {
                 drawKeyIcon(c, inner.centerX(), inner.top + inner.height() * 0.3f, u * 0.2f)
                 val lines = splitToFit(t.shortName, text, maxW)
                 drawLinesAt(c, lines, inner.centerX(), inner.top + inner.height() * 0.62f, text)
+            }
+            TileType.PENALTY -> {
+                // 번개 아이콘 + "벌칙"
+                drawBolt(c, inner.centerX(), inner.top + inner.height() * 0.36f, minOf(inner.width(), inner.height()) * 0.24f)
+                text.textSize = u * 0.27f
+                text.color = Color.WHITE
+                c.drawText("벌칙", inner.centerX(), inner.top + inner.height() * 0.84f, text)
             }
             TileType.WELFARE_PAY -> {
                 text.textSize = u * 0.24f
@@ -700,6 +718,21 @@ class BoardView(context: Context) : View(context) {
         }
     }
 
+    private fun drawBolt(c: Canvas, x: Float, y: Float, s: Float) {
+        val p = Path()
+        p.moveTo(x + s * 0.25f, y - s)
+        p.lineTo(x - s * 0.55f, y + s * 0.15f)
+        p.lineTo(x - s * 0.02f, y + s * 0.15f)
+        p.lineTo(x - s * 0.25f, y + s)
+        p.lineTo(x + s * 0.55f, y - s * 0.15f)
+        p.lineTo(x + s * 0.02f, y - s * 0.15f)
+        p.close()
+        val f = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFFFFE082.toInt() }
+        c.drawPath(p, f)
+        val st = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.STROKE; strokeWidth = s * 0.08f; color = 0xFF7F0000.toInt() }
+        c.drawPath(p, st)
+    }
+
     private fun drawKeyIcon(c: Canvas, x: Float, y: Float, s: Float) {
         val f = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFFFFB300.toInt() }
         val st = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFF8D6E00.toInt(); style = Paint.Style.STROKE; strokeWidth = s * 0.18f }
@@ -762,7 +795,7 @@ class BoardView(context: Context) : View(context) {
         if (flashTile >= 0 && t < flashStart + flashDur) {
             val f = (t - flashStart).toFloat() / flashDur
             fillPaint.color = flashColor
-            fillPaint.alpha = (abs(sin(f * PI.toFloat() * 2f)) * 210).toInt()
+            fillPaint.alpha = (abs(sin(f * PI.toFloat() * flashPulses)) * 220).toInt()
             canvas.drawRect(tileRects[flashTile], fillPaint)
         }
 
@@ -942,8 +975,12 @@ class BoardView(context: Context) : View(context) {
         if (ready) dcy += sin(t / 1600f * 2f * PI.toFloat()) * u * 0.1f // 위아래로 천천히
         val showResult = t < resultUntil
         val alpha = if (rolling || showResult || ready) 255 else 95
-        drawDie(c, cx - gap / 2 - ds / 2 + shake1X, dcy + shake1Y, ds, die1, rot1, alpha)
-        drawDie(c, cx + gap / 2 + ds / 2 + shake2X, dcy + shake2Y, ds, die2, rot2, alpha)
+        if (singleDie) {
+            drawDie(c, cx + shake1X, dcy + shake1Y, ds, die1, rot1, alpha)
+        } else {
+            drawDie(c, cx - gap / 2 - ds / 2 + shake1X, dcy + shake1Y, ds, die1, rot1, alpha)
+            drawDie(c, cx + gap / 2 + ds / 2 + shake2X, dcy + shake2Y, ds, die2, rot2, alpha)
+        }
 
         val py = cy + u * 0.82f
         if (showResult) {

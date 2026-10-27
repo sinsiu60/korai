@@ -38,6 +38,19 @@ jobs:
       - name: 규칙 엔진 단위 테스트
         run: ./gradlew --no-daemon :core:test
 
+      - name: UI 흐름 테스트 (Robolectric · 720x1280 가로 배치 · 연출 큐 순서 · 자동 플레이)
+        run: ./gradlew --no-daemon :app:testDebugUnitTest
+
+      - name: 테스트 결과 요약
+        if: always()
+        run: |
+          {
+            echo "## 테스트"
+            for f in core/build/test-results/test/*.xml app/build/test-results/testDebugUnitTest/*.xml; do
+              [ -f "$f" ] && grep -o 'testsuite name="[^"]*" tests="[0-9]*" skipped="[0-9]*" failures="[0-9]*" errors="[0-9]*"' "$f" | head -1
+            done
+          } | tee -a "$GITHUB_STEP_SUMMARY"
+
       - name: 런타임 의존성 (네이티브 라이브러리 점검용)
         run: ./gradlew --no-daemon -q :app:dependencies --configuration releaseRuntimeClasspath
 
