@@ -47,6 +47,9 @@ class PlayerStrip(context: Context, players: List<PlayerInfo>, vertical: Boolean
     class Tile(context: Context, val player: PlayerInfo, private val icon: StripIcon) : View(context) {
         private val color = Theme.playerColor(player.colorIndex)
         private val initial = player.name.take(1)
+        /** 칸 너비에 맞춘 이름 (글자를 줄여도 넘치면 끝을 "…"로) — 크기가 바뀔 때만 계산 */
+        internal var shownName = player.name
+            private set
         private var value = ""
         private var count = 0
         private var current = false
@@ -109,10 +112,29 @@ class PlayerStrip(context: Context, players: List<PlayerInfo>, vertical: Boolean
         override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
             val base = minOf(h.toFloat(), w * 0.45f)
             namePaint.textSize = base * 0.26f
+            fitName(w, h, base)
             valuePaint.textSize = base * 0.24f
             initPaint.textSize = base * 0.28f
             stampPaint.textSize = base * 0.28f
             stroke.strokeWidth = Theme.dpf(context, 2f)
+        }
+
+        /** onDraw 와 같은 배치로 이름 칸 너비를 구해, 넘치면 글자 크기를 줄이고(최소 70%) 그래도 넘치면 말줄임 */
+        private fun fitName(w: Int, h: Int, base: Float) {
+            val sw = Theme.dpf(context, 2f)
+            val rw = w - sw * 4
+            val rh = h - sw * 4
+            val cr = minOf(rh * 0.3f, rw * 0.16f)
+            val avail = rw - cr * 2.9f - sw * 3
+            shownName = player.name
+            if (avail <= 0f) return
+            val full = namePaint.measureText(player.name)
+            if (full <= avail) return
+            namePaint.textSize = maxOf(namePaint.textSize * avail / full, base * 0.26f * NAME_MIN_SCALE)
+            if (namePaint.measureText(player.name) <= avail) return
+            var n = player.name.length - 1
+            while (n > 1 && namePaint.measureText(player.name, 0, n) + namePaint.measureText(ELLIPSIS) > avail) n--
+            shownName = player.name.substring(0, n) + ELLIPSIS
         }
 
         override fun onDraw(c: Canvas) {
@@ -141,7 +163,7 @@ class PlayerStrip(context: Context, players: List<PlayerInfo>, vertical: Boolean
             c.drawCircle(ccx, ccy, cr, fill)
             c.drawText(initial, ccx, ccy + initPaint.textSize * 0.36f, initPaint)
             val tx = ccx + cr * 1.5f
-            c.drawText(player.name, tx, ccy - namePaint.textSize * 0.15f, namePaint)
+            c.drawText(shownName, tx, ccy - namePaint.textSize * 0.15f, namePaint)
             var vx = tx
             val vy = ccy + valuePaint.textSize * 1.05f
             if (icon != StripIcon.NONE && count > 0) {
@@ -212,6 +234,8 @@ class PlayerStrip(context: Context, players: List<PlayerInfo>, vertical: Boolean
         companion object {
             private const val OUT = "탈락"
             private const val MAX_ICONS = 5
+            private const val NAME_MIN_SCALE = 0.7f
+            private const val ELLIPSIS = "…"
         }
     }
 }
