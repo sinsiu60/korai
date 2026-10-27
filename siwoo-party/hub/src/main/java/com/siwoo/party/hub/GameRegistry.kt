@@ -53,6 +53,7 @@ import com.siwoo.party.games.artillery.ArtilleryModule
 import com.siwoo.party.games.darts.DartsModule
 import com.siwoo.party.games.archery.ArcheryModule
 import com.siwoo.party.games.tuho.TuhoModule
+import com.siwoo.party.games.basket.BasketModule
 import com.siwoo.party.games.ludo.LudoModule
 import com.siwoo.party.games.polyblock.PolyblockModule
 import com.siwoo.party.games.reversi.ReversiModule
@@ -160,6 +161,7 @@ object GameRegistry {
         DartsModule,
         ArcheryModule,
         TuhoModule,
+        BasketModule,
     )
 
     fun byId(id: String?): GameModule? = games.firstOrNull { it.id == id }
