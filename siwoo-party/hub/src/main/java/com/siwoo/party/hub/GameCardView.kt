@@ -40,10 +40,7 @@ class GameCardView(context: Context, val module: GameModule?) : View(context) {
     private var tagLayout: StaticLayout? = null
     private var shader: Shader? = null
     private val name = module?.name ?: "곧 추가될 게임"
-    private val info = module?.let {
-        val n = if (it.playerCounts.first == it.playerCounts.last) "${it.playerCounts.first}인" else "${it.playerCounts.first}~${it.playerCounts.last}인"
-        "$n · ${it.mode.label} · ${it.minutes}"
-    } ?: "반응 속도 · 줄다리기 · 폭탄 돌리기 …"
+    private val info = module?.let { "${it.playersLabel} · ${it.mode.label} · ${it.minutes}" } ?: "반응 속도 · 줄다리기 · 폭탄 돌리기 …"
 
     init {
         isClickable = true

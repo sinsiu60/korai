@@ -1,6 +1,7 @@
 package com.siwoo.party.games.marble.ui
 
 import com.siwoo.party.common.ui.*
+import com.siwoo.party.common.dice.DiceSet
 
 import android.animation.Animator
 import android.animation.AnimatorListenerAdapter
@@ -82,27 +83,30 @@ class BoardView(context: Context) : View(context) {
     private var movingY = 0f
     private var moveAnim: ValueAnimator? = null
 
-    // ── 주사위 ──
-    private var die1 = 1
-    private var die2 = 1
+    // ── 주사위 (공통 DiceSet: 1~2개) ──
+    private val dice = DiceSet(this)
     var diceReady: Boolean = false
         set(v) { if (field != v) { field = v; updateAmbient(); invalidate() } }
 
     /** 다음 굴림이 주사위 1개인지 (대기 중 표시용) */
     fun setNextSingleDie(single: Boolean) {
-        if (!rolling && singleDie != single) { singleDie = single; invalidate() }
+        val n = if (single) 1 else 2
+        if (!dice.rolling && dice.count != n) { dice.count = n; layoutDice() }
     }
-    private var rolling = false
-    /** 벌칙 "주사위 1개" 굴림이면 주사위를 하나만 그린다 */
-    private var singleDie = false
-    private var rollAnim: ValueAnimator? = null
-    private var nextFaceAt = 0L
-    private var shake1X = 0f; private var shake1Y = 0f; private var rot1 = 0f
-    private var shake2X = 0f; private var shake2Y = 0f; private var rot2 = 0f
-    private var resultSum = 0
-    private var resultText = ""
-    private var resultStart = 0L
-    private var resultUntil = 0L
+    private val rolling: Boolean get() = dice.rolling
+
+    /** 마지막 굴림 눈으로 주사위 표시 (벌칙 "주사위 1개"면 하나만) */
+    private fun showLastDice(s: GameState) {
+        if (s.lastDie1 <= 0) return
+        dice.count = if (s.lastDie2 > 0) 2 else 1
+        dice.values[0] = s.lastDie1
+        dice.values[1] = if (s.lastDie2 > 0) s.lastDie2 else 1
+        layoutDice()
+    }
+
+    private fun layoutDice() {
+        dice.layoutRow(cx, cy - u * 0.45f, u * 1.25f, u * 0.35f)
+    }
 
     // ── 발광 / 번쩍임 / 깃발 꽂기 ──
     private var offerTile = -1
@@ -175,7 +179,7 @@ class BoardView(context: Context) : View(context) {
     fun bind(s: GameState) {
         state = s
         for (p in s.players) playerColors[p.id] = Theme.playerColor(p.colorIndex)
-        if (s.lastDie1 > 0) { die1 = s.lastDie1; die2 = if (s.lastDie2 > 0) s.lastDie2 else 1; singleDie = s.lastDie2 == 0 }
+        showLastDice(s)
         syncFromState()
     }
 
@@ -276,75 +280,30 @@ class BoardView(context: Context) : View(context) {
     }
 
     val isAnimating: Boolean
-        get() = (moveAnim?.isRunning == true) || (rollAnim?.isRunning == true)
+        get() = (moveAnim?.isRunning == true) || dice.isAnimating
 
     /** 진행 중인 애니메이션을 콜백 없이 즉시 정리 */
     fun cancelAnimations() {
         moveAnim?.let { it.removeAllListeners(); it.removeAllUpdateListeners(); it.cancel() }
-        rollAnim?.let { it.removeAllListeners(); it.removeAllUpdateListeners(); it.cancel() }
+        dice.cancel()
         moveAnim = null
-        rollAnim = null
-        rolling = false
-        resultUntil = 0L
         flashTile = -1
         plantTile = -1
         popTile = -1
-        state?.let { if (it.lastDie1 > 0) { die1 = it.lastDie1; die2 = if (it.lastDie2 > 0) it.lastDie2 else 1; singleDie = it.lastDie2 == 0 } }
+        state?.let { showLastDice(it) }
         syncFromState()
     }
 
     /** 주사위: 흔들리며 눈이 바뀌다 점점 느려지며 멈춤 → 결과 숫자 크게 → holdMs 뒤 onEnd */
     fun rollDice(d1: Int, d2: Int, rollMs: Long, holdMs: Long, onTick: () -> Unit, onEnd: () -> Unit) {
-        rollAnim?.cancel()
-        rolling = true
-        singleDie = d2 == 0
-        nextFaceAt = 0L
-        val anim = ValueAnimator.ofFloat(0f, 1f)
-        anim.duration = rollMs.coerceAtLeast(1)
-        anim.interpolator = LinearInterpolator()
-        anim.addUpdateListener { a ->
-            val p = a.animatedFraction
-            val t = SystemClock.uptimeMillis()
-            if (t >= nextFaceAt) {
-                die1 = 1 + RANDOM.nextInt(6)
-                die2 = 1 + RANDOM.nextInt(6)
-                nextFaceAt = t + (45 + 280 * p * p).toLong() // 점점 느려짐
-                onTick()
-            }
-            val amp = u * 0.14f * (1f - p)
-            shake1X = (RANDOM.nextFloat() - 0.5f) * 2f * amp; shake1Y = (RANDOM.nextFloat() - 0.5f) * 2f * amp
-            shake2X = (RANDOM.nextFloat() - 0.5f) * 2f * amp; shake2Y = (RANDOM.nextFloat() - 0.5f) * 2f * amp
-            rot1 = (RANDOM.nextFloat() - 0.5f) * 36f * (1f - p)
-            rot2 = (RANDOM.nextFloat() - 0.5f) * 36f * (1f - p)
-            invalidate()
+        dice.count = if (d2 == 0) 1 else 2
+        layoutDice()
+        dice.held.fill(false)
+        dice.roll(intArrayOf(d1, if (d2 == 0) 1 else d2), rollMs, holdMs, (d1 + d2).toString(), onTick) {
+            updateAmbient()
+            onEnd()
         }
-        anim.addListener(object : AnimatorListenerAdapter() {
-            override fun onAnimationEnd(animation: Animator) {
-                rolling = false
-                die1 = d1
-                die2 = if (d2 == 0) 1 else d2
-                shake1X = 0f; shake1Y = 0f; shake2X = 0f; shake2Y = 0f; rot1 = 0f; rot2 = 0f
-                resultSum = d1 + d2
-                resultText = resultSum.toString()
-                resultStart = SystemClock.uptimeMillis()
-                resultUntil = resultStart + holdMs
-                // 결과 표시 시간 동안 다시 그리기 → 끝나면 onEnd
-                val hold = ValueAnimator.ofFloat(0f, 1f)
-                hold.duration = holdMs.coerceAtLeast(1)
-                hold.addUpdateListener { invalidate() }
-                hold.addListener(object : AnimatorListenerAdapter() {
-                    override fun onAnimationEnd(animation: Animator) {
-                        rollAnim = null
-                        invalidate()
-                        onEnd()
-                    }
-                })
-                rollAnim = hold
-                hold.start()
-            }
-        })
-        rollAnim = anim
-        anim.start()
+        updateAmbient()
     }
 
     /** 한 칸씩 짧게 점프하며 이동 (steps < 0 이면 뒤로) */
@@ -488,6 +447,7 @@ class BoardView(context: Context) : View(context) {
         val ds = u * 1.25f
         val gap = u * 0.35f
         val dcy = cy - u * 0.45f
+        layoutDice()
         diceRect.set(cx - ds - gap / 2 - u * 0.4f, dcy - ds / 2 - u * 0.45f, cx + ds + gap / 2 + u * 0.4f, dcy + ds / 2 + u * 0.9f)
         glowR = u * 1.5f
         goldGlow = RadialGradient(0f, 0f, glowR, intArrayOf(0xEEFFD54F.toInt(), 0x88FFC93C.toInt(), 0x00FFC93C), floatArrayOf(0f, 0.45f, 1f), Shader.TileMode.CLAMP)
@@ -969,36 +929,15 @@ class BoardView(context: Context) : View(context) {
         textPaint.textSize = u * 0.32f
         c.drawText(fundText, cx, cy - u * 1.75f, textPaint)
 
-        // 주사위
-        val ds = u * 1.25f
-        val gap = u * 0.35f
-        var dcy = cy - u * 0.45f
+        // 주사위 (공통 DiceSet)
         val ready = diceReady && !rolling
-        if (ready) dcy += sin(t / 1600f * 2f * PI.toFloat()) * u * 0.1f // 위아래로 천천히
-        val showResult = t < resultUntil
-        val alpha = if (rolling || showResult || ready) 255 else 95
-        if (singleDie) {
-            drawDie(c, cx + shake1X, dcy + shake1Y, ds, die1, rot1, alpha)
-        } else {
-            drawDie(c, cx - gap / 2 - ds / 2 + shake1X, dcy + shake1Y, ds, die1, rot1, alpha)
-            drawDie(c, cx + gap / 2 + ds / 2 + shake2X, dcy + shake2Y, ds, die2, rot2, alpha)
-        }
+        val bob = if (ready) sin(t / 1600f * 2f * PI.toFloat()) * u * 0.1f else 0f // 위아래로 천천히
+        val showResult = dice.showingResult(t)
+        dice.draw(c, bob, if (rolling || showResult || ready) 255 else 95)
 
         val py = cy + u * 0.82f
         if (showResult) {
-            // 결과 숫자 크게 (톡 튀어나옴)
-            val f = ((t - resultStart).toFloat() / 250f).coerceAtMost(1f)
-            val sc = 0.5f + 0.5f * f + 0.3f * sin(f * PI.toFloat())
-            c.save()
-            c.translate(cx, py + u * 0.25f)
-            c.scale(sc, sc)
-            outlinePaint.textSize = u * 0.95f
-            outlinePaint.strokeWidth = u * 0.14f
-            c.drawText(resultText, 0f, 0f, outlinePaint)
-            textPaint.textSize = u * 0.95f
-            textPaint.color = Theme.GOLD
-            c.drawText(resultText, 0f, 0f, textPaint)
-            c.restore()
+            dice.drawResult(c, cx, py + u * 0.25f, u * 0.95f, t) // 결과 숫자 크게 (톡 튀어나옴)
         } else if (ready && notice == null) {
             val blink = 0.35f + 0.65f * abs(sin(t / 700f * PI.toFloat()))
             textPaint.textSize = u * 0.3f
@@ -1023,39 +962,6 @@ class BoardView(context: Context) : View(context) {
             textPaint.color = Color.WHITE
             c.drawText(n, cx, cy + u * 2.62f, textPaint)
         }
-    }
-
-    private fun drawDie(c: Canvas, x: Float, y: Float, s: Float, v: Int, rot: Float, alpha: Int) {
-        c.save()
-        c.translate(x, y)
-        c.rotate(rot)
-        tmpRect.set(-s / 2, -s / 2, s / 2, s / 2)
-        // 그림자
-        fillPaint.color = 0x55000000
-        fillPaint.alpha = alpha / 3
-        c.translate(s * 0.05f, s * 0.08f)
-        c.drawRoundRect(tmpRect, s * 0.2f, s * 0.2f, fillPaint)
-        c.translate(-s * 0.05f, -s * 0.08f)
-        fillPaint.color = Color.WHITE
-        fillPaint.alpha = alpha
-        c.drawRoundRect(tmpRect, s * 0.2f, s * 0.2f, fillPaint)
-        strokePaint.color = Theme.GOLD_DARK
-        strokePaint.alpha = alpha
-        strokePaint.strokeWidth = s * 0.05f
-        c.drawRoundRect(tmpRect, s * 0.2f, s * 0.2f, strokePaint)
-        val face = if (v in 1..6) v else 1
-        fillPaint.color = if (face == 1) 0xFFD32F2F.toInt() else 0xFF1A2040.toInt()
-        fillPaint.alpha = alpha
-        val pips = PIPS[face - 1]
-        val pr = s * (if (face == 1) 0.13f else 0.095f)
-        var k = 0
-        while (k < pips.size) {
-            c.drawCircle((pips[k] - 0.5f) * s, (pips[k + 1] - 0.5f) * s, pr, fillPaint)
-            k += 2
-        }
-        c.restore()
-        fillPaint.alpha = 255
-        strokePaint.alpha = 255
     }
 
     private fun drawPiece(c: Canvas, playerId: Int, color: Int, highlight: Boolean) {
@@ -1150,15 +1056,5 @@ class BoardView(context: Context) : View(context) {
 
         private val OFF_X = floatArrayOf(-1f, 1f, -1f, 1f)
         private val OFF_Y = floatArrayOf(-1f, -1f, 1f, 1f)
-        private val RANDOM = java.util.Random()
-
-        private val PIPS = arrayOf(
-            floatArrayOf(0.5f, 0.5f),
-            floatArrayOf(0.27f, 0.27f, 0.73f, 0.73f),
-            floatArrayOf(0.25f, 0.25f, 0.5f, 0.5f, 0.75f, 0.75f),
-            floatArrayOf(0.27f, 0.27f, 0.73f, 0.27f, 0.27f, 0.73f, 0.73f, 0.73f),
-            floatArrayOf(0.25f, 0.25f, 0.75f, 0.25f, 0.5f, 0.5f, 0.25f, 0.75f, 0.75f, 0.75f),
-            floatArrayOf(0.27f, 0.22f, 0.73f, 0.22f, 0.27f, 0.5f, 0.73f, 0.5f, 0.27f, 0.78f, 0.73f, 0.78f),
-        )
     }
 }

@@ -220,8 +220,7 @@ class HubActivity : Activity() {
         val texts = Theme.vertical(this)
         texts.addView(Theme.text(this, m.name, 26f, Theme.GOLD, bold = true))
         texts.addView(Theme.text(this, m.tagline, 15f, Theme.TEXT), Ui.wrapGap(this, 6f))
-        val n = if (m.playerCounts.first == m.playerCounts.last) "${m.playerCounts.first}인" else "${m.playerCounts.first}~${m.playerCounts.last}인"
-        texts.addView(Theme.text(this, "$n · ${m.mode.label} · 약 ${m.minutes}", 14f, Theme.GOLD_LIGHT, bold = true), Ui.wrapGap(this, 10f))
+        texts.addView(Theme.text(this, "${m.playersLabel} · ${m.mode.label} · 약 ${m.minutes}", 14f, Theme.GOLD_LIGHT, bold = true), Ui.wrapGap(this, 10f))
         if (m.mode == PlayMode.SIMULTANEOUS && !settings.multiTouchOk) {
             texts.addView(Theme.text(this, "⚠ 이 기기는 ${PartyConfig.REQUIRED_TOUCHES}명 동시 터치를 지원하지 않을 수 있어요", 13f, 0xFFFFB74D.toInt(), bold = true), Ui.wrapGap(this, 8f))
         }

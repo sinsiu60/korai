@@ -56,9 +56,16 @@ interface GameModule {
     /** 게임 전용 설정 팝업 (폭탄 주제·라이어 제시어·윷 말 수 등) */
     fun showSettings(popups: PopupLayer) {}
 
+    /** 이 인원으로 할 수 있는지 (2·4인처럼 띄엄띄엄이면 override) */
+    fun supports(count: Int): Boolean = count in playerCounts
+
+    /** 카드·소개에 쓰는 인원 글자 (예: "2~4인", "2인", "2·4인") */
+    val playersLabel: String
+        get() = if (playerCounts.first == playerCounts.last) "${playerCounts.first}인" else "${playerCounts.first}~${playerCounts.last}인"
+
     /** 이 인원으로 할 수 없을 때 이유 (되면 null) */
     fun unavailableReason(count: Int): String? =
-        if (count in playerCounts) null
+        if (supports(count)) null
         else if (playerCounts.first == playerCounts.last) "${playerCounts.first}인 전용"
-        else "${playerCounts.first}~${playerCounts.last}인용"
+        else "${playersLabel}용"
 }
