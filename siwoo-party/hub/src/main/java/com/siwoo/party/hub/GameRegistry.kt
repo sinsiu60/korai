@@ -23,6 +23,7 @@ import com.siwoo.party.games.ddakji.DdakjiModule
 import com.siwoo.party.games.gomoku.GomokuModule
 import com.siwoo.party.games.liar.LiarModule
 import com.siwoo.party.games.liardice.LiarDiceModule
+import com.siwoo.party.games.horserace.HorseRaceModule
 import com.siwoo.party.games.janggi.JanggiModule
 import com.siwoo.party.games.ludo.LudoModule
 import com.siwoo.party.games.snakeladder.SnakeLadderModule
@@ -83,6 +84,7 @@ object GameRegistry {
         // ── 2차 확장 ──
         SnakeLadderModule,
         LudoModule,
+        HorseRaceModule,
         JanggiModule,
     )
 
