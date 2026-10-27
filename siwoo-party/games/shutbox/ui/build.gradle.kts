@@ -43,7 +43,7 @@ kotlin {
 dependencies {
     implementation(project(":common:ui"))
     implementation(project(":common:logic"))
-    implementation(project(":games.shutbox:logic"))
+    implementation(project(":games:shutbox:logic"))
 
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.robolectric:robolectric:4.13")
