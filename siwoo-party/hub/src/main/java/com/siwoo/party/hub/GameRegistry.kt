@@ -2,6 +2,7 @@ package com.siwoo.party.hub
 
 import com.siwoo.party.common.ui.GameCategory
 import com.siwoo.party.common.ui.GameModule
+import com.siwoo.party.games.avoidbid.AvoidBidModule
 import com.siwoo.party.games.balloon.BalloonModule
 import com.siwoo.party.games.bingo.BingoModule
 import com.siwoo.party.games.baseball.BaseballModule
@@ -110,6 +111,7 @@ object GameRegistry {
         ColorCodeModule,
         MinefieldModule,
         MatchesModule,
+        AvoidBidModule,
     )
 
     fun byId(id: String?): GameModule? = games.firstOrNull { it.id == id }
