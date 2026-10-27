@@ -175,6 +175,9 @@ class HubCategoryTest {
     fun `후보가 8개 이하면 원형 룰렛, 9개 이상이면 슬롯머신`() {
         val s = PartySettings(app)
         val h = hub(4)
+        // 보드게임만 켜서 8개 이하로
+        for (m in GameRegistry.games) s.setHubRandom(m.id, m.category == GameCategory.BOARD)
+        assertTrue(h.eligibleGames().size in 1..8)
         click(h, "🎲 랜덤 게임")
         assertTrue(h.randomView is RouletteView)
         h.popups.dismissAll(); idle(300)

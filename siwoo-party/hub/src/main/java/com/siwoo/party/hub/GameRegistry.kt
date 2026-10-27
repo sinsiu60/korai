@@ -10,6 +10,8 @@ import com.siwoo.party.games.marble.MarbleModule
 import com.siwoo.party.games.memory.MemoryModule
 import com.siwoo.party.games.pirate.PirateModule
 import com.siwoo.party.games.reaction.ReactionModule
+import com.siwoo.party.games.sequence.SequenceModule
+import com.siwoo.party.games.stroop.StroopModule
 import com.siwoo.party.games.tug.TugModule
 import com.siwoo.party.games.yacht.YachtModule
 import com.siwoo.party.games.yut.YutModule
@@ -31,6 +33,8 @@ object GameRegistry {
         LiarModule,
         YutModule,
         AlkkagiModule,
+        StroopModule,
+        SequenceModule,
     )
 
     fun byId(id: String?): GameModule? = games.firstOrNull { it.id == id }
