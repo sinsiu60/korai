@@ -649,9 +649,9 @@ class LiarActivity : PartyGameActivity() {
         left.addView(Theme.text(this, headline, 21f, Theme.GOLD, bold = true), Ui.wrapGap(this, 4f))
         left.addView(infoLine("라이어", name(r.liar), playerColor(r.liar)), Ui.gap(this, 10f))
         left.addView(infoLine("제시어", "${quote(r.word)} (${game.categoryName})", Theme.TEXT), Ui.gap(this, 4f))
-        if (r.liarWord != null) left.addView(infoLine("라이어 단어", quote(r.liarWord), Theme.TEXT), Ui.gap(this, 4f))
+        r.liarWord?.let { left.addView(infoLine("라이어 단어", quote(it), Theme.TEXT), Ui.gap(this, 4f)) }
         if (r.accused >= 0) left.addView(infoLine("지목", name(r.accused), playerColor(r.accused)), Ui.gap(this, 4f))
-        if (r.guess != null) left.addView(infoLine("라이어의 답", quote(r.guess), if (r.outcome == Outcome.CAUGHT_CORRECT) Theme.GREEN else Theme.RED), Ui.gap(this, 4f))
+        r.guess?.let { left.addView(infoLine("라이어의 답", quote(it), if (r.outcome == Outcome.CAUGHT_CORRECT) Theme.GREEN else Theme.RED), Ui.gap(this, 4f)) }
         row.addView(left, Theme.lp(0, Theme.WRAP, 1.15f))
         // 오른쪽: 이번 판 점수 + [다음 판]
         val right = Ui.darkCard(this, padDp = 16f)
