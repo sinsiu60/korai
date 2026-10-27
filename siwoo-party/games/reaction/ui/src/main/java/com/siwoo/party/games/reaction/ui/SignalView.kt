@@ -1,5 +1,6 @@
 package com.siwoo.party.games.reaction.ui
 
+import com.siwoo.party.common.ui.PartySettings
 import android.animation.ValueAnimator
 import android.content.Context
 import android.graphics.Canvas
@@ -43,7 +44,7 @@ class SignalView(context: Context) : View(context) {
         // 바뀔 때 톡 커졌다 돌아옴
         anim?.cancel()
         anim = ValueAnimator.ofFloat(1f, 0f).apply {
-            duration = 260
+            duration = PartySettings(context).t(260)
             addUpdateListener { pop = it.animatedValue as Float; invalidate() }
             start()
         }

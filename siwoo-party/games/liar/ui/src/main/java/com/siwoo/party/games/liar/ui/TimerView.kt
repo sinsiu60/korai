@@ -1,5 +1,6 @@
 package com.siwoo.party.games.liar.ui
 
+import com.siwoo.party.common.ui.PartySettings
 import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Paint
@@ -41,7 +42,7 @@ class TimerView(context: Context) : View(context) {
         if (s in 1..GameConfig.WARN_SEC) {
             animate().cancel()
             scaleX = 1.12f; scaleY = 1.12f
-            animate().scaleX(1f).scaleY(1f).setDuration(250).start()
+            animate().scaleX(1f).scaleY(1f).setDuration(PartySettings(context).t(250)).start()
         }
         invalidate()
     }

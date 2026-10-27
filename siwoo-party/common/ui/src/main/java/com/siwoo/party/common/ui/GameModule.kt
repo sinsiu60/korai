@@ -10,8 +10,13 @@ import com.siwoo.party.common.PlayerInfo
 class RuleCard(
     val title: String,
     val text: String,
-    val draw: (canvas: Canvas, w: Float, h: Float, paint: Paint) -> Unit,
+    val draw: RuleArt,
 )
+
+/** 규칙 카드 그림 (float 을 상자에 담지 않도록 람다 대신 fun interface) */
+fun interface RuleArt {
+    operator fun invoke(canvas: Canvas, w: Float, h: Float, paint: Paint)
+}
 
 /** 조작 방식 표시 */
 enum class PlayMode(val label: String) {

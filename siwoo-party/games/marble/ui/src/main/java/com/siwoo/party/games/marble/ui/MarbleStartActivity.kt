@@ -294,6 +294,14 @@ class MarbleStartActivity : Activity() {
             }
         }
 
+        private companion object {
+            // 눈 위치 (단위: 주사위 크기의 1/4)
+            val PIP1 = floatArrayOf(0f, 0f)
+            val PIP3 = floatArrayOf(-1f, -1f, 0f, 0f, 1f, 1f)
+            val PIP5 = floatArrayOf(-1f, -1f, 1f, -1f, 0f, 0f, -1f, 1f, 1f, 1f)
+            val PIP6 = floatArrayOf(-1f, -1f, 1f, -1f, -1f, 0f, 1f, 0f, -1f, 1f, 1f, 1f)
+        }
+
         private fun dice(c: Canvas, x: Float, y: Float, s: Float, rot: Float, v: Int) {
             c.save()
             c.translate(x, y)
@@ -303,14 +311,9 @@ class MarbleStartActivity : Activity() {
             c.drawRoundRect(r, s * 0.2f, s * 0.2f, p)
             p.color = 0x55FFC93C
             val d = s * 0.25f
-            val pts = when (v) {
-                1 -> floatArrayOf(0f, 0f)
-                3 -> floatArrayOf(-d, -d, 0f, 0f, d, d)
-                5 -> floatArrayOf(-d, -d, d, -d, 0f, 0f, -d, d, d, d)
-                else -> floatArrayOf(-d, -d, d, -d, -d, 0f, d, 0f, -d, d, d, d)
-            }
+            val pts = when (v) { 1 -> PIP1; 3 -> PIP3; 5 -> PIP5; else -> PIP6 }
             var k = 0
-            while (k < pts.size) { c.drawCircle(pts[k], pts[k + 1], s * 0.08f, p); k += 2 }
+            while (k < pts.size) { c.drawCircle(pts[k] * d, pts[k + 1] * d, s * 0.08f, p); k += 2 }
             c.restore()
         }
     }

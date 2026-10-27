@@ -92,7 +92,7 @@ class PlayerStrip(context: Context, players: List<PlayerInfo>, vertical: Boolean
             if (v) {
                 glowAnim = ValueAnimator.ofFloat(0f, 1f, 0f).apply {
                     duration = 1600
-                    repeatCount = ValueAnimator.INFINITE
+                    repeatCount = 2 // 차례가 바뀔 때 몇 번만 빛나고 멈춘다 (계속 다시 그리지 않음)
                     addUpdateListener { glow = it.animatedValue as Float; invalidate() }
                     start()
                 }

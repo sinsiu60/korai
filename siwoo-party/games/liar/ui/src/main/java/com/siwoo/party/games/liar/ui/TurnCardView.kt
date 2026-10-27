@@ -1,5 +1,6 @@
 package com.siwoo.party.games.liar.ui
 
+import com.siwoo.party.common.ui.PartySettings
 import android.content.Context
 import android.graphics.Canvas
 import android.graphics.LinearGradient
@@ -47,7 +48,7 @@ class TurnCardView(context: Context) : View(context) {
         if (bounce) {
             animate().cancel()
             scaleX = 0.9f; scaleY = 0.9f
-            animate().scaleX(1f).scaleY(1f).setDuration(260).start()
+            animate().scaleX(1f).scaleY(1f).setDuration(PartySettings(context).t(260)).start()
         }
     }
 

@@ -1,5 +1,6 @@
 package com.siwoo.party.games.memory.ui
 
+import com.siwoo.party.common.ui.PartySettings
 import android.animation.ValueAnimator
 import android.content.Context
 import android.graphics.Canvas
@@ -68,7 +69,7 @@ class TurnView(context: Context) : View(context) {
     private fun popNow() {
         anim?.cancel()
         anim = ValueAnimator.ofFloat(1f, 0f).apply {
-            duration = 320
+            duration = PartySettings(context).t(320)
             addUpdateListener { pop = it.animatedValue as Float; invalidate() }
             start()
         }
