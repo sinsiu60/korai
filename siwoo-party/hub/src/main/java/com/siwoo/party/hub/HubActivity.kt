@@ -298,9 +298,12 @@ class HubActivity : Activity() {
     // 랜덤 게임 / 플레이어 변경 / 모임 종료
     // ─────────────────────────────────────────────
 
+    /** 지금 인원으로 할 수 있는 게임 (랜덤 게임 룰렛에 오르는 것) */
+    fun eligibleGames(): List<GameModule> = GameRegistry.games.filter { it.unavailableReason(session.players.size) == null }
+
     /** 지금 인원으로 할 수 있는 게임 중에서 룰렛으로 하나 → 그 게임 소개 */
     private fun randomGame(random: Random = Random.Default) {
-        val eligible = GameRegistry.games.filter { it.unavailableReason(session.players.size) == null }
+        val eligible = eligibleGames()
         if (eligible.isEmpty()) return
         // 칸이 너무 적으면 반복해서 채운다 (최소 6칸)
         val reps = maxOf(1, (6 + eligible.size - 1) / eligible.size)
