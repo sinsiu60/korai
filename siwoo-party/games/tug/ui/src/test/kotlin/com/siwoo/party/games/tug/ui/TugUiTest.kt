@@ -79,6 +79,38 @@ class TugUiTest {
         return shadowOf(a).resultIntent.getIntArrayExtra(Party.EXTRA_RANKS)!!
     }
 
+    private fun props(n: Int) = Array(n) { MotionEvent.PointerProperties().apply { id = it; toolType = MotionEvent.TOOL_TYPE_FINGER } }
+
+    private fun ev(action: Int, xs: FloatArray, ys: FloatArray, t: Long): MotionEvent {
+        val n = xs.size
+        val coords = Array(n) { MotionEvent.PointerCoords().apply { x = xs[it]; y = ys[it]; pressure = 1f; size = 1f } }
+        return MotionEvent.obtain(t, t, action, n, props(n), coords, 0, 0, 1f, 1f, 0, 0, 0, 0)
+    }
+
+    /** 4명이 한꺼번에 손가락을 올려도 각자 자기 구역의 플레이어 탭으로만 셈 (위쪽 구역 포함) */
+    @Test
+    fun fourFingersAtOnceEachTapCountsOnlyForTheirOwnZone() {
+        val a = launch(four, seed = 11)
+        waitPlaying(a)
+        val xs = FloatArray(4) { a.zones.zone(it)!!.centerX }
+        val ys = FloatArray(4) { a.zones.zone(it)!!.centerY + 20f }
+        repeat(3) { round ->
+            val t = SystemClock.uptimeMillis()
+            a.zones.dispatchTouchEvent(ev(MotionEvent.ACTION_DOWN, xs.copyOf(1), ys.copyOf(1), t))
+            for (k in 1 until 4) {
+                a.zones.dispatchTouchEvent(ev(MotionEvent.ACTION_POINTER_DOWN or (k shl MotionEvent.ACTION_POINTER_INDEX_SHIFT), xs.copyOf(k + 1), ys.copyOf(k + 1), t + k))
+            }
+            for (z in 0 until 4) assertTrue("구역 $z 눌림", a.zones.isPressed(z))
+            for (k in 3 downTo 1) {
+                a.zones.dispatchTouchEvent(ev(MotionEvent.ACTION_POINTER_UP or (k shl MotionEvent.ACTION_POINTER_INDEX_SHIFT), xs.copyOf(k + 1), ys.copyOf(k + 1), t + 10 + k))
+            }
+            a.zones.dispatchTouchEvent(ev(MotionEvent.ACTION_UP, xs.copyOf(1), ys.copyOf(1), t + 20))
+            for (z in 0 until 4) assertEquals("구역 $z 플레이어 탭 수", round + 1, a.game.taps[a.teams.zonePlayer[z]])
+            idle(80)
+        }
+        assertEquals("팀 합이 같아 줄은 가운데", 0, a.game.pull)
+    }
+
     @Test
     fun twoPlayersLeftReachesWinLine() {
         val a = launch(two)

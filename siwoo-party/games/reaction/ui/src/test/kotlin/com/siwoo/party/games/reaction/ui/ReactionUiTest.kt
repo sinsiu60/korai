@@ -12,6 +12,7 @@ import com.siwoo.party.games.reaction.ReactionModule
 import org.junit.After
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -46,6 +47,39 @@ class ReactionUiTest {
         val t = SystemClock.uptimeMillis()
         a.zones.dispatchTouchEvent(MotionEvent.obtain(t, t, MotionEvent.ACTION_DOWN, z.centerX, z.centerY, 0))
         a.zones.dispatchTouchEvent(MotionEvent.obtain(t, t + 10, MotionEvent.ACTION_UP, z.centerX, z.centerY, 0))
+    }
+
+    private fun props(n: Int) = Array(n) { MotionEvent.PointerProperties().apply { id = it; toolType = MotionEvent.TOOL_TYPE_FINGER } }
+
+    private fun ev(action: Int, xs: FloatArray, ys: FloatArray, t: Long): MotionEvent {
+        val n = xs.size
+        val coords = Array(n) { MotionEvent.PointerCoords().apply { x = xs[it]; y = ys[it]; pressure = 1f; size = 1f } }
+        return MotionEvent.obtain(t, t, action, n, props(n), coords, 0, 0, 1f, 1f, 0, 0, 0, 0)
+    }
+
+    /** 4명이 "지금!"에 동시에 손가락을 올려도 각자 자기 구역으로만 판정, 가장 먼저 닿은 손가락이 승 */
+    @Test
+    fun fourFingersAtOnceEachCountOnlyInTheirOwnZone() {
+        ReactionActivity.randomOverride = Random(5)
+        val four = players + PlayerInfo(3, "라온", 4)
+        val a = Robolectric.buildActivity(ReactionActivity::class.java,
+            Party.gameIntent(RuntimeEnvironment.getApplication(), ReactionModule, four)).setup().get()
+        idle(2000)
+        waitForGo(a)
+        val order = intArrayOf(2, 0, 3, 1) // 위쪽(180°) 구역 2가 가장 먼저
+        val xs = FloatArray(4) { a.zones.zone(order[it])!!.centerX }
+        val ys = FloatArray(4) { a.zones.zone(order[it])!!.centerY }
+        val t = SystemClock.uptimeMillis()
+        a.zones.dispatchTouchEvent(ev(MotionEvent.ACTION_DOWN, xs.copyOf(1), ys.copyOf(1), t))
+        for (k in 1 until 4) {
+            a.zones.dispatchTouchEvent(ev(MotionEvent.ACTION_POINTER_DOWN or (k shl MotionEvent.ACTION_POINTER_INDEX_SHIFT), xs.copyOf(k + 1), ys.copyOf(k + 1), t + k))
+        }
+        for (z in 0 until 4) {
+            assertTrue("구역 $z 눌림", a.zones.isPressed(z))
+            assertFalse("구역 $z 실격 아님", a.game.disqualified[z])
+        }
+        assertEquals("가장 먼저 닿은 구역 2가 승", 1, a.game.wins[2])
+        for (z in intArrayOf(0, 1, 3)) assertEquals("구역 $z 는 승 없음", 0, a.game.wins[z])
     }
 
     /** 다음 "지금!"까지 시간을 흘린다 */
