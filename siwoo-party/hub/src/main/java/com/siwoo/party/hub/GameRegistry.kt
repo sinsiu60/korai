@@ -3,6 +3,7 @@ package com.siwoo.party.hub
 import com.siwoo.party.common.ui.GameCategory
 import com.siwoo.party.common.ui.GameModule
 import com.siwoo.party.games.balloon.BalloonModule
+import com.siwoo.party.games.bingo.BingoModule
 import com.siwoo.party.games.baseball.BaseballModule
 import com.siwoo.party.games.blackjack.BlackjackModule
 import com.siwoo.party.games.math.MathModule
@@ -92,6 +93,7 @@ object GameRegistry {
         UmulModule,
         ReversiModule,
         PolyblockModule,
+        BingoModule,
     )
 
     fun byId(id: String?): GameModule? = games.firstOrNull { it.id == id }
