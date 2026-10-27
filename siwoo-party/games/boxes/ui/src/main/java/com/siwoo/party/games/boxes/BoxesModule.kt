@@ -4,6 +4,7 @@ import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.Path
 import android.graphics.Typeface
+import com.siwoo.party.common.ui.GameCategory
 import com.siwoo.party.common.ui.GameModule
 import com.siwoo.party.common.ui.PlayMode
 import com.siwoo.party.common.ui.RuleCard
@@ -18,6 +19,7 @@ object BoxesModule : GameModule {
     override val tagline = "점 사이에 선을 긋고, 네 변을 닫아 내 땅으로!"
     override val playerCounts = GameConfig.MIN_PLAYERS..GameConfig.MAX_PLAYERS
     override val mode = PlayMode.TURNS
+    override val category = GameCategory.BOARD
     override val minutes = "6분"
     override val color = 0xFF455A64.toInt()
     override val activityClass = BoxesActivity::class.java

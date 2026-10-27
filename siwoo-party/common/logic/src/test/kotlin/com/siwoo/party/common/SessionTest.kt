@@ -79,4 +79,26 @@ class SessionTest {
         assertEquals(list.map { it.id to it.name }, back.map { it.id to it.name })
         assertEquals(list.map { it.colorIndex }, back.map { it.colorIndex })
     }
+
+    @Test fun `점수 반영 끔이면 기록만 남고 점수는 그대로`() {
+        val s = session4()
+        val pts = s.applyResult("liar", intArrayOf(0, 1, 2, 3), intArrayOf(1, 2, 3, 4), scored = false)
+        assertArrayEquals(intArrayOf(0, 0, 0, 0), pts)
+        assertEquals(0, s.score(0))
+        assertEquals(1, s.history.size)
+        assertEquals(false, s.history[0].scored)
+        // 저장해도 유지
+        val back = SessionCodec.decode(SessionCodec.encode(s))
+        assertEquals(false, back.history[0].scored)
+        assertEquals(0, back.score(0))
+    }
+
+    @Test fun `최근 게임은 최근 것부터 중복 없이`() {
+        val s = session4()
+        val ids = intArrayOf(0, 1, 2, 3)
+        val r = intArrayOf(1, 2, 3, 4)
+        for (g in listOf("a", "b", "a", "c", "c", "d")) s.applyResult(g, ids, r)
+        assertEquals(listOf("d", "c", "a"), s.recentGames(3))
+        assertEquals(listOf("d", "c", "a", "b"), s.recentGames(9))
+    }
 }

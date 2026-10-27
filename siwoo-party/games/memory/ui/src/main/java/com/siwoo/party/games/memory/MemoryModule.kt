@@ -2,6 +2,7 @@ package com.siwoo.party.games.memory
 
 import android.graphics.Canvas
 import android.graphics.Paint
+import com.siwoo.party.common.ui.GameCategory
 import com.siwoo.party.common.ui.GameModule
 import com.siwoo.party.common.ui.PlayMode
 import com.siwoo.party.common.ui.RuleCard
@@ -16,6 +17,7 @@ object MemoryModule : GameModule {
     override val tagline = "뒤집힌 카드 속 같은 그림을 기억해서 찾아라!"
     override val playerCounts = GameConfig.MIN_PLAYERS..GameConfig.MAX_PLAYERS
     override val mode = PlayMode.TURNS
+    override val category = GameCategory.CARD_BRAIN
     override val minutes = "4분"
     override val color = 0xFFC2185B.toInt()
     override val activityClass = MemoryActivity::class.java

@@ -1,6 +1,9 @@
 package com.siwoo.party.common.ui
 
 import android.content.Context
+import android.hardware.Sensor
+import android.hardware.SensorManager
+import com.siwoo.party.common.DeviceCaps
 import com.siwoo.party.common.Json
 import com.siwoo.party.common.PartyConfig
 import com.siwoo.party.common.RealPenalty
@@ -56,4 +59,40 @@ class PartySettings(context: Context) {
 
     /** 4명 동시 터치가 되는지 (모르면 된다고 가정) */
     val multiTouchOk: Boolean get() = touchPoints < 0 || touchPoints >= PartyConfig.REQUIRED_TOUCHES
+
+    // ── 파티 존 설정 ──
+
+    /** 파티 존 게임 결과를 누적 점수에 더할지 (기본 켬) */
+    var partyScore: Boolean
+        get() = prefs.getBoolean("partyScore", true)
+        set(v) = prefs.edit().putBoolean("partyScore", v).apply()
+
+    /** 파티 존 게임 후 [꼴찌 벌칙 룰렛] (기본 켬) */
+    var partyPenalty: Boolean
+        get() = prefs.getBoolean("partyPenalty", true)
+        set(v) = prefs.edit().putBoolean("partyPenalty", v).apply()
+
+    // ── 랜덤 게임 설정 ──
+
+    /** 허브 랜덤에 포함 (기본: 일반 게임 켬, 파티 게임 끔) */
+    fun hubRandom(module: GameModule): Boolean = prefs.getBoolean("rnd_" + module.id, module.category != GameCategory.PARTY)
+
+    fun setHubRandom(id: String, on: Boolean) = prefs.edit().putBoolean("rnd_$id", on).apply()
+
+    /** 파티 랜덤에 포함 (파티 게임만, 기본 켬) */
+    fun partyRandom(module: GameModule): Boolean = prefs.getBoolean("prnd_" + module.id, true)
+
+    fun setPartyRandom(id: String, on: Boolean) = prefs.edit().putBoolean("prnd_$id", on).apply()
+
+    /** 같은 게임 연속 방지 (기본 켬) */
+    var avoidRepeat: Boolean
+        get() = prefs.getBoolean("avoidRepeat", true)
+        set(v) = prefs.edit().putBoolean("avoidRepeat", v).apply()
+
+    /** 기기 조건 (동시 터치 수·가속도 센서) — 랜덤 후보 거르기용 */
+    fun deviceCaps(context: Context): DeviceCaps {
+        val touches = if (touchPoints > 0) touchPoints else MultiTouchZoneView.supportedTouches(context)
+        val sm = context.getSystemService(Context.SENSOR_SERVICE) as SensorManager?
+        return DeviceCaps(touches, sm?.getDefaultSensor(Sensor.TYPE_ACCELEROMETER) != null)
+    }
 }

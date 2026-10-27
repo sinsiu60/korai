@@ -127,4 +127,30 @@ object Theme {
         background = oval(color, Color.WHITE, dp(ctx, 2f))
         layoutParams = LinearLayout.LayoutParams(dp(ctx, sizeDp), dp(ctx, sizeDp))
     }
+
+    /**
+     * 파티 존 테마: 짙은 보라 배경 + 네온 분홍·하늘색 포인트.
+     * 다른 공통 부품(버튼·팝업·연출)은 그대로 쓰고 색만 바꾼다.
+     */
+    object Party {
+        const val BG_TOP = 0xFF2A0A4A.toInt()
+        const val BG_BOTTOM = 0xFF12032A.toInt()
+        const val BG_DEEP = 0xFF0A0118.toInt()
+        const val CARD = 0xFF33145C.toInt()
+        const val CARD_LIGHT = 0xFF4A1F7E.toInt()
+        const val NEON_PINK = 0xFFFF3FB4.toInt()
+        const val NEON_SKY = 0xFF3FE0FF.toInt()
+        const val NEON_PURPLE = 0xFFB04CFF.toInt()
+        const val TEXT_SUB = 0xFFD9B8F5.toInt()
+
+        fun background(): GradientDrawable =
+            GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM, intArrayOf(BG_TOP, BG_BOTTOM))
+
+        /** 네온 테두리 카드 */
+        fun card(ctx: Context, stroke: Int = NEON_PINK, radiusDp: Float = 18f): GradientDrawable =
+            GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM, intArrayOf(CARD_LIGHT, CARD)).apply {
+                cornerRadius = dpf(ctx, radiusDp)
+                setStroke(dp(ctx, 2f), stroke)
+            }
+    }
 }

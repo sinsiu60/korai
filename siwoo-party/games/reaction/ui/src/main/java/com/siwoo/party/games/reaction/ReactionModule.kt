@@ -3,6 +3,7 @@ package com.siwoo.party.games.reaction
 import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.Path
+import com.siwoo.party.common.ui.GameCategory
 import com.siwoo.party.common.ui.GameModule
 import com.siwoo.party.common.ui.PlayMode
 import com.siwoo.party.common.ui.RuleCard
@@ -16,6 +17,7 @@ object ReactionModule : GameModule {
     override val tagline = "초록불이 켜지는 순간, 누구보다 빠르게!"
     override val playerCounts = GameConfig.MIN_PLAYERS..GameConfig.MAX_PLAYERS
     override val mode = PlayMode.SIMULTANEOUS
+    override val category = GameCategory.REFLEX
     override val minutes = "2분"
     override val color = 0xFF00897B.toInt()
     override val activityClass = ReactionActivity::class.java

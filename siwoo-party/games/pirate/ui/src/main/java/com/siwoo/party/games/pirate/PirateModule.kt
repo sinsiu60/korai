@@ -3,6 +3,7 @@ package com.siwoo.party.games.pirate
 import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.Path
+import com.siwoo.party.common.ui.GameCategory
 import com.siwoo.party.common.ui.GameModule
 import com.siwoo.party.common.ui.PlayMode
 import com.siwoo.party.common.ui.PopupLayer
@@ -20,6 +21,7 @@ object PirateModule : GameModule {
     override val tagline = "칼을 꽂을 때마다 두근두근, 해적이 튀어나오면 탈락!"
     override val playerCounts = GameConfig.MIN_PLAYERS..GameConfig.MAX_PLAYERS
     override val mode = PlayMode.TURNS
+    override val category = GameCategory.TIMING
     override val minutes = "3분"
     override val color = 0xFFA0522D.toInt()
     override val activityClass = PirateActivity::class.java

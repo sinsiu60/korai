@@ -4,6 +4,7 @@ import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.Path
 import android.graphics.Typeface
+import com.siwoo.party.common.ui.GameCategory
 import com.siwoo.party.common.ui.GameModule
 import com.siwoo.party.common.ui.PlayMode
 import com.siwoo.party.common.ui.PopupLayer
@@ -21,6 +22,7 @@ object YutModule : GameModule {
     override val tagline = "윷가락을 던져 말을 달려라! 업고 잡고 지름길로 골인!"
     override val playerCounts = GameConfig.MIN_PLAYERS..GameConfig.MAX_PLAYERS
     override val mode = PlayMode.TURNS
+    override val category = GameCategory.BOARD
     override val minutes = "15분"
     override val color = 0xFF8D5A2B.toInt()
     override val activityClass = YutActivity::class.java

@@ -9,6 +9,8 @@ class GameRecord(
     val playerIds: IntArray,
     val ranks: IntArray,
     val points: IntArray,
+    /** 점수를 모임에 더했는지 (파티 존 "점수 반영" 끔이면 false, points 는 모두 0) */
+    val scored: Boolean = true,
 )
 
 /**
@@ -35,16 +37,28 @@ class Session(players: List<PlayerInfo>) {
 
     /**
      * 게임 결과 반영. ids 와 ranks 는 같은 순서 (ranks 는 1부터, 동점 허용).
+     * scored = false 면 기록만 남기고 점수는 더하지 않는다 (파티 존 점수 반영 끔).
      * @return 각자 받은 점수 (ids 순서)
      */
-    fun applyResult(gameId: String, ids: IntArray, ranks: IntArray): IntArray {
+    fun applyResult(gameId: String, ids: IntArray, ranks: IntArray, scored: Boolean = true): IntArray {
         require(ids.size == ranks.size) { "ids / ranks 길이가 다름" }
         require(ids.toSet().size == ids.size) { "같은 플레이어가 두 번" }
         for (id in ids) require(player(id) != null) { "모임에 없는 플레이어: $id" }
-        val pts = ScoreRules.points(ranks)
+        val pts = if (scored) ScoreRules.points(ranks) else IntArray(ranks.size)
         for (k in ids.indices) scores[ids[k]] = score(ids[k]) + pts[k]
-        history.add(GameRecord(gameId, ids.copyOf(), ranks.copyOf(), pts.copyOf()))
+        history.add(GameRecord(gameId, ids.copyOf(), ranks.copyOf(), pts.copyOf(), scored))
         return pts
+    }
+
+    /** 최근에 한 게임 (최근 것부터, 중복 없이 최대 n개) */
+    fun recentGames(n: Int): List<String> {
+        val out = ArrayList<String>()
+        for (k in history.indices.reversed()) {
+            val id = history[k].gameId
+            if (id !in out) out.add(id)
+            if (out.size >= n) break
+        }
+        return out
     }
 
     /** 현재 참가자 중 1등(동점 포함). 아직 아무도 점수가 없으면 빈 목록 */
@@ -102,7 +116,7 @@ object SessionCodec {
         "former" to s.former.map { player(it) },
         "scores" to s.scores.entries.map { listOf(it.key, it.value) },
         "history" to s.history.map { r ->
-            linkedMapOf<String, Any?>("game" to r.gameId, "ids" to r.playerIds, "ranks" to r.ranks, "points" to r.points)
+            linkedMapOf<String, Any?>("game" to r.gameId, "ids" to r.playerIds, "ranks" to r.ranks, "points" to r.points, "scored" to r.scored)
         },
         "nextId" to s.nextId,
     ))
@@ -119,7 +133,7 @@ object SessionCodec {
         }
         for (h in root["history"] as List<*>) {
             val m = h as Map<*, *>
-            s.history.add(GameRecord(m["game"] as String, ints(m["ids"]), ints(m["ranks"]), ints(m["points"])))
+            s.history.add(GameRecord(m["game"] as String, ints(m["ids"]), ints(m["ranks"]), ints(m["points"]), m["scored"] as? Boolean ?: true))
         }
         s.nextId = maxOf((root["nextId"] as Number).toInt(), s.nextId)
         return s

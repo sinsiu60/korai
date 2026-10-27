@@ -4,6 +4,7 @@ import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.Path
 import android.graphics.Typeface
+import com.siwoo.party.common.ui.GameCategory
 import com.siwoo.party.common.ui.GameModule
 import com.siwoo.party.common.ui.PlayMode
 import com.siwoo.party.common.ui.RuleCard
@@ -19,6 +20,7 @@ object AlkkagiModule : GameModule {
     override val tagline = "내 알을 튕겨 상대 알을 판 밖으로!"
     override val playerCounts = GameConfig.PLAYERS..GameConfig.PLAYERS
     override val mode = PlayMode.TURNS
+    override val category = GameCategory.TIMING
     override val minutes = "5분"
     override val color = 0xFF827717.toInt()
     override val activityClass = AlkkagiActivity::class.java

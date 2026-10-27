@@ -207,7 +207,7 @@ class PartyFlowTest {
 
     /** 허브의 onActivityResult 를 직접 호출 (protected) */
     private fun deliver(hub: HubActivity, request: Int, code: Int, data: Intent?) {
-        val m = HubActivity::class.java.getDeclaredMethod("onActivityResult", Int::class.javaPrimitiveType, Int::class.javaPrimitiveType, Intent::class.java)
+        val m = GameHostActivity::class.java.getDeclaredMethod("onActivityResult", Int::class.javaPrimitiveType, Int::class.javaPrimitiveType, Intent::class.java)
         m.isAccessible = true
         m.invoke(hub, request, code, data)
     }

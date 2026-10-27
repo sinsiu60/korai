@@ -17,7 +17,10 @@ import com.siwoo.party.common.PartyConfig
 object SettingsPopup {
     class Extra(val label: () -> String, val color: () -> Int, val onClick: () -> Unit)
 
-    fun show(popups: PopupLayer, settings: PartySettings, beeper: Beeper?, extras: List<Extra> = emptyList(), onClose: (() -> Unit)? = null) {
+    /** 다른 설정 화면으로 가는 버튼 (예: 랜덤 게임 설정) */
+    class Link(val label: String, val onClick: () -> Unit)
+
+    fun show(popups: PopupLayer, settings: PartySettings, beeper: Beeper?, extras: List<Extra> = emptyList(), links: List<Link> = emptyList(), onClose: (() -> Unit)? = null) {
         val ctx = popups.context
         val card = Ui.darkCard(ctx)
         card.addView(Theme.text(ctx, "설정", 20f, Theme.GOLD, bold = true))
@@ -52,12 +55,12 @@ object SettingsPopup {
         val extraButtons = extras.map { e -> toggle(e.label, e.color, e.onClick) }
         if (extraButtons.isNotEmpty()) card.addView(Ui.buttonRow(ctx, *extraButtons.toTypedArray(), heightDp = 44f), Ui.gap(ctx, 8f))
         var popup: PopupLayer.Popup? = null
-        card.addView(Ui.buttonRow(ctx,
-            Ui.button(ctx, "벌칙 문구 편집", Theme.BLUE, 15f) { PhraseEditor.show(popups, settings) },
-            Ui.button(ctx, "닫기", Theme.GRAY, 15f) { popup?.dismiss() },
-            heightDp = 44f,
-        ), Ui.gap(ctx, 12f))
-        popup = popups.show(card, cancelable = true, widthPx = Theme.dp(ctx, 460f), onDismiss = onClose)
+        val last = ArrayList<GameButton>()
+        for (l in links) last.add(Ui.button(ctx, l.label, Theme.GOLD_DARK, 15f) { l.onClick() })
+        last.add(Ui.button(ctx, "벌칙 문구 편집", Theme.BLUE, 15f) { PhraseEditor.show(popups, settings) })
+        last.add(Ui.button(ctx, "닫기", Theme.GRAY, 15f) { popup?.dismiss() })
+        card.addView(Ui.buttonRow(ctx, *last.toTypedArray(), heightDp = 44f), Ui.gap(ctx, 12f))
+        popup = popups.show(card, cancelable = true, widthPx = Theme.dp(ctx, if (links.isEmpty()) 460f else 540f), onDismiss = onClose)
     }
 }
 

@@ -3,6 +3,7 @@ package com.siwoo.party.games.tug
 import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.Path
+import com.siwoo.party.common.ui.GameCategory
 import com.siwoo.party.common.ui.GameModule
 import com.siwoo.party.common.ui.PlayMode
 import com.siwoo.party.common.ui.RuleCard
@@ -17,6 +18,7 @@ object TugModule : GameModule {
     override val tagline = "미친 듯이 연타해서 깃발을 우리 쪽으로!"
     override val playerCounts = GameConfig.MIN_PLAYERS..GameConfig.MAX_PLAYERS
     override val mode = PlayMode.SIMULTANEOUS
+    override val category = GameCategory.REFLEX
     override val minutes = "1분"
     override val color = 0xFF1565C0.toInt()
     override val activityClass = TugActivity::class.java

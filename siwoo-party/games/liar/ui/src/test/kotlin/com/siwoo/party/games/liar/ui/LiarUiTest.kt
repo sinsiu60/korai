@@ -8,6 +8,7 @@ import android.view.ViewGroup
 import android.widget.EditText
 import android.widget.TextView
 import com.siwoo.party.common.PlayerInfo
+import com.siwoo.party.common.secret.SecretHoldView
 import com.siwoo.party.common.Ranking
 import com.siwoo.party.common.ui.GameButton
 import com.siwoo.party.common.ui.Handoff
@@ -86,7 +87,7 @@ class LiarUiTest {
         for (v in all(a.window.decorView)) {
             if (v is TextView) assertFalse("글자 '${v.text}' 에 이전 제시어", v.text.toString().contains(word))
             assertFalse("설명 글자에 이전 제시어", v.contentDescription?.toString()?.contains(word) == true)
-            if (v is SecretView) {
+            if (v is SecretHoldView) {
                 assertFalse("제시어 카드에 비밀이 남음", v.hasSecret)
                 assertEquals("", v.shownText)
             }
@@ -137,7 +138,7 @@ class LiarUiTest {
             val s = a.secretView!!
             val ok = a.confirmButton!!
             idle(100)
-            val expected = g.wordFor(p) ?: SecretView.LIAR_TEXT
+            val expected = g.wordFor(p) ?: LiarSecret.LIAR_TEXT
             // 누르기 전: 가려짐, [확인 완료] 꺼짐
             assertEquals("", s.shownText)
             assertFalse(s.revealed)
@@ -164,8 +165,8 @@ class LiarUiTest {
             // 다음 화면 어디에도 이전 사람의 제시어가 없음
             assertFalse(s.hasSecret)
             assertNull(a.secretView)
-            if (expected != SecretView.LIAR_TEXT) assertNowhere(a, expected)
-            assertNowhere(a, SecretView.LIAR_TEXT)
+            if (expected != LiarSecret.LIAR_TEXT) assertNowhere(a, expected)
+            assertNowhere(a, LiarSecret.LIAR_TEXT)
             if (k < g.playerCount - 1) {
                 assertNotNull("다음 사람 넘기기 화면", a.handoffPopup)
                 assertEquals(0, a.main.childCount)

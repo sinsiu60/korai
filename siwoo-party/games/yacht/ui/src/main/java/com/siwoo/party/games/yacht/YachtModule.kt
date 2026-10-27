@@ -4,6 +4,7 @@ import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.RectF
 import android.graphics.Typeface
+import com.siwoo.party.common.ui.GameCategory
 import com.siwoo.party.common.ui.GameModule
 import com.siwoo.party.common.ui.PlayMode
 import com.siwoo.party.common.ui.RuleCard
@@ -17,6 +18,7 @@ object YachtModule : GameModule {
     override val tagline = "주사위 5개, 3번의 기회! 족보를 모아 점수표를 채워라"
     override val playerCounts = GameConfig.MIN_PLAYERS..GameConfig.MAX_PLAYERS
     override val mode = PlayMode.TURNS
+    override val category = GameCategory.BOARD
     override val minutes = "10분"
     override val color = 0xFFC77800.toInt()
     override val activityClass = YachtActivity::class.java

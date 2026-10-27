@@ -3,6 +3,8 @@ package com.siwoo.party.games.bomb
 import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.Path
+import com.siwoo.party.common.ui.GameCategory
+import com.siwoo.party.common.ui.PartyTag
 import com.siwoo.party.common.ui.GameModule
 import com.siwoo.party.common.ui.PlayMode
 import com.siwoo.party.common.ui.PopupLayer
@@ -19,6 +21,8 @@ object BombModule : GameModule {
     override val tagline = "주제에 맞는 단어를 외치고 넘겨라! 째깍째깍… 펑!"
     override val playerCounts = GameConfig.MIN_PLAYERS..GameConfig.MAX_PLAYERS
     override val mode = PlayMode.TURNS
+    override val category = GameCategory.PARTY
+    override val partyTags = listOf(PartyTag.TALK)
     override val minutes = "3분"
     override val color = 0xFFD84315.toInt()
     override val activityClass = BombActivity::class.java

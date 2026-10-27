@@ -35,5 +35,13 @@
             android:exported="false"
             android:screenOrientation="sensorLandscape"
             android:windowSoftInputMode="adjustPan" />
+
+        <!-- 파티 존: 파티 게임 카드, 파티 랜덤, 파티 설정 -->
+        <activity
+            android:name=".hub.PartyZoneActivity"
+            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboardHidden"
+            android:exported="false"
+            android:screenOrientation="sensorLandscape"
+            android:windowSoftInputMode="adjustPan" />
     </application>
 </manifest>

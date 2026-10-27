@@ -7,6 +7,9 @@ import android.view.View
 import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.TextView
+import com.siwoo.party.common.secret.SecretHandle
+import com.siwoo.party.common.secret.SecretHoldView
+import com.siwoo.party.common.secret.SecretScreen
 import com.siwoo.party.common.ui.BannerTone
 import com.siwoo.party.common.ui.GameButton
 import com.siwoo.party.common.ui.GameTimers
@@ -31,7 +34,8 @@ import kotlin.random.Random
  * 흐름: 모드 선택 팝업 → [판마다] "N판" 배너 → 카테고리 카드 공개 → 한 명씩 (넘기기 화면 → 꾹 눌러 제시어 확인 → [확인 완료])
  *  → 설명 2바퀴(1인 20초) → 토론 60초 → 한 명씩 비밀 투표 → 개표(표가 한 장씩 뒤집혀 쌓임, 동점이면 동점자 재투표)
  *  → 정체 공개 → (라이어면) 정답 맞히기 → 판 결과 → 다음 판 … → 누적 점수 순위로 허브에.
- * 비밀 화면을 떠날 때는 main 을 비우고(SecretView.clear) 공통 handoff 가 화면 전체를 덮는다 → 이전 사람 정보가 남지 않음.
+ * 제시어 확인은 공통 SecretScreen(넘기기 화면 → 꾹 눌러 보는 카드 → [확인 완료]) 을 main 안에 띄우고, 보이는 면은 LiarSecret 이 그린다.
+ * 비밀 화면을 떠날 때는 카드의 비밀부터 지우고(SecretHandle.close) 공통 handoff 가 화면 전체를 덮는다 → 이전 사람 정보가 남지 않음.
  * 규칙 판정은 LiarGame, 여기서는 화면·연출 순서만 timers 로 예약한다.
  */
 class LiarActivity : PartyGameActivity() {
@@ -54,10 +58,9 @@ class LiarActivity : PartyGameActivity() {
         private set
     var startCheckButton: GameButton? = null
         private set
-    var secretView: SecretView? = null
-        private set
-    var confirmButton: GameButton? = null
-        private set
+    /** 지금 제시어 확인 중인 꾹 누르기 카드 (확인 화면일 때만) */
+    val secretView: SecretHoldView? get() = secret?.holdView
+    val confirmButton: GameButton? get() = secret?.confirmButton
     var turnCard: TurnCardView? = null
         private set
     var timerView: TimerView? = null
@@ -79,8 +82,11 @@ class LiarActivity : PartyGameActivity() {
     var nextRoundButton: GameButton? = null
         private set
     /** 떠 있는 기기 넘기기 화면 */
-    var handoffPopup: PopupLayer.Popup? = null
-        private set
+    val handoffPopup: PopupLayer.Popup? get() = secret?.handoffPopup ?: voteHandoff?.handoffPopup
+
+    /** 제시어 확인 한 번 (넘기기 화면 → 비밀 카드) */
+    private var secret: SecretHandle? = null
+    private var voteHandoff: SecretHandle? = null
 
     private var modePopup: PopupLayer.Popup? = null
     private var talkAction: () -> Unit = {}
@@ -136,9 +142,10 @@ class LiarActivity : PartyGameActivity() {
 
     /** 본 화면 비우기: 비밀 글자부터 지우고 모든 내용 제거 (다음 사람 화면 뒤에 아무것도 안 남게) */
     private fun clearMain() {
-        secretView?.clear()
-        secretView = null
-        confirmButton = null
+        secret?.close() // 비밀 글자부터 지운다
+        secret = null
+        voteHandoff?.close()
+        voteHandoff = null
         categoryCard = null
         startCheckButton = null
         turnCard = null
@@ -247,42 +254,23 @@ class LiarActivity : PartyGameActivity() {
         clearMain()
         val p = game.checker
         strip.setCurrent(p)
-        handoffPopup = handoff(p, "${name(p)}님 차례입니다",
-            "다른 사람은 보지 마세요!\n기기를 ${name(p)}님에게 건네고, ${name(p)}님만 화면을 보세요", "제시어 보기") {
-            handoffPopup = null
-            showSecret(p)
-        }
+        secret = SecretScreen.show(
+            this, p,
+            LiarSecret(game.wordFor(p), game.categoryName, LiarArt.categoryColor(game.category)),
+            title = "${name(p)}님의 제시어",
+            info = "${game.checkedCount + 1} / ${players.size}번째 확인",
+            handoffTitle = "${name(p)}님 차례입니다",
+            handoffSub = "다른 사람은 보지 마세요!\n기기를 ${name(p)}님에게 건네고, ${name(p)}님만 화면을 보세요",
+            handoffOk = "제시어 보기",
+            container = main,
+        ) { onWordChecked() }
     }
 
-    private fun showSecret(p: Int) {
-        clearMain()
-        val row = Theme.horizontal(this).apply { gravity = Gravity.CENTER_VERTICAL }
-        val info = Theme.vertical(this).apply { gravity = Gravity.CENTER_HORIZONTAL }
-        info.addView(Theme.text(this, "${name(p)}님의 제시어", 22f, playerColor(p), bold = true).apply { gravity = Gravity.CENTER; maxLines = 2 })
-        info.addView(Theme.text(this, "${game.checkedCount + 1} / ${players.size}번째 확인", 13f, Theme.GOLD, bold = true).apply { gravity = Gravity.CENTER },
-            Ui.gap(this, 6f))
-        info.addView(Theme.text(this, "오른쪽 카드를 꾹 누르고 있는 동안만 보여요.\n다 봤으면 [확인 완료]를 누르세요.", 13f, Theme.TEXT_SUB).apply {
-            gravity = Gravity.CENTER
-            setLineSpacing(0f, 1.25f)
-        }, Ui.gap(this, 12f))
-        val ok = Ui.button(this, "확인 완료", Theme.GREEN_DARK, 18f) { onWordChecked() }
-        ok.isEnabled = false
-        info.addView(ok, Theme.lp(Theme.MATCH, Theme.dp(this, 52f)).apply { topMargin = Theme.dp(this@LiarActivity, 16f) })
-        row.addView(info, Theme.lp(0, Theme.WRAP, 1f))
-        val secret = SecretView(this)
-        secret.setSecret(game.wordFor(p), game.categoryName, LiarArt.categoryColor(game.category))
-        secret.onHoldChanged = { held -> if (held && confirmButton === ok && !ok.isEnabled) { ok.isEnabled = true; ok.bounce() } }
-        row.addView(secret, Theme.lp(0, Theme.MATCH, 1.45f).apply { leftMargin = Theme.dp(this@LiarActivity, 16f) })
-        fill(row)
-        secretView = secret
-        confirmButton = ok
-    }
-
+    /** [확인 완료] 뒤 (SecretScreen 이 이미 비밀을 지우고 화면을 치움) */
     private fun onWordChecked() {
-        val s = secretView ?: return
-        if (game.phase != Phase.WORD_CHECK || gamePaused || !s.heldOnce) return
+        if (game.phase != Phase.WORD_CHECK) return
         beeper.step()
-        clearMain() // 비밀 글자부터 지운다
+        clearMain()
         if (game.wordChecked()) startExplain() else nextChecker()
     }
 
@@ -396,8 +384,9 @@ class LiarActivity : PartyGameActivity() {
         val v = game.voter
         strip.setCurrent(v)
         val head = if (game.revote) "재투표! 동점인 사람 중에서 골라요\n" else ""
-        handoffPopup = handoff(v, "${name(v)}님 투표 차례", "${head}다른 사람은 보지 마세요!\n라이어로 의심하는 사람을 몰래 고르세요", "투표하기") {
-            handoffPopup = null
+        voteHandoff = SecretScreen.handoffOnly(this, v, "${name(v)}님 투표 차례",
+            "${head}다른 사람은 보지 마세요!\n라이어로 의심하는 사람을 몰래 고르세요", "투표하기") {
+            voteHandoff = null
             showBallot(v)
         }
     }
@@ -702,7 +691,7 @@ class LiarActivity : PartyGameActivity() {
 
     override fun onGamePause() {
         // 꾹 누른 채 일시정지 메뉴가 떠도 제시어는 가린다 (타이머·예약은 timers 라 자동으로 멈춤)
-        secretView?.hide()
+        secret?.hide()
     }
 
     companion object {

@@ -36,6 +36,8 @@ class ResultActivity : Activity() {
     private lateinit var ids: IntArray
     private lateinit var ranks: IntArray
     private lateinit var points: IntArray
+    /** 이번 판 점수를 모임에 더했는지 (파티 존 "점수 반영" 끔이면 false) */
+    private var scored = true
     private var restIndex: List<Int> = emptyList()
     private var restView: View? = null
     private var groupOf = IntArray(0)
@@ -60,7 +62,8 @@ class ResultActivity : Activity() {
             finish() // 모임이 없거나 결과가 이상하면 허브로
             return
         }
-        points = ScoreRules.points(ranks)
+        scored = intent.getBooleanExtra(EXTRA_SCORED, true)
+        points = if (scored) ScoreRules.points(ranks) else IntArray(ranks.size)
         setContentView(build(s))
         Transitions.enter(this, root)
         if (savedInstanceState == null) root.post { play() } else showFinal()
@@ -75,7 +78,10 @@ class ResultActivity : Activity() {
         }
         val head = Theme.horizontal(this)
         val gameName = intent.getStringExtra(EXTRA_GAME_NAME) ?: "게임"
-        head.addView(Theme.text(this, "$gameName 결과", 22f, Theme.GOLD, bold = true), Theme.lp(0, Theme.WRAP, 1f))
+        val title = Theme.vertical(this)
+        title.addView(Theme.text(this, "$gameName 결과", 22f, Theme.GOLD, bold = true))
+        if (!scored) title.addView(Theme.text(this, "점수 반영 끔 · 누적 점수는 그대로예요", 12f, Theme.TEXT_SUB, bold = true))
+        head.addView(title, Theme.lp(0, Theme.WRAP, 1f))
         chipsBar = ChipsBar(this)
         // 시작은 이번 판 점수를 빼기 전 점수
         val before = HashMap<Int, Int>()
@@ -88,7 +94,7 @@ class ResultActivity : Activity() {
 
         val names = ids.map { s.player(it)!!.name }
         val colors = ids.map { Theme.playerColor(s.player(it)!!.colorIndex) }
-        val subs = points.map { "+${it}점" }
+        val subs = if (scored) points.map { "+${it}점" } else ranks.map { "${it}위" }
         val (places, rest) = PodiumView.build(names, colors, ranks, subs)
         restIndex = rest
         val distinct = ranks.distinct().sorted()
@@ -106,7 +112,8 @@ class ResultActivity : Activity() {
         val buttons = ArrayList<View>()
         buttons.add(Ui.button(this, "다시 하기", Theme.BLUE) { done(RESULT_REPLAY) })
         val losers = ScoreRules.lastPlace(ranks)
-        if (settings.penaltyAfterGame && losers.isNotEmpty()) {
+        val penalty = intent.getBooleanExtra(EXTRA_PENALTY, settings.penaltyAfterGame)
+        if (penalty && losers.isNotEmpty()) {
             val who = losers.joinToString("·") { names[it] } + "님"
             buttons.add(Ui.button(this, "꼴찌 벌칙 룰렛", Theme.RED_DARK) {
                 if (!popups.isShowing) PenaltyRoulette.showReal(popups, settings, beeper, who, ::shake)
@@ -209,14 +216,20 @@ class ResultActivity : Activity() {
 
     companion object {
         const val EXTRA_GAME_NAME = "party.gameName"
+        /** 점수를 모임에 더했는지 (기본 true) */
+        const val EXTRA_SCORED = "party.scored"
+        /** [꼴찌 벌칙 룰렛] 표시 여부 (없으면 설정의 "게임 후 벌칙") */
+        const val EXTRA_PENALTY = "party.penalty"
         /** [다시 하기] */
         const val RESULT_REPLAY = RESULT_FIRST_USER + 1
 
-        fun intent(context: Context, gameId: String, gameName: String, ids: IntArray, ranks: IntArray): Intent =
+        fun intent(context: Context, gameId: String, gameName: String, ids: IntArray, ranks: IntArray, scored: Boolean = true, penalty: Boolean? = null): Intent =
             Intent(context, ResultActivity::class.java)
                 .putExtra(Party.EXTRA_GAME_ID, gameId)
                 .putExtra(EXTRA_GAME_NAME, gameName)
                 .putExtra(Party.EXTRA_IDS, ids)
                 .putExtra(Party.EXTRA_RANKS, ranks)
+                .putExtra(EXTRA_SCORED, scored)
+                .apply { if (penalty != null) putExtra(EXTRA_PENALTY, penalty) }
     }
 }

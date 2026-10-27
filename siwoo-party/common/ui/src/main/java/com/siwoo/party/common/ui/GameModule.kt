@@ -19,9 +19,30 @@ fun interface RuleArt {
 }
 
 /** 조작 방식 표시 */
-enum class PlayMode(val label: String) {
-    SIMULTANEOUS("동시 터치"),
-    TURNS("차례대로"),
+enum class PlayMode(val label: String, val short: String) {
+    SIMULTANEOUS("동시 터치", "동시"),
+    TURNS("차례대로", "차례"),
+}
+
+/** 허브 카테고리. PARTY 는 허브 탭·[전체]에 나오지 않고 파티 존에만 */
+enum class GameCategory(val label: String, val emoji: String, val color: Int) {
+    BOARD("보드게임", "🎲", 0xFFF2B32A.toInt()),
+    CARD_BRAIN("카드·두뇌", "🃏", 0xFF1FB5A8.toInt()),
+    REFLEX("순발력", "⚡", 0xFFFF8A2A.toInt()),
+    TIMING("손맛·타이밍", "🎯", 0xFF5CC24A.toInt()),
+    PARTY("파티 존", "🎉", 0xFFE04CFF.toInt()),
+    ;
+
+    companion object {
+        /** 허브 탭에 나오는 일반 카테고리 */
+        val HUB: List<GameCategory> = listOf(BOARD, CARD_BRAIN, REFLEX, TIMING)
+    }
+}
+
+/** 파티 게임 태그 (파티 존 카드에 표시) */
+enum class PartyTag(val label: String) {
+    TALK("말로 함"),
+    BODY("몸으로 함"),
 }
 
 /**
@@ -38,6 +59,20 @@ interface GameModule {
     /** 할 수 있는 인원 */
     val playerCounts: IntRange
     val mode: PlayMode
+    /** 허브 카테고리 (PARTY 면 파티 존) */
+    val category: GameCategory
+    /** 파티 존 카드 태그 (파티 게임만) */
+    val partyTags: List<PartyTag> get() = emptyList()
+    /** 가속도 센서가 꼭 필요한지 (없는 기기는 랜덤 후보에서 빠짐) */
+    val needsSensor: Boolean get() = false
+    /**
+     * 동시에 필요한 손가락 수 (0 = 동시 터치 없음).
+     * 인원만큼 필요한 게임은 최대 인원 수를 적는다 → 실제 필요 수는 requiredTouches(인원)
+     */
+    val needsMultiTouch: Int get() = if (mode == PlayMode.SIMULTANEOUS) playerCounts.last else 0
+
+    /** 이 인원으로 할 때 동시에 필요한 손가락 수 */
+    fun requiredTouches(players: Int): Int = if (needsMultiTouch <= 0) 0 else minOf(needsMultiTouch, maxOf(players, 1))
     /** 예상 시간(분) */
     val minutes: String
     /** 카드 대표 색 */
