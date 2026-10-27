@@ -50,6 +50,7 @@ import com.siwoo.party.games.reaction.ReactionModule
 import com.siwoo.party.games.rps.RpsModule
 import com.siwoo.party.games.sequence.SequenceModule
 import com.siwoo.party.games.speed.SpeedModule
+import com.siwoo.party.games.spotdiff.SpotDiffModule
 import com.siwoo.party.games.stack.StackModule
 import com.siwoo.party.games.stroop.StroopModule
 import com.siwoo.party.games.tensec.TenSecModule
@@ -120,6 +121,7 @@ object GameRegistry {
         ShutBoxModule,
         SpeedModule,
         RhythmModule,
+        SpotDiffModule,
     )
 
     fun byId(id: String?): GameModule? = games.firstOrNull { it.id == id }
