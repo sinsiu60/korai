@@ -11,6 +11,7 @@ import com.siwoo.party.games.pirate.PirateModule
 import com.siwoo.party.games.reaction.ReactionModule
 import com.siwoo.party.games.tug.TugModule
 import com.siwoo.party.games.yacht.YachtModule
+import com.siwoo.party.games.yut.YutModule
 
 /**
  * 모음집에 들어 있는 게임 목록 (구현된 게임만 등록).
@@ -27,6 +28,7 @@ object GameRegistry {
         YachtModule,
         BoxesModule,
         LiarModule,
+        YutModule,
         AlkkagiModule,
     )
 

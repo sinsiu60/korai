@@ -20,7 +20,7 @@ object AlkkagiModule : GameModule {
     override val playerCounts = GameConfig.PLAYERS..GameConfig.PLAYERS
     override val mode = PlayMode.TURNS
     override val minutes = "5분"
-    override val color = 0xFF8D5A2B.toInt()
+    override val color = 0xFF827717.toInt()
     override val activityClass = AlkkagiActivity::class.java
 
     private val RED = Theme.PLAYER_COLORS[0]

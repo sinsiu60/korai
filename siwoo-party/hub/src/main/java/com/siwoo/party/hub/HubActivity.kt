@@ -160,11 +160,11 @@ class HubActivity : Activity() {
         return root
     }
 
-    /** 게임 카드 + "곧 추가" 카드를 2줄로 (열마다 위·아래 한 장씩) */
+    /** 게임 카드를 2줄로 (열마다 위·아래 한 장씩) */
     private fun buildCards() {
         grid.removeAllViews()
         cards.clear()
-        val all = GameRegistry.games.map { GameCardView(this, it) } + GameCardView(this, null)
+        val all = GameRegistry.games.map { GameCardView(this, it) }
         var column: LinearLayout? = null
         for ((k, card) in all.withIndex()) {
             if (k % 2 == 0) {
