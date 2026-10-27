@@ -1070,13 +1070,13 @@ class MainActivity : Activity(), BoardView.Listener {
         return col
     }
 
-    /** UI 테스트용: 현재 게임 상태 / 차례 전환 화면 표시 여부 */
-    internal val stateForTest: GameState get() = state
-    internal val turnOverlayShowing: Boolean get() = turnOverlay.visibility == View.VISIBLE
+    /** UI·흐름 테스트용 (허브 모듈 테스트에서도 읽으므로 공개): 현재 게임 상태 / 차례 전환 화면 표시 여부 */
+    val stateForTest: GameState get() = state
+    val turnOverlayShowing: Boolean get() = turnOverlay.visibility == View.VISIBLE
 
     companion object {
         /** UI 테스트용 주사위 (null 이면 무작위) */
-        internal var diceOverride: com.siwoo.party.games.marble.logic.Dice? = null
+        var diceOverride: com.siwoo.party.games.marble.logic.Dice? = null
 
         private const val MODE_INFO = 0
         private const val MODE_BUY = 1
