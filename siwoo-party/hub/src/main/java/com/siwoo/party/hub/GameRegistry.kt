@@ -11,6 +11,7 @@ import com.siwoo.party.games.matches.MatchesModule
 import com.siwoo.party.games.math.MathModule
 import com.siwoo.party.games.minefield.MinefieldModule
 import com.siwoo.party.games.mole.MoleModule
+import com.siwoo.party.games.oddone.OddOneModule
 import com.siwoo.party.games.oldmaid.OldMaidModule
 import com.siwoo.party.games.onecard.OneCardModule
 import com.siwoo.party.games.redlight.RedlightModule
@@ -122,6 +123,7 @@ object GameRegistry {
         SpeedModule,
         RhythmModule,
         SpotDiffModule,
+        OddOneModule,
     )
 
     fun byId(id: String?): GameModule? = games.firstOrNull { it.id == id }
