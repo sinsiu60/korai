@@ -6,6 +6,7 @@ import com.siwoo.party.games.balloon.BalloonModule
 import com.siwoo.party.games.bingo.BingoModule
 import com.siwoo.party.games.baseball.BaseballModule
 import com.siwoo.party.games.blackjack.BlackjackModule
+import com.siwoo.party.games.matches.MatchesModule
 import com.siwoo.party.games.math.MathModule
 import com.siwoo.party.games.minefield.MinefieldModule
 import com.siwoo.party.games.mole.MoleModule
@@ -108,6 +109,7 @@ object GameRegistry {
         CodeTileModule,
         ColorCodeModule,
         MinefieldModule,
+        MatchesModule,
     )
 
     fun byId(id: String?): GameModule? = games.firstOrNull { it.id == id }
