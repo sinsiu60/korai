@@ -27,6 +27,7 @@ import com.siwoo.party.games.horserace.HorseRaceModule
 import com.siwoo.party.games.janggi.JanggiModule
 import com.siwoo.party.games.ludo.LudoModule
 import com.siwoo.party.games.snakeladder.SnakeLadderModule
+import com.siwoo.party.games.umul.UmulModule
 import com.siwoo.party.games.marble.MarbleModule
 import com.siwoo.party.games.memory.MemoryModule
 import com.siwoo.party.games.pirate.PirateModule
@@ -86,6 +87,7 @@ object GameRegistry {
         LudoModule,
         HorseRaceModule,
         JanggiModule,
+        UmulModule,
     )
 
     fun byId(id: String?): GameModule? = games.firstOrNull { it.id == id }
