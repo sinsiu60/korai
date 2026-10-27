@@ -102,7 +102,7 @@ class PlayerStrip(context: Context, players: List<PlayerInfo>, vertical: Boolean
 
         /** 점수를 얻었을 때 통통 */
         fun pulse() {
-            scaleX = 1.15f; scaleY = 1.15f
+            scaleX = 1.06f; scaleY = 1.06f // 칸 밖으로 크게 넘치지 않을 만큼만
             animate().scaleX(1f).scaleY(1f).setDuration(300).start()
         }
 

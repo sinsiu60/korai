@@ -2,6 +2,7 @@ package com.siwoo.party.hub
 
 import com.siwoo.party.common.ui.GameModule
 import com.siwoo.party.games.bomb.BombModule
+import com.siwoo.party.games.boxes.BoxesModule
 import com.siwoo.party.games.marble.MarbleModule
 import com.siwoo.party.games.memory.MemoryModule
 import com.siwoo.party.games.pirate.PirateModule
@@ -20,6 +21,7 @@ object GameRegistry {
         BombModule,
         PirateModule,
         MemoryModule,
+        BoxesModule,
     )
 
     fun byId(id: String?): GameModule? = games.firstOrNull { it.id == id }
