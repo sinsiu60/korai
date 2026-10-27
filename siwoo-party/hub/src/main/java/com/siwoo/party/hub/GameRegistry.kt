@@ -18,6 +18,7 @@ import com.siwoo.party.games.connect4.Connect4Module
 import com.siwoo.party.games.charades.CharadesModule
 import com.siwoo.party.games.chosung.ChosungModule
 import com.siwoo.party.games.clap369.Clap369Module
+import com.siwoo.party.games.doubt.DoubtModule
 import com.siwoo.party.games.drawing.DrawingModule
 import com.siwoo.party.games.flood.FloodModule
 import com.siwoo.party.games.forehead.ForeheadModule
@@ -100,6 +101,7 @@ object GameRegistry {
         FloodModule,
         HighLowModule,
         SevensModule,
+        DoubtModule,
     )
 
     fun byId(id: String?): GameModule? = games.firstOrNull { it.id == id }
