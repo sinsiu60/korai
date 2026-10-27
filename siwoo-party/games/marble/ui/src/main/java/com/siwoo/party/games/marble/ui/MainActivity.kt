@@ -69,6 +69,8 @@ class MainActivity : Activity(), BoardView.Listener {
 
     // ── 진행 상태 ──
     private var needPresent = false
+    /** 백그라운드에 다녀왔으면 돌아올 때 일시정지 메뉴 (다른 게임들과 같게) */
+    private var backgrounded = false
     private var tollPopup: PopupLayer.Popup? = null
     private var gameOverPopup: PopupLayer.Popup? = null
     private var cardPopup: PopupLayer.Popup? = null
@@ -140,6 +142,7 @@ class MainActivity : Activity(), BoardView.Listener {
             root.translationY = 0f
             needPresent = true
         }
+        if (!isFinishing) backgrounded = true
         storage.save(state)
     }
 
@@ -151,6 +154,10 @@ class MainActivity : Activity(), BoardView.Listener {
             needPresent = false
             syncDisplay()
             present()
+        }
+        if (backgrounded) {
+            backgrounded = false
+            if (!state.gameOver) showPauseMenu()
         }
     }
 
@@ -166,8 +173,12 @@ class MainActivity : Activity(), BoardView.Listener {
     @Deprecated("API 33 미만 호환")
     override fun onBackPressed() {
         if (::popups.isInitialized && popups.handleBack()) return
-        if (::turnOverlay.isInitialized && turnOverlay.visibility == View.VISIBLE) return
         if (!::state.isInitialized) { finish(); return }
+        showPauseMenu()
+    }
+
+    private fun showPauseMenu() {
+        if (PauseMenu.isShowing(popups)) return
         PauseMenu.show(popups, MarbleModule.name, MarbleModule.rules,
             "지금까지의 진행은 자동 저장됩니다.\n허브의 시우 마블 카드에서 \"이어하기\"로 계속할 수 있어요.") {
             exitToHub()

@@ -14,6 +14,10 @@ import android.widget.LinearLayout
  */
 object RulesPager {
 
+    const val TAG = "rulesPager"
+
+    fun isShowing(popups: PopupLayer): Boolean = popups.contains { it.tag == TAG }
+
     /** 카드 그림 영역: 둥근 밝은 판 위에 RuleCard.draw 로 그린다 */
     class ArtView(context: Context) : View(context) {
         var card: RuleCard? = null
@@ -39,6 +43,7 @@ object RulesPager {
     fun show(popups: PopupLayer, gameName: String, cards: List<RuleCard>, doneText: String = "닫기", onDone: (() -> Unit)? = null): PopupLayer.Popup {
         val ctx = popups.context
         val card = Ui.darkCard(ctx)
+        card.tag = TAG
         val head = Theme.horizontal(ctx)
         head.addView(Theme.text(ctx, "$gameName 규칙", 20f, Theme.GOLD, bold = true), Theme.lp(0, Theme.WRAP, 1f))
         val pageText = Theme.text(ctx, "", 13f, Theme.TEXT_SUB, bold = true)
