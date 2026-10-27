@@ -38,6 +38,7 @@ import com.siwoo.party.games.ludo.LudoModule
 import com.siwoo.party.games.polyblock.PolyblockModule
 import com.siwoo.party.games.reversi.ReversiModule
 import com.siwoo.party.games.sevens.SevensModule
+import com.siwoo.party.games.simon.SimonModule
 import com.siwoo.party.games.snakeladder.SnakeLadderModule
 import com.siwoo.party.games.umul.UmulModule
 import com.siwoo.party.games.marble.MarbleModule
@@ -112,6 +113,7 @@ object GameRegistry {
         MinefieldModule,
         MatchesModule,
         AvoidBidModule,
+        SimonModule,
     )
 
     fun byId(id: String?): GameModule? = games.firstOrNull { it.id == id }
