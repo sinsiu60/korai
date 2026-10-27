@@ -18,7 +18,7 @@ object TugModule : GameModule {
     override val playerCounts = GameConfig.MIN_PLAYERS..GameConfig.MAX_PLAYERS
     override val mode = PlayMode.SIMULTANEOUS
     override val minutes = "1분"
-    override val color = 0xFFD84315.toInt()
+    override val color = 0xFF1565C0.toInt()
     override val activityClass = TugActivity::class.java
 
     override fun supports(count: Int): Boolean = count == GameConfig.SOLO_PLAYERS || count == GameConfig.TEAM_PLAYERS
