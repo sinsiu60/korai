@@ -14,6 +14,7 @@ import com.siwoo.party.games.redlight.RedlightModule
 import com.siwoo.party.games.alkkagi.AlkkagiModule
 import com.siwoo.party.games.bomb.BombModule
 import com.siwoo.party.games.boxes.BoxesModule
+import com.siwoo.party.games.codetile.CodeTileModule
 import com.siwoo.party.games.connect4.Connect4Module
 import com.siwoo.party.games.charades.CharadesModule
 import com.siwoo.party.games.chosung.ChosungModule
@@ -102,6 +103,7 @@ object GameRegistry {
         HighLowModule,
         SevensModule,
         DoubtModule,
+        CodeTileModule,
     )
 
     fun byId(id: String?): GameModule? = games.firstOrNull { it.id == id }
