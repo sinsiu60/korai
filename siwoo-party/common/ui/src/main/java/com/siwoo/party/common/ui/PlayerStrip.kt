@@ -17,7 +17,8 @@ enum class StripIcon { NONE, STAR, SKULL, CARD }
 
 /**
  * 차례대로 하는 게임의 플레이어 패널 줄 (가로 또는 세로).
- * 각 칸: 색 동그라미(첫 글자) + 이름 + 값 글자 + 아이콘 개수. 현재 차례는 금색 테두리가 빛나며 살짝 커지고,
+ * 각 칸: 색 동그라미(첫 글자) + 이름 + 값 글자 + 아이콘 개수. 현재 차례는 밝은 바탕 + 금색 테두리가 빛나고
+ * (크기를 키우지 않아 부모에 잘리지 않음),
  * 탈락하면 흐려지며 "탈락" 도장.
  */
 class PlayerStrip(context: Context, players: List<PlayerInfo>, vertical: Boolean, icon: StripIcon = StripIcon.NONE) : LinearLayout(context) {
@@ -88,7 +89,6 @@ class PlayerStrip(context: Context, players: List<PlayerInfo>, vertical: Boolean
             glowAnim?.cancel()
             glowAnim = null
             glow = 0f
-            animate().scaleX(if (v) 1.04f else 1f).scaleY(if (v) 1.04f else 1f).setDuration(200).start()
             if (v) {
                 glowAnim = ValueAnimator.ofFloat(0f, 1f, 0f).apply {
                     duration = 1600
@@ -103,7 +103,7 @@ class PlayerStrip(context: Context, players: List<PlayerInfo>, vertical: Boolean
         /** 점수를 얻었을 때 통통 */
         fun pulse() {
             scaleX = 1.15f; scaleY = 1.15f
-            animate().scaleX(if (current) 1.04f else 1f).scaleY(if (current) 1.04f else 1f).setDuration(300).start()
+            animate().scaleX(1f).scaleY(1f).setDuration(300).start()
         }
 
         override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
