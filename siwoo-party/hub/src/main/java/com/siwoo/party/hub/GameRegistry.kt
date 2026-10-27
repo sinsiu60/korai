@@ -2,6 +2,7 @@ package com.siwoo.party.hub
 
 import com.siwoo.party.common.ui.GameModule
 import com.siwoo.party.games.marble.MarbleModule
+import com.siwoo.party.games.reaction.ReactionModule
 
 /**
  * 모음집에 들어 있는 게임 목록 (구현된 게임만 등록).
@@ -10,6 +11,7 @@ import com.siwoo.party.games.marble.MarbleModule
 object GameRegistry {
     val games: List<GameModule> = listOf(
         MarbleModule,
+        ReactionModule,
     )
 
     fun byId(id: String?): GameModule? = games.firstOrNull { it.id == id }

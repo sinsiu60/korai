@@ -68,11 +68,13 @@ kotlin {
 
 dependencies {
     // AppCompat 없이 프레임워크 위젯 + 커스텀 Canvas View.
-    // 게임을 추가할 때: implementation(project(":games:<게임>:ui")) + GameRegistry 에 등록
+    // games/<게임>/logic·ui 모듈은 자동으로 의존성에 들어간다 → 게임 추가 시 GameRegistry 에만 등록
     implementation(project(":common:logic"))
     implementation(project(":common:ui"))
-    implementation(project(":games:marble:ui"))
-    implementation(project(":games:marble:logic"))
+    rootProject.file("games").listFiles { f -> f.isDirectory }.orEmpty().sortedBy { it.name }.forEach { g ->
+        if (File(g, "ui/build.gradle.kts").exists()) implementation(project(":games:${g.name}:ui"))
+        if (File(g, "logic/build.gradle.kts").exists()) implementation(project(":games:${g.name}:logic"))
+    }
 
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.robolectric:robolectric:4.13")

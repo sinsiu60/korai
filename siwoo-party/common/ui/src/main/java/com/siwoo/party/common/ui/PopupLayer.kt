@@ -122,6 +122,9 @@ class PopupLayer(context: Context) : FrameLayout(context) {
         }
     }
 
+    /** 떠 있는(닫히는 중 아님) 팝업 중 조건에 맞는 내용이 있는지 */
+    fun contains(pred: (View) -> Boolean): Boolean = stack.any { !it.closing && pred(it.content) }
+
     fun dismissAll() {
         for (p in ArrayList(stack)) dismiss(p, animate = false)
     }

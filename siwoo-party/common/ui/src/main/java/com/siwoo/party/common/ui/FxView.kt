@@ -25,7 +25,7 @@ class FxView(context: Context) : View(context) {
     private class Particle {
         var active = false
         var card = false
-        /** 0 = 코인/카드(포물선), 1 = 별(터지며 퍼짐), 2 = 꽃가루(떨어짐) */
+        /** 0 = 코인/카드(포물선), 1 = 별(터지며 퍼짐), 2 = 꽃가루(떨어짐), 3 = 퍼지는 원(터치 물결) */
         var kind = 0
         var spin = 0f
         var x0 = 0f; var y0 = 0f; var cx = 0f; var cy = 0f; var x1 = 0f; var y1 = 0f
@@ -214,6 +214,17 @@ class FxView(context: Context) : View(context) {
         ensureRunning()
     }
 
+    /** 터치한 곳에서 원이 퍼지며 사라진다 (연타 표시). 풀이 다 차 있으면 건너뛴다 */
+    fun ripple(x: Float, y: Float, color: Int, durMs: Long) {
+        val p = obtain() ?: return
+        p.active = true; p.card = false; p.kind = 3
+        p.x0 = x; p.y0 = y
+        p.start = now()
+        p.dur = durMs.coerceAtLeast(1)
+        p.color = color
+        ensureRunning()
+    }
+
     /** 꽃가루: 화면 위에서 흩날리며 떨어진다 (폭 width) */
     fun confetti(width: Float, height: Float, count: Int, durMs: Long) {
         val t = now()
@@ -252,6 +263,14 @@ class FxView(context: Context) : View(context) {
         c.restore()
     }
 
+    private fun drawRipple(c: Canvas, p: Particle, f: Float) {
+        strokePaint.color = p.color
+        strokePaint.alpha = (220 * (1f - f)).toInt()
+        strokePaint.strokeWidth = coinR * 0.5f * (1f - f) + 1f
+        c.drawCircle(p.x0, p.y0, coinR * (1f + 4f * f), strokePaint)
+        strokePaint.alpha = 255
+    }
+
     private fun drawConfetti(c: Canvas, p: Particle, f: Float) {
         val x = p.x0 + (p.x1 - p.x0) * f + sin(f * PI.toFloat() * 4f + p.spin) * coinR * 2f
         val y = p.y0 + (p.y1 - p.y0) * f
@@ -286,6 +305,7 @@ class FxView(context: Context) : View(context) {
             when {
                 p.kind == 1 -> drawStar(canvas, p, f)
                 p.kind == 2 -> drawConfetti(canvas, p, f)
+                p.kind == 3 -> drawRipple(canvas, p, f)
                 p.card -> drawCard(canvas, x, y, p, e)
                 else -> drawCoin(canvas, x, y, f)
             }

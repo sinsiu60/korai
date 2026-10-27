@@ -230,6 +230,11 @@ class HubActivity : Activity() {
         row.addView(texts, Theme.lp(0, Theme.WRAP, 1f).apply { leftMargin = Theme.dp(this@HubActivity, 16f) })
         card.addView(row)
         var popup: PopupLayer.Popup? = null
+        val label = m.settingsLabel
+        if (label != null) {
+            card.addView(Ui.button(this, label, Theme.GRAY, 15f) { m.showSettings(popups) },
+                Theme.lp(Theme.MATCH, Theme.dp(this, 42f)).apply { topMargin = Theme.dp(this@HubActivity, 12f) })
+        }
         card.addView(Ui.buttonRow(this,
             Ui.button(this, "규칙 보기", Theme.BLUE) { RulesPager.show(popups, m.name, m.rules) },
             Ui.button(this, if (resumable) "이어하기" else "시작", Theme.GREEN_DARK, 20f) {
@@ -237,7 +242,7 @@ class HubActivity : Activity() {
                 start(m)
             },
             heightDp = 54f,
-        ), Ui.gap(this, 16f))
+        ), Ui.gap(this, if (label != null) 8f else 16f))
         popup = popups.show(card, cancelable = true, widthPx = Theme.dp(this, 520f), fromView = from)
     }
 

@@ -35,20 +35,21 @@ jobs:
           yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
           "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-34" "build-tools;34.0.0" > /dev/null
 
-      - name: 로직 단위 테스트 (공통 점수·세션·벌칙 문구·터치 구역 + 시우 마블 규칙 엔진)
-        run: ./gradlew --no-daemon :common:logic:test :games:marble:logic:test
-
-      - name: UI 흐름 테스트 (Robolectric · 마블 화면 + 허브→마블→결과→허브 점수 누적)
-        run: ./gradlew --no-daemon :games:marble:ui:testDebugUnitTest :hub:testDebugUnitTest
+      - name: 전체 테스트 (공통·모든 게임 로직 단위 테스트 + Robolectric 화면·허브 흐름 테스트)
+        run: ./gradlew --no-daemon --continue test -x testReleaseUnitTest
 
       - name: 테스트 결과 요약
         if: always()
         run: |
           {
             echo "## 테스트"
-            for f in common/logic/build/test-results/test/*.xml games/marble/logic/build/test-results/test/*.xml \
-                     games/marble/ui/build/test-results/testDebugUnitTest/*.xml hub/build/test-results/testDebugUnitTest/*.xml; do
-              [ -f "$f" ] && grep -o 'testsuite name="[^"]*" tests="[0-9]*" skipped="[0-9]*" failures="[0-9]*" errors="[0-9]*"' "$f" | head -1
+            echo "| 모듈 | 테스트 | 실패 |"
+            echo "|---|---|---|"
+            for d in $(find . -path '*/build/test-results/*' -name '*.xml' -printf '%h\n' | sort -u); do
+              mod=$(echo "$d" | sed -E 's#^\./##; s#/build/test-results/.*##')
+              t=$(cat "$d"/*.xml | grep -oE '<testsuite [^>]*' | grep -oE ' tests="[0-9]+"' | grep -oE '[0-9]+' | paste -sd+ | bc)
+              f=$(cat "$d"/*.xml | grep -oE '<testsuite [^>]*' | grep -oE ' (failures|errors)="[0-9]+"' | grep -oE '[0-9]+' | paste -sd+ | bc)
+              echo "| $mod | $t | $f |"
             done
           } | tee -a "$GITHUB_STEP_SUMMARY"
 

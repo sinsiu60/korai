@@ -50,6 +50,12 @@ interface GameModule {
     /** 모임이 끝날 때 저장 게임 지우기 */
     fun clearSave(context: Context) {}
 
+    /** 게임 전용 설정이 있으면 버튼 글자 (허브 소개 팝업에 [게임 설정]) — 없으면 null */
+    val settingsLabel: String? get() = null
+
+    /** 게임 전용 설정 팝업 (폭탄 주제·라이어 제시어·윷 말 수 등) */
+    fun showSettings(popups: PopupLayer) {}
+
     /** 이 인원으로 할 수 없을 때 이유 (되면 null) */
     fun unavailableReason(count: Int): String? =
         if (count in playerCounts) null

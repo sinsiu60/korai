@@ -61,67 +61,104 @@ object SettingsPopup {
     }
 }
 
-/** 등급별(소형/중형/대형) 현실 벌칙 문구 추가·수정·삭제 */
+/** 등급별(소형/중형/대형) 현실 벌칙 문구 추가·수정·삭제 (공통 ListEditor) */
 object PhraseEditor {
     fun show(popups: PopupLayer, settings: PartySettings) {
+        ListEditor.show(
+            popups, "현실 벌칙 문구",
+            tabs = (0..2).map { "${PartyConfig.GRADE_NAMES[it]} ${PartyConfig.GRADE_PERCENT[it]}%" },
+            tabColors = RouletteView.GRADE_COLORS.toList(),
+            lists = (0..2).map { settings.phrases(it) },
+            defaults = PartyConfig.DEFAULT_PHRASES,
+            maxItems = PartyConfig.MAX_PHRASES_PER_GRADE,
+            maxLen = PartyConfig.MAX_PHRASE_LEN,
+            hint = "예) 노래 한 소절 부르기",
+        ) { result -> for (g in 0..2) settings.setPhrases(g, result[g]) }
+    }
+}
+
+/**
+ * 문구 목록 편집기 (탭 여러 개 가능): 추가 / 수정 / 삭제 / 기본값 / 저장.
+ * 벌칙 문구, 폭탄 돌리기 주제, 라이어 제시어 등에 쓴다. 저장은 부르는 쪽(onSave)에서.
+ */
+object ListEditor {
+    fun show(
+        popups: PopupLayer,
+        title: String,
+        tabs: List<String>,
+        tabColors: List<Int>?,
+        lists: List<List<String>>,
+        defaults: List<List<String>>,
+        maxItems: Int,
+        maxLen: Int,
+        hint: String,
+        onSave: (List<List<String>>) -> Unit,
+    ) {
         val ctx = popups.context
         val card = Ui.darkCard(ctx, padDp = 14f)
-        card.addView(Theme.text(ctx, "현실 벌칙 문구", 18f, Theme.GOLD, bold = true))
-        val tabs = Theme.horizontal(ctx)
+        val head = Theme.horizontal(ctx)
+        head.addView(Theme.text(ctx, title, 18f, Theme.GOLD, bold = true), Theme.lp(0, Theme.WRAP, 1f))
+        val countText = Theme.text(ctx, "", 12f, Theme.TEXT_SUB)
+        head.addView(countText)
+        card.addView(head)
         val tabButtons = ArrayList<GameButton>()
         val list = Theme.vertical(ctx)
         val scroll = ScrollView(ctx).apply { addView(list) }
         val edits = ArrayList<EditText>()
-        var grade = 0
-        val working = (0..2).map { settings.phrases(it).toMutableList() }.toMutableList()
+        var tab = 0
+        val working = lists.map { it.toMutableList() }.toMutableList()
 
+        fun refreshCount() { countText.text = "${edits.size} / $maxItems" }
         fun collect() {
-            working[grade] = edits.map { it.text.toString() }.toMutableList()
+            working[tab] = edits.map { it.text.toString() }.toMutableList()
         }
         fun addRow(initial: String) {
-            if (edits.size >= PartyConfig.MAX_PHRASES_PER_GRADE) return
+            if (edits.size >= maxItems) return
             val row = Theme.horizontal(ctx)
             val e = EditText(ctx).apply {
                 setText(initial)
                 setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
                 setTextColor(Color.WHITE)
                 setHintTextColor(0x88FFFFFF.toInt())
-                hint = "예) 노래 한 소절 부르기"
+                this.hint = hint
                 isSingleLine = true
-                filters = arrayOf(InputFilter.LengthFilter(PartyConfig.MAX_PHRASE_LEN))
+                filters = arrayOf(InputFilter.LengthFilter(maxLen))
                 imeOptions = EditorInfo.IME_FLAG_NO_EXTRACT_UI or EditorInfo.IME_FLAG_NO_FULLSCREEN
             }
             edits.add(e)
             row.addView(e, Theme.lp(0, Theme.WRAP, 1f))
-            val del = Ui.button(ctx, "삭제", Theme.RED_DARK, 12f) { edits.remove(e); list.removeView(row) }
+            val del = Ui.button(ctx, "삭제", Theme.RED_DARK, 12f) { edits.remove(e); list.removeView(row); refreshCount() }
             row.addView(del, Theme.lp(Theme.dp(ctx, 64f), Theme.dp(ctx, 34f)))
             list.addView(row)
+            refreshCount()
         }
         fun render() {
             edits.clear()
             list.removeAllViews()
-            for (s in working[grade]) addRow(s)
-            for ((k, b) in tabButtons.withIndex()) b.color = if (k == grade) RouletteView.GRADE_COLORS[k] else Theme.GRAY
+            for (s in working[tab]) addRow(s)
+            refreshCount()
+            for ((k, b) in tabButtons.withIndex()) b.color = if (k == tab) (tabColors?.getOrNull(k) ?: Theme.GOLD_DARK) else Theme.GRAY
         }
-        for (g in 0..2) {
-            val b = Ui.button(ctx, "${PartyConfig.GRADE_NAMES[g]} ${PartyConfig.GRADE_PERCENT[g]}%", Theme.GRAY, 14f) {
-                collect(); grade = g; render()
+        if (tabs.size > 1) {
+            val tabRow = Theme.horizontal(ctx)
+            for (g in tabs.indices) {
+                val b = Ui.button(ctx, tabs[g], Theme.GRAY, if (tabs.size > 4) 12f else 14f) { collect(); tab = g; render() }
+                tabButtons.add(b)
+                tabRow.addView(b, Theme.lp(0, Theme.dp(ctx, 40f), 1f).apply { if (g > 0) leftMargin = Theme.dp(ctx, 4f) })
             }
-            tabButtons.add(b)
-            tabs.addView(b, Theme.lp(0, Theme.dp(ctx, 40f), 1f).apply { if (g > 0) leftMargin = Theme.dp(ctx, 6f) })
+            card.addView(tabRow, Ui.gap(ctx, 8f))
         }
-        card.addView(tabs, Ui.gap(ctx, 8f))
         card.addView(scroll, Theme.lp(Theme.MATCH, 0, 1f).apply { topMargin = Theme.dp(ctx, 6f) })
         var popup: PopupLayer.Popup? = null
         val add = Ui.button(ctx, "+ 추가", Theme.BLUE, 14f) { addRow(""); scroll.post { scroll.fullScroll(View.FOCUS_DOWN) } }
-        val reset = Ui.button(ctx, "기본값", Theme.GRAY, 14f) { working[grade] = PartyConfig.DEFAULT_PHRASES[grade].toMutableList(); render() }
+        val reset = Ui.button(ctx, "기본값", Theme.GRAY, 14f) { working[tab] = defaults[tab].toMutableList(); render() }
         val save = Ui.button(ctx, "저장", Theme.GREEN_DARK, 14f) {
             collect()
-            for (g in 0..2) settings.setPhrases(g, working[g])
+            onSave(working.map { l -> l.map { it.trim() }.filter { it.isNotEmpty() } })
             popup?.dismiss()
         }
         card.addView(Ui.buttonRow(ctx, add, reset, save, heightDp = 42f), Ui.gap(ctx, 8f))
         render()
-        popup = popups.show(card, cancelable = true, widthPx = Theme.dp(ctx, 480f), heightPx = (popups.height * 0.92f).toInt().takeIf { it > 0 })
+        popup = popups.show(card, cancelable = true, widthPx = Theme.dp(ctx, 500f), heightPx = (popups.height * 0.92f).toInt().takeIf { it > 0 })
     }
 }

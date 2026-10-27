@@ -92,24 +92,42 @@ object RulesPager {
     }
 }
 
-/** 뒤로 가기 → [계속하기] [규칙 보기] [허브로 나가기(확인)] */
+/**
+ * 뒤로 가기 → [계속하기] [규칙 보기] [허브로 나가기(확인)]
+ * onResume: 계속하기(또는 바깥 터치·뒤로)로 닫혔을 때
+ */
 object PauseMenu {
-    fun show(popups: PopupLayer, gameName: String, rules: List<RuleCard>, exitNote: String, onExit: () -> Unit): PopupLayer.Popup {
+    fun show(
+        popups: PopupLayer,
+        gameName: String,
+        rules: List<RuleCard>,
+        exitNote: String,
+        onResume: (() -> Unit)? = null,
+        onExit: () -> Unit,
+    ): PopupLayer.Popup {
         val ctx = popups.context
         val card = Ui.darkCard(ctx, padDp = 22f).apply { gravity = Gravity.CENTER_HORIZONTAL }
+        card.tag = TAG
         card.addView(Theme.text(ctx, "일시정지", 24f, Theme.GOLD, bold = true))
         card.addView(Theme.text(ctx, gameName, 14f, Theme.TEXT_SUB), Ui.wrapGap(ctx, 4f))
         var popup: PopupLayer.Popup? = null
+        var exiting = false
         fun add(b: GameButton, top: Float) = card.addView(b, LinearLayout.LayoutParams(Theme.dp(ctx, 260f), Theme.dp(ctx, 50f)).apply { topMargin = Theme.dp(ctx, top) })
         add(Ui.button(ctx, "계속하기", Theme.GREEN_DARK) { popup?.dismiss() }, 16f)
         add(Ui.button(ctx, "규칙 보기", Theme.BLUE) { RulesPager.show(popups, gameName, rules) }, 10f)
         add(Ui.button(ctx, "허브로 나가기", Theme.RED_DARK) {
             Ui.confirm(popups, "허브로 나갈까요?", exitNote, "나가기", Theme.RED_DARK) {
+                exiting = true
                 popup?.dismiss(animate = false)
                 onExit()
             }
         }, 10f)
-        popup = popups.show(card, cancelable = true)
+        popup = popups.show(card, cancelable = true, onDismiss = { if (!exiting) onResume?.invoke() })
         return popup
     }
+
+    const val TAG = "pauseMenu"
+
+    /** 일시정지 메뉴가 이미 떠 있는지 */
+    fun isShowing(popups: PopupLayer): Boolean = popups.contains { it.tag == TAG }
 }
