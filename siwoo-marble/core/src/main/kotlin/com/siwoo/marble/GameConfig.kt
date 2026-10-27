@@ -35,32 +35,46 @@ object GameConfig {
     /** 사회복지기금 접수처 칸에 도착하면 내는 기부금 */
     const val WELFARE_DONATION = 150_000
 
-    // ── 매각 ──────────────────────────────────────
-    /** 은행 매각 시 돌려받는 비율(%) : 구매가의 절반 */
-    const val SELL_BACK_PERCENT = 50
+    // ── 판매 / 거래 ──────────────────────────────
+    /** 은행에 팔 때 받는 비율: 판매가 = 자산 가치(땅값 + 지은 건물 건설비) × SELL_RATE */
+    const val SELL_RATE = 0.5
+    /** 한 턴에 할 수 있는 거래 제안 횟수 (수락·거절 모두 1회) */
+    const val MAX_TRADES_PER_TURN = 3
+    /** 거래 화면 돈 입력 버튼 단위 */
+    const val TRADE_STEP_SMALL = 10_000
+    const val TRADE_STEP_BIG = 100_000
 
     // ── 턴 제한 모드 ─────────────────────────────
-    /** 설정 화면에서 고를 수 있는 라운드 수 (0 = 턴 제한 없음, 최후 1인 승리) */
+    /** 시작 팝업에서 고를 수 있는 라운드 수 (0 = 턴 제한 없음, 최후 1인 승리) */
     val TURN_LIMIT_OPTIONS = intArrayOf(0, 15, 20, 30)
     const val DEFAULT_TURN_LIMIT = 0
 
-    // ── 연출 ──────────────────────────────────────
-    /** 말 이동 시 한 칸당 시간(ms) */
-    const val MOVE_STEP_MS = 120L
-    /** "빠르게" 옵션일 때 한 칸당 시간(ms) */
-    const val MOVE_STEP_FAST_MS = 45L
-    /** 주사위 굴림 연출 시간(ms) */
-    const val DICE_ROLL_MS = 550L
-    const val DICE_ROLL_FAST_MS = 250L
+    // ── 연출 시간 (ms) ── 설정의 "연출 속도" 배율이 모두 곱해진다
+    /** 주사위 굴림 (흔들리며 눈이 바뀌다 점점 느려짐) */
+    const val DICE_ROLL_MS = 1200L
+    /** 주사위 결과 숫자를 크게 보여주는 시간 */
+    const val DICE_RESULT_HOLD_MS = 700L
+    /** 결과 후 말 이동 시작까지 */
+    const val MOVE_START_DELAY_MS = 500L
+    /** 말 한 칸 이동 */
+    const val STEP_MS = 300L
+    /** 도착 후 칸 효과 전 멈춤 */
+    const val ARRIVE_PAUSE_MS = 500L
+    /** 돈 이동(코인 비행)과 숫자 변화 */
+    const val MONEY_ANIM_MS = 1200L
+    /** 보드 중앙 문구 */
+    const val CENTER_BANNER_MS = 1800L
+    /** 차례 전환 화면 */
+    const val TURN_CHANGE_MS = 1500L
+    /** 황금열쇠 카드 뒤집기 */
+    const val CARD_FLIP_MS = 900L
+    /** 순간이동(우주여행·황금열쇠 이동) */
+    const val JUMP_MS = 700L
+    /** 칸 번쩍임(통행료) */
+    const val TILE_FLASH_MS = 600L
 
-    /** 플레이어 말 색상 (ARGB). 설정 화면에서 이 중에서 고른다. */
-    val PLAYER_COLORS = intArrayOf(
-        0xFFE53935.toInt(), // 빨강
-        0xFF1E88E5.toInt(), // 파랑
-        0xFF43A047.toInt(), // 초록
-        0xFFFDD835.toInt(), // 노랑
-        0xFF8E24AA.toInt(), // 보라
-        0xFFFF7043.toInt(), // 주황
-    )
-    val PLAYER_COLOR_NAMES = arrayOf("빨강", "파랑", "초록", "노랑", "보라", "주황")
+    /** 연출 속도 배율: 느리게 / 보통 / 빠르게 */
+    val SPEED_FACTORS = floatArrayOf(1.0f, 0.7f, 0.4f)
+    val SPEED_NAMES = arrayOf("느리게", "보통", "빠르게")
+    const val DEFAULT_SPEED_INDEX = 0
 }

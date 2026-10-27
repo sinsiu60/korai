@@ -3,26 +3,42 @@ package com.siwoo.marble.model
 import com.siwoo.marble.GameConfig
 
 enum class PendingKind {
-    BUY,           // 빈 땅 구매 여부
-    BUILD,         // 내 땅 건물 건설 여부
-    USE_TOLL_FREE, // 통행료 면제권 사용 여부
-    RAISE_FUNDS,   // 돈이 부족 → 땅/건물 매각 필요
+    USE_TOLL_FREE, // 통행료 면제권 사용 여부 (지불 전에 묻는다)
 }
 
 /**
- * 플레이어의 선택을 기다리는 상태.
- * @param amount BUY=땅값, BUILD=실제 건설비, USE_TOLL_FREE=통행료, RAISE_FUNDS=내야 할 돈
- * @param creditor 돈을 받을 대상 (플레이어 id 또는 GameState.BANK / GameState.FUND)
- * @param halfBuild BUILD 에서 반값 건설권이 적용되었는지
+ * 플레이어의 대답을 기다리는 상태. (현재는 통행료 면제권 사용 여부만)
+ * @param amount 통행료
+ * @param creditor 통행료를 받을 플레이어 id
  */
 class Pending(
     val kind: PendingKind,
     val tile: Int = -1,
     val amount: Int = 0,
     val creditor: Int = GameState.BANK,
-    val halfBuild: Boolean = false,
-    val reason: String = "",
 )
+
+/** 이번 방문에 할 수 있는 "칸 터치" 행동 */
+enum class OfferKind {
+    BUY,   // 빈 땅 구매 (금색 발광)
+    BUILD, // 내 땅 건설 (초록 발광)
+}
+
+/**
+ * 거래 제안. from 이 to 에게 giveTiles + giveMoney 를 주고, takeTiles + takeMoney 를 받는다.
+ * 땅은 지어진 건물과 함께 넘어간다.
+ */
+class TradeOffer(
+    val fromId: Int,
+    val toId: Int,
+    val giveTiles: IntArray,
+    val giveMoney: Int,
+    val takeTiles: IntArray,
+    val takeMoney: Int,
+) {
+    val isEmpty: Boolean
+        get() = giveTiles.isEmpty() && takeTiles.isEmpty() && giveMoney == 0 && takeMoney == 0
+}
 
 /**
  * 게임 한 판의 모든 상태. 순수 데이터이며 JSON 으로 저장/복원된다.
@@ -40,10 +56,17 @@ class GameState(
 ) {
     var current: Int = 0
     var pending: Pending? = null
+    /** 이번 턴에 주사위(또는 우주여행 이동)를 마쳤는지 */
+    var hasRolled: Boolean = false
+    /** 더블이 나와서 한 번 더 굴려야 함 */
+    var extraRoll: Boolean = false
     /** 이번 턴 연속 더블 횟수 */
     var doublesCount: Int = 0
-    /** 더블이 나와서 한 번 더 굴릴 수 있음 */
-    var extraRoll: Boolean = false
+    /** 지금 터치해서 구매/건설할 수 있는 칸 (-1 = 없음) */
+    var offerTile: Int = -1
+    var offerKind: OfferKind? = null
+    /** 이번 턴에 한 거래 제안 수 */
+    var tradesThisTurn: Int = 0
     var welfareFund: Int = 0
     /** 현재 라운드 (모든 플레이어가 한 번씩 하면 1 증가) */
     var round: Int = 1
@@ -57,6 +80,11 @@ class GameState(
     val currentPlayer: Player get() = players[current]
 
     fun aliveCount(): Int = players.count { !it.bankrupt }
+
+    fun clearOffer() {
+        offerTile = -1
+        offerKind = null
+    }
 
     companion object {
         const val BANK = -1

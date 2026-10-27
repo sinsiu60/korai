@@ -11,6 +11,7 @@ class Player(
     val name: String,
     val colorIndex: Int,
 ) {
+    /** 현금. 통행료 등을 내고 모자라면 마이너스가 될 수 있다 (판매·거래로 메워야 턴 종료 가능) */
     var money: Int = 0
     var position: Int = 0
     /** 무인도에 남은 턴 수 (0이면 자유) */

@@ -2,13 +2,15 @@ package com.siwoo.marble.data
 
 import com.siwoo.marble.GameConfig
 import com.siwoo.marble.model.GameState
+import com.siwoo.marble.model.OfferKind
 import com.siwoo.marble.model.Pending
 import com.siwoo.marble.model.PendingKind
 import com.siwoo.marble.model.Player
 
 /** GameState ↔ JSON 문자열 (저장/이어하기) */
 object SaveCodec {
-    private const val VERSION = 1
+    /** 2: 턴 종료 버튼·칸 터치 구매·판매/거래 규칙. 1(이전 규칙) 저장은 이어하기 불가 */
+    private const val VERSION = 2
 
     fun encode(s: GameState): String {
         val pd = s.pending
@@ -27,11 +29,14 @@ object SaveCodec {
             "deck" to s.deck,
             "current" to s.current,
             "pending" to if (pd == null) null else linkedMapOf<String, Any?>(
-                "kind" to pd.kind.name, "tile" to pd.tile, "amount" to pd.amount,
-                "creditor" to pd.creditor, "half" to pd.halfBuild, "reason" to pd.reason,
+                "kind" to pd.kind.name, "tile" to pd.tile, "amount" to pd.amount, "creditor" to pd.creditor,
             ),
-            "doubles" to s.doublesCount,
+            "hasRolled" to s.hasRolled,
             "extraRoll" to s.extraRoll,
+            "doubles" to s.doublesCount,
+            "offerTile" to s.offerTile,
+            "offerKind" to s.offerKind?.name,
+            "trades" to s.tradesThisTurn,
             "fund" to s.welfareFund,
             "round" to s.round,
             "turnLimit" to s.turnLimit,
@@ -43,7 +48,7 @@ object SaveCodec {
         return Json.write(root)
     }
 
-    /** 저장 파일이 깨졌으면 IllegalArgumentException 등 예외를 던진다 */
+    /** 저장 파일이 깨졌거나 버전이 다르면 IllegalArgumentException 등 예외를 던진다 */
     fun decode(text: String): GameState {
         val root = Json.parse(text) as Map<*, *>
         require(root.int("version") == VERSION) { "지원하지 않는 저장 버전" }
@@ -65,13 +70,14 @@ object SaveCodec {
         return GameState(players, owner, level, deck).apply {
             current = root.int("current")
             pending = (root["pending"] as Map<*, *>?)?.let { m ->
-                Pending(
-                    PendingKind.valueOf(m["kind"] as String), m.int("tile"), m.int("amount"),
-                    m.int("creditor"), m["half"] as Boolean, m["reason"] as String,
-                )
+                Pending(PendingKind.valueOf(m["kind"] as String), m.int("tile"), m.int("amount"), m.int("creditor"))
             }
-            doublesCount = root.int("doubles")
+            hasRolled = root["hasRolled"] as Boolean
             extraRoll = root["extraRoll"] as Boolean
+            doublesCount = root.int("doubles")
+            offerTile = root.int("offerTile")
+            offerKind = (root["offerKind"] as String?)?.let { OfferKind.valueOf(it) }
+            tradesThisTurn = root.int("trades")
             welfareFund = root.int("fund")
             round = root.int("round")
             turnLimit = root.int("turnLimit")
