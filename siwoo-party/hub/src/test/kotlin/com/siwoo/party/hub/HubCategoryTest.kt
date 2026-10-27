@@ -124,8 +124,10 @@ class HubCategoryTest {
         sc.toggleGroup(GameCategory.BOARD); idle(300)
         for (g in board) assertFalse(g.name, sc.isOn(g.id))
         assertEquals(GroupState.OFF, sc.groupState(GameCategory.BOARD))
-        assertEquals(before - board.size, sc.count())
-        assertTrue("실시간 개수 표시", sc.countText.text.toString().endsWith("${before - board.size}개"))
+        // 지금 인원(4명)으로 할 수 있는 보드게임만큼 후보가 줄어든다
+        val playable = board.count { it.supports(4) }
+        assertEquals(before - playable, sc.count())
+        assertTrue("실시간 개수 표시", sc.countText.text.toString().endsWith("${before - playable}개"))
         // 게임 하나만 켜면 "일부"
         sc.toggle("yut"); idle(300)
         assertEquals(GroupState.PARTIAL, sc.groupState(GameCategory.BOARD))
@@ -183,8 +185,9 @@ class HubCategoryTest {
     fun `후보가 8개 이하면 원형 룰렛, 9개 이상이면 슬롯머신`() {
         val s = PartySettings(app)
         val h = hub(4)
-        // 보드게임만 켜서 8개 이하로
-        for (m in GameRegistry.games) s.setHubRandom(m.id, m.category == GameCategory.BOARD)
+        // 4인으로 할 수 있는 게임 5개만 켜서 8개 이하로
+        val few = GameRegistry.hubGames.filter { it.supports(4) && it.requiredTouches(4) == 0 }.take(5).map { it.id }.toSet()
+        for (m in GameRegistry.games) s.setHubRandom(m.id, m.id in few)
         assertTrue(h.eligibleGames().size in 1..8)
         click(h, "🎲 랜덤 게임")
         assertTrue(h.randomView is RouletteView)
