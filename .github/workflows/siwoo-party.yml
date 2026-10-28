@@ -51,7 +51,10 @@ jobs:
               f=$(cat "$d"/*.xml | grep -oE '<testsuite [^>]*' | grep -oE ' (failures|errors)="[0-9]+"' | grep -oE '[0-9]+' | paste -sd+ | bc)
               echo "| $mod | $t | $f |"
             done
-          } | tee -a "$GITHUB_STEP_SUMMARY"
+            all=$(find . -path '*/build/test-results/*' -name '*.xml' -exec cat {} + | grep -oE '<testsuite [^>]*' | grep -oE ' tests="[0-9]+"' | grep -oE '[0-9]+' | paste -sd+ | bc)
+            bad=$(find . -path '*/build/test-results/*' -name '*.xml' -exec cat {} + | grep -oE '<testsuite [^>]*' | grep -oE ' (failures|errors)="[0-9]+"' | grep -oE '[0-9]+' | paste -sd+ | bc)
+            echo "| **합계** | $all | $bad |"
+          } | tee -a "$GITHUB_STEP_SUMMARY" "$RUNNER_TEMP/test-summary.md"
 
       - name: 런타임 의존성 (네이티브 라이브러리 점검용)
         run: ./gradlew --no-daemon -q :hub:dependencies --configuration releaseRuntimeClasspath
@@ -79,6 +82,8 @@ jobs:
             "$AAPT2" dump badging hub/build/outputs/apk/release/hub-release.apk | grep -E "^(package|sdkVersion|targetSdkVersion|uses-permission|application-label)" || true
             echo '```'
           } | tee -a "$GITHUB_STEP_SUMMARY"
+          # 로그 끝에서도 모듈별 테스트 수를 볼 수 있게 한 번 더
+          cat "$RUNNER_TEMP/test-summary.md" 2>/dev/null || true
 
       - uses: actions/upload-artifact@v4
         with:

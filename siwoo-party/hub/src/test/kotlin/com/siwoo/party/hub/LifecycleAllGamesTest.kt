@@ -1,6 +1,9 @@
 package com.siwoo.party.hub
 
 import android.app.Activity
+import android.hardware.SensorManager
+import android.hardware.Sensor
+import org.robolectric.shadows.ShadowSensor
 import android.view.View
 import android.view.ViewGroup
 import com.siwoo.party.common.PlayerInfo
@@ -48,6 +51,8 @@ import java.util.concurrent.TimeUnit
 class LifecycleAllGamesTest {
 
     private val app get() = RuntimeEnvironment.getApplication()
+    private val sensors get() = app.getSystemService(SensorManager::class.java)
+
     private val all = listOf(PlayerInfo(0, "가람", 0), PlayerInfo(1, "나래", 1), PlayerInfo(2, "다온", 2), PlayerInfo(3, "라온", 3))
 
     /**
@@ -58,6 +63,7 @@ class LifecycleAllGamesTest {
     fun frames() {
         ShadowChoreographer.setPaused(true)
         ShadowChoreographer.setFrameDelay(Duration.ofMillis(16))
+        shadowOf(sensors).addSensor(ShadowSensor.newInstance(Sensor.TYPE_ACCELEROMETER)) // 기울기 센서가 있는 기기
     }
 
     @After
@@ -109,6 +115,8 @@ class LifecycleAllGamesTest {
         // 메뉴가 떠 있는 채로 또 백그라운드에 다녀와도 메뉴 하나
         c.pause().stop(); c.restart().start().resume(); idle(600)
         assertEquals("$name: 메뉴는 하나만", 1, findAll(a.window.decorView, { it.tag == PauseMenu.TAG }).size)
+        // 단원 20: 일시정지(대기) 중에는 센서를 놓아야 함 (이마 퀴즈의 등록·해제 순서와 게임별 프레임 루프 정지는 각 게임 화면 테스트가 확인)
+        assertTrue("$name: 일시정지 중 센서 해제", shadowOf(sensors).listeners.isEmpty())
         // 2) 규칙 보기 → 규칙 카드 → 닫기(뒤로) → 메뉴로
         click(a, "규칙 보기")
         assertTrue("$name: 규칙 보기", RulesPager.isShowing(popups()))
