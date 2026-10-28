@@ -42,6 +42,9 @@ class CategoryTabsView(context: Context) : View(context) {
         contentDescription = "카테고리 탭"
     }
 
+    /** 탭 옆에 보이는 게임 수 글자 (없으면 null) */
+    fun countOf(tab: Int): String? = counts.getOrNull(tab)
+
     fun setCount(tab: Int, n: Int) {
         counts[tab] = n.toString()
         invalidate()

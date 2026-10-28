@@ -59,6 +59,22 @@ class CatalogTest {
         GameCategory.PARTY to listOf("liar", "bomb", "forehead", "drawing", "chosung", "clap369", "charades"),
     )
 
+    /** 단원 19 사양의 게임 이름 그대로 */
+    private val finalNames: Map<GameCategory, List<String>> = mapOf(
+        GameCategory.BOARD to listOf("시우 마블", "윷놀이", "야추 주사위", "거짓말 주사위", "땅따먹기", "뱀과 사다리", "말판 레이스",
+            "주사위 경마", "장기", "우물고누", "뒤집기 돌", "조각 배치 대결", "빙고", "색 번지기 점령"),
+        GameCategory.CARD_BRAIN to listOf("원카드", "도둑잡기", "블랙잭", "짝 맞추기", "오목", "사목 떨어뜨리기", "숫자 야구", "폭탄 숫자 업다운",
+            "하이로우", "7 이어붙이기", "의심 카드", "숨은 숫자 타일", "색 코드 맞히기", "지뢰 피하기", "성냥개비 가져가기",
+            "피하기 경매", "패턴 기억 릴레이", "숫자 닫기"),
+        GameCategory.REFLEX to listOf("반응속도 결투", "연타 줄다리기", "무궁화 꽃이 피었습니다", "두더지 잡기 대결", "색깔 함정", "숫자 순서 터치",
+            "딱 10초", "가위바위보 토너먼트", "풍선 치킨 게임", "암산 대결", "스피드 카드", "에어하키", "틀린 그림 찾기 대결",
+            "하나만 다른 모양", "리듬 노트", "줄넘기 생존", "낚시 찌 대결", "몇 개였지?", "숫자 순간 기억", "왕관 쟁탈",
+            "계란 받기", "100m 달리기", "도형 따라 그리기"),
+        GameCategory.TIMING to listOf("알까기", "해적 룰렛", "탑 쌓기", "딱지치기", "컬링", "구슬치기", "미니 골프", "볼링", "팽이 대결", "포탄 대결",
+            "다트", "양궁", "투호", "농구 슛", "제기차기", "공기놀이"),
+        GameCategory.PARTY to listOf("라이어 게임", "폭탄 돌리기", "이마 퀴즈", "그림 맞히기", "초성 퀴즈", "369 박수", "몸으로 말해요"),
+    )
+
     @Test
     fun `카테고리 분류 - 등록된 게임은 최종 분류와 같은 카테고리, 도구 3종`() {
         assertEquals(14, finalCatalog[GameCategory.BOARD]!!.size)
@@ -75,6 +91,10 @@ class CatalogTest {
             "alkkagi", "pirate", "stack", "ddakji", "liar", "bomb", "forehead", "drawing", "chosung", "clap369", "charades")) {
             assertTrue(id, GameRegistry.byId(id) != null)
         }
+        // 단원 19: 등록된 게임이 최종 78종과 정확히 같음
+        assertEquals("등록 = 최종 78종", categoryOf.keys, GameRegistry.games.map { it.id }.toSet())
+        for ((c, ids) in finalCatalog) assertEquals(c.label, ids.size, GameRegistry.inCategory(c).size)
+        for ((c, names) in finalNames) assertEquals(c.label, names.toSet(), GameRegistry.inCategory(c).map { it.name }.toSet())
         // 허브 탭 수 = 카테고리별 등록 수
         for (c in GameCategory.values()) assertEquals(c.label, GameRegistry.games.count { it.category == c }, GameRegistry.inCategory(c).size)
         assertEquals("id 중복 없음", GameRegistry.games.size, GameRegistry.games.map { it.id }.toSet().size)

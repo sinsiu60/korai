@@ -195,4 +195,15 @@ class HubBrowseUiTest {
         // 새 게임은 기본 켬 (파티 게임은 허브 랜덤 기본 끔)
         for (g in GameRegistry.games) assertEquals(g.id, g.category != GameCategory.PARTY, sc.isOn(g.id))
     }
+
+    /** 단원 19: 허브 탭 옆 게임 수가 최종 분류(보드 14 · 카드·두뇌 18 · 순발력 23 · 손맛·타이밍 16)와 같고, 파티 7종은 파티 존 */
+    @Test
+    fun `탭 게임 수 표시 - 최종 분류와 일치`() {
+        val h = hub()
+        val expected = mapOf(GameCategory.BOARD to 14, GameCategory.CARD_BRAIN to 18, GameCategory.REFLEX to 23, GameCategory.TIMING to 16)
+        for ((g, c) in GameCategory.HUB.withIndex()) assertEquals(c.label, expected[c].toString(), h.tabs.countOf(HubBrowse.TAB_FIRST_GROUP + g))
+        assertEquals("전체 = 허브 71종", "71", h.tabs.countOf(HubBrowse.TAB_ALL))
+        assertEquals(7, GameRegistry.partyGames.size)
+        assertEquals(78, GameRegistry.games.size)
+    }
 }
