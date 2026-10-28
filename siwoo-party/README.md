@@ -581,7 +581,7 @@ siwoo-party/
 - 런타임 의존성: `kotlin-stdlib`, 프로젝트 모듈, `androidx.recyclerview`(+ androidx core/annotation 등). 모두 순수 Java/Kotlin 바이트코드로 `.so`가 없습니다.
 - APK에 `lib/` 폴더가 없으면 ABI에 상관없이 설치·실행됩니다. `:hub:checkNoNativeLibs`와 CI가 빌드 때마다 확인합니다.
 - minSdk 26 / targetSdk 34 / compileSdk 34, 가로 고정(sensorLandscape), 시스템 기본 폰트, **권한 없음**(인터넷 포함).
-- APK 크기: 릴리스(R8 축소) 약 1.3MB (1340KB), 디버그 약 4.6MB (4644KB) — 목표 15MB 이하, lib/ 폴더 없음(네이티브 라이브러리 0). 외부 이미지·사운드·폰트 파일 없음 (카드·아이콘·판·효과음 모두 코드로 만듦).
+- APK 크기: 릴리스(R8 축소) 약 1.4MB (1440KB), 디버그 약 4.9MB (4868KB) — 목표 15MB 이하, lib/ 폴더 없음(네이티브 라이브러리 0). 외부 이미지·사운드·폰트 파일 없음 (카드·아이콘·판·효과음 모두 코드로 만듦).
 
 ### 저사양 최적화
 - **허브 목록**: RecyclerView 가 화면에 보이는 카드만 만들어 **재사용**합니다 (78종이어도 카드 View 는 화면 몇 줄 분량). 랜덤 설정 목록도 같은 방식.
