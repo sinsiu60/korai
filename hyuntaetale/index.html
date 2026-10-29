@@ -1,0 +1,1345 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>현태테일</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@700;900&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#000;--ink:#fff;--org:#ff7f27;--yel:#ffff00}
+:root:not([data-theme="light"]){color-scheme:dark}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#000}}
+:root[data-theme="dark"]{--bg:#000}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);overflow:hidden;touch-action:none;user-select:none;-webkit-user-select:none}
+body{display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:'Noto Sans KR',sans-serif}
+#wrap{position:relative;flex:0 0 auto}
+canvas#cv{display:block;image-rendering:pixelated;image-rendering:crisp-edges;background:#000}
+#pad{display:none;width:100%;max-width:640px;flex:0 0 auto;padding:10px 16px calc(14px + env(safe-area-inset-bottom,0px));justify-content:space-between;align-items:center}
+body.touch #pad{display:flex}
+.dp{position:relative;width:150px;height:150px}
+.dp b,.ab b{position:absolute;display:flex;align-items:center;justify-content:center;background:#000;border:4px solid #fff;color:#fff;font:900 18px 'Noto Sans KR',sans-serif;image-rendering:pixelated}
+.dp b{width:50px;height:50px}
+.dp b.on,.ab b.on{background:#ff7f27;border-color:#ffff00;color:#000}
+.dp .u{left:50px;top:0}.dp .d{left:50px;top:100px}.dp .l{left:0;top:50px}.dp .r{left:100px;top:50px}
+.ab{position:relative;width:150px;height:150px}
+.ab .z{width:70px;height:70px;right:0;top:20px;border-color:#ff7f27;color:#ff7f27}
+.ab .x{width:56px;height:56px;left:6px;top:80px}
+#mute{position:absolute;right:6px;top:6px;z-index:2;background:#000;border:3px solid #fff;color:#fff;font:900 12px 'Noto Sans KR',sans-serif;padding:3px 7px;cursor:pointer;opacity:.75}
+</style>
+</head>
+<body>
+<div id="wrap"><canvas id="cv" width="640" height="480"></canvas><button id="mute" type="button">소리 ON</button></div>
+<div id="pad">
+  <div class="dp"><b class="u" data-k="up">▲</b><b class="l" data-k="left">◀</b><b class="r" data-k="right">▶</b><b class="d" data-k="down">▼</b></div>
+  <div class="ab"><b class="z" data-k="z">예.</b><b class="x" data-k="x">X</b></div>
+</div>
+<script>
+'use strict';
+/* ========= 현태테일 — core: canvas, input, audio, pixel text, sprites, scheduler ========= */
+const LW = 640, LH = 480;
+const cv = document.getElementById('cv'), ctx = cv.getContext('2d');
+let K = 2, SPEED = 1;
+const PI = Math.PI, TAU = PI * 2;
+const rand = Math.random, clamp = (v, a, b) => v < a ? a : v > b ? b : v, lerp = (a, b, t) => a + (b - a) * t;
+const pick = a => a[(rand() * a.length) | 0], rr = (a, b) => a + rand() * (b - a);
+const ezo = t => 1 - (1 - t) * (1 - t), ezio = t => t < .5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+const isTouch = matchMedia('(pointer: coarse)').matches || 'ontouchstart' in window;
+if (isTouch) document.body.classList.add('touch');
+
+function fit() {
+  const pad = document.getElementById('pad');
+  const ph = isTouch ? pad.offsetHeight || 180 : 0;
+  const aw = window.innerWidth, ah = window.innerHeight - ph;
+  let s = Math.min(aw / LW, ah / LH);
+  if (s >= 1) s = Math.floor(s * 2) / 2;
+  const cw = Math.round(LW * s), ch = Math.round(LH * s);
+  cv.style.width = cw + 'px'; cv.style.height = ch + 'px';
+  const dpr = window.devicePixelRatio || 1;
+  K = clamp(Math.ceil(s * dpr), 1, 4);
+  cv.width = LW * K; cv.height = LH * K;
+}
+window.addEventListener('resize', fit); fit();
+
+/* ---------- input ---------- */
+const keys = {}, hit = {};
+const KMAP = { ArrowUp: 'up', KeyW: 'up', ArrowDown: 'down', KeyS: 'down', ArrowLeft: 'left', KeyA: 'left', ArrowRight: 'right', KeyD: 'right', KeyZ: 'z', Enter: 'z', Space: 'z', KeyX: 'x', ShiftLeft: 'x', ShiftRight: 'x', KeyC: 'c', KeyM: 'm' };
+function press(k) { if (!keys[k]) hit[k] = true; keys[k] = true; audio.unlock(); }
+function release(k) { keys[k] = false; }
+addEventListener('keydown', e => { const k = KMAP[e.code]; if (!k) return; e.preventDefault(); if (e.repeat) return; press(k); if (k === 'm') audio.toggle(); });
+addEventListener('keyup', e => { const k = KMAP[e.code]; if (k) release(k); });
+addEventListener('blur', () => { for (const k in keys) keys[k] = false; });
+document.querySelectorAll('#pad b').forEach(b => {
+  const k = b.dataset.k;
+  const on = e => { e.preventDefault(); b.classList.add('on'); press(k); };
+  const off = e => { e.preventDefault(); b.classList.remove('on'); release(k); };
+  b.addEventListener('pointerdown', on); b.addEventListener('pointerup', off); b.addEventListener('pointercancel', off); b.addEventListener('pointerleave', off);
+});
+cv.addEventListener('pointerdown', () => { audio.unlock(); if (!isTouch) press('z'), setTimeout(() => release('z'), 60); });
+const took = k => { if (hit[k]) { hit[k] = false; return true; } return false; };
+const anyHit = () => took('z');
+document.getElementById('mute').onclick = e => { e.stopPropagation(); audio.unlock(); audio.toggle(); };
+
+/* ---------- audio ---------- */
+const audio = (() => {
+  let ac = null, master = null, mus = null, on = true, loop = null;
+  const A = {
+    unlock() { if (ac) { if (ac.state === 'suspended') ac.resume(); return; } try { ac = new (window.AudioContext || window.webkitAudioContext)(); master = ac.createGain(); master.gain.value = 0.5; master.connect(ac.destination); mus = ac.createGain(); mus.gain.value = 0.32; mus.connect(master); } catch (e) { ac = null; } },
+    toggle() { on = !on; if (master) master.gain.value = on ? 0.5 : 0; document.getElementById('mute').textContent = on ? '소리 ON' : '소리 OFF'; },
+    tone(f, d, v = 0.15, type = 'square', when = 0, slide = 0, dest) {
+      if (!ac) return; const t = ac.currentTime + when, o = ac.createOscillator(), g = ac.createGain();
+      o.type = type; o.frequency.setValueAtTime(f, t); if (slide) o.frequency.exponentialRampToValueAtTime(Math.max(30, f * slide), t + d);
+      g.gain.setValueAtTime(v, t); g.gain.exponentialRampToValueAtTime(0.0008, t + d);
+      o.connect(g); g.connect(dest || master); o.start(t); o.stop(t + d + 0.02);
+    },
+    noise(d, v = 0.2, hp = 800, when = 0, dest) {
+      if (!ac) return; const t = ac.currentTime + when, n = Math.max(1, (ac.sampleRate * d) | 0), b = ac.createBuffer(1, n, ac.sampleRate), ch = b.getChannelData(0);
+      for (let i = 0; i < n; i++) ch[i] = (Math.random() * 2 - 1) * (1 - i / n);
+      const s = ac.createBufferSource(); s.buffer = b; const f = ac.createBiquadFilter(); f.type = 'highpass'; f.frequency.value = hp; const g = ac.createGain(); g.gain.value = v;
+      s.connect(f); f.connect(g); g.connect(dest || master); s.start(t);
+    },
+    blip(voice) { if (voice === 'hy') A.tone(150 + Math.random() * 20, 0.06, 0.12, 'square'); else if (voice === 'sys') A.tone(520, 0.035, 0.05, 'square'); },
+    move() { A.tone(880, 0.04, 0.07, 'square'); },
+    sel() { A.tone(660, 0.05, 0.1, 'square'); A.tone(990, 0.08, 0.1, 'square', 0.05); },
+    hurt() { A.noise(0.08, 0.22, 400); A.tone(140, 0.08, 0.12, 'square', 0, 0.5); },
+    heal() { [523, 659, 784, 1046].forEach((f, i) => A.tone(f, 0.12, 0.1, 'square', i * 0.06)); },
+    slam() { A.tone(90, 0.25, 0.4, 'triangle', 0, 0.4); A.noise(0.18, 0.3, 120); },
+    charge() { A.tone(200, 0.45, 0.12, 'sawtooth', 0, 4); },
+    beam() { A.noise(0.45, 0.35, 300); A.tone(70, 0.4, 0.25, 'square', 0, 0.6); },
+    crack() { A.noise(0.06, 0.3, 2000); A.tone(1200, 0.05, 0.08, 'square', 0, 0.4); },
+    spawn() { A.tone(1400, 0.03, 0.04, 'square', 0, 0.6); },
+    ding() { A.tone(1318, 0.18, 0.12, 'square'); },
+    slash() { A.noise(0.2, 0.3, 1500); A.tone(900, 0.2, 0.1, 'sawtooth', 0, 0.2); },
+    big() { A.tone(60, 0.8, 0.45, 'square', 0, 0.5); A.noise(0.6, 0.4, 100); },
+    shatter() { A.noise(0.3, 0.35, 1000); [880, 660, 440].forEach((f, i) => A.tone(f, 0.1, 0.12, 'square', i * 0.07)); },
+    // ---- music: original chiptune loop (not from any existing song) ----
+    music(mode) {
+      if (!ac) return; A.stopMusic(); if (!mode) return;
+      const fast = mode === 2, bpm = fast ? 168 : 148, e8 = 60 / bpm / 2;
+      const prog = [[50, 57], [46, 53], [41, 48], [48, 55], [50, 57], [46, 53], [43, 50], [45, 52]];
+      const lead = [[69, 0, 74, 0, 72, 69, 0, 65], [65, 67, 69, 0, 70, 0, 69, 67], [69, 0, 72, 0, 77, 0, 76, 74], [72, 0, 67, 0, 64, 0, 67, 0],
+        [74, 0, 77, 0, 76, 74, 72, 69], [70, 0, 74, 0, 77, 0, 74, 70], [67, 70, 74, 0, 72, 70, 69, 67], [64, 0, 69, 0, 73, 0, 76, 0]];
+      const f = m => 440 * Math.pow(2, (m - 69) / 12);
+      let step = 0, next = ac.currentTime + 0.08;
+      const tick = () => {
+        while (next < ac.currentTime + 0.25) {
+          const bar = (step >> 3) % 8, s = step & 7, [r, fi] = prog[bar], w = next - ac.currentTime;
+          const bn = [r, r, r + 12, r, fi, r, r + 12, fi][s];
+          A.tone(f(bn - 12), e8 * 0.9, 0.22, 'triangle', w, 0, mus);
+          const ln = lead[bar][s]; if (ln && (step >> 6) % 2 === 0 || ln && fast) A.tone(f(ln + (fast && (step >> 6) % 2 ? 12 : 0)), e8 * 0.85, 0.07, 'square', w, 0, mus);
+          if ((step >> 6) % 2 === 1 && !fast) { const ar = [r + 24, r + 31, r + 36, r + 31][s & 3]; A.tone(f(ar), e8 * 0.5, 0.035, 'square', w, 0, mus); }
+          if (fast) { if (s % 2 === 1) A.noise(0.03, 0.06, 6000, w, mus); if (s === 0 || s === 4) A.tone(110, 0.12, 0.35, 'sine', w, 0.4, mus); if (s === 2 || s === 6) A.noise(0.1, 0.12, 1500, w, mus); }
+          else if (s === 0 || s === 4) A.tone(100, 0.1, 0.25, 'sine', w, 0.45, mus);
+          step++; next += e8;
+        }
+      };
+      tick(); loop = setInterval(tick, 50);
+    },
+    stopMusic() { if (loop) clearInterval(loop); loop = null; },
+  };
+  return A;
+})();
+
+/* ---------- pixel text (thresholded → crisp pixels) ---------- */
+const FONT = "'Noto Sans KR', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif";
+const tcache = new Map();
+const mctx = document.createElement('canvas').getContext('2d');
+function tbmp(str, size = 17, color = '#ffffff', weight = 700) {
+  if (color.length === 4) color = '#' + color[1] + color[1] + color[2] + color[2] + color[3] + color[3];
+  const key = str + '|' + size + '|' + color + '|' + weight;
+  let b = tcache.get(key); if (b) return b;
+  mctx.font = `${weight} ${size}px ${FONT}`;
+  const w = Math.ceil(mctx.measureText(str).width) + 4, h = Math.ceil(size * 1.45) + 2;
+  const c = document.createElement('canvas'); c.width = Math.max(1, w); c.height = h;
+  const g = c.getContext('2d'); g.font = mctx.font; g.textBaseline = 'middle'; g.fillStyle = '#fff'; g.fillText(str, 1, h / 2);
+  const id = g.getImageData(0, 0, c.width, h), d = id.data;
+  const r = parseInt(color.slice(1, 3), 16), gg = parseInt(color.slice(3, 5), 16), bb = parseInt(color.slice(5, 7), 16);
+  for (let i = 0; i < d.length; i += 4) { const on = d[i + 3] > 105; d[i] = r; d[i + 1] = gg; d[i + 2] = bb; d[i + 3] = on ? 255 : 0; }
+  g.putImageData(id, 0, 0);
+  // prefix widths for typewriter reveal
+  const pw = [0]; for (let i = 1; i <= str.length; i++) pw.push(Math.ceil(mctx.measureText(str.slice(0, i)).width) + 1);
+  b = { c, w: w - 4, h, pw }; tcache.set(key, b); return b;
+}
+// draw text; n = characters revealed (Infinity = all); px = pixel scale; align 'l'|'c'|'r'
+function text(str, x, y, o = {}) {
+  const b = tbmp(str, o.size || 17, o.color || '#ffffff', o.weight || 700), px = o.px || 1;
+  const n = o.n === undefined ? Infinity : o.n, rw = n >= str.length ? b.c.width : b.pw[Math.max(0, n)];
+  let dx = x; if (o.align === 'c') dx = x - b.w * px / 2; else if (o.align === 'r') dx = x - b.w * px;
+  if (rw <= 0) return b.w * px;
+  ctx.drawImage(b.c, 0, 0, rw, b.h, Math.round(dx), Math.round(y - b.h * px / 2), rw * px, b.h * px);
+  return b.w * px;
+}
+function wrap(str, maxW, size = 17, weight = 700) {
+  mctx.font = `${weight} ${size}px ${FONT}`; const out = [];
+  for (const para of str.split('\n')) {
+    let line = '';
+    for (const word of para.split(' ')) {
+      const t = line ? line + ' ' + word : word;
+      if (mctx.measureText(t).width > maxW && line) { out.push(line); line = word; } else line = t;
+    }
+    out.push(line);
+  }
+  return out;
+}
+
+/* ---------- pixel sprites from strings ---------- */
+function spr(rows, pal, s = 1) {
+  const h = rows.length, w = Math.max(...rows.map(r => r.length));
+  const c = document.createElement('canvas'); c.width = w * s; c.height = h * s; const g = c.getContext('2d');
+  rows.forEach((r, y) => [...r].forEach((ch, x) => { const col = pal[ch]; if (col) { g.fillStyle = col; g.fillRect(x * s, y * s, s, s); } }));
+  return c;
+}
+function drawSpr(c, x, y, o = {}) {
+  const sc = o.sc || 1;
+  if (o.rot) { ctx.save(); ctx.translate(Math.round(x), Math.round(y)); ctx.rotate(o.rot); if (o.flip) ctx.scale(-1, 1); ctx.drawImage(c, -c.width * sc / 2, -c.height * sc / 2, c.width * sc, c.height * sc); ctx.restore(); return; }
+  if (o.flip) { ctx.save(); ctx.translate(Math.round(x), Math.round(y)); ctx.scale(-1, 1); ctx.drawImage(c, -c.width * sc / 2, -c.height * sc / 2, c.width * sc, c.height * sc); ctx.restore(); return; }
+  ctx.drawImage(c, Math.round(x - c.width * sc / 2), Math.round(y - c.height * sc / 2), c.width * sc, c.height * sc);
+}
+const rect = (x, y, w, h, c) => { ctx.fillStyle = c; ctx.fillRect(Math.round(x), Math.round(y), Math.round(w), Math.round(h)); };
+
+const HEART = ['.##...##.', '####.####', '#########', '#########', '.#######.', '..#####..', '...###...', '....#....'];
+const SPR = {
+  heart: spr(HEART, { '#': '#ff0000' }, 2),
+  heartB: spr(HEART, { '#': '#0a3cff' }, 2),
+  heartL: spr(HEART.map(r => r.slice(0, 5)), { '#': '#ff0000' }, 2),
+  heartR: spr(HEART.map(r => '....' + r.slice(4)), { '#': '#ff0000' }, 2),
+  heartBroken: spr(['.##...##.', '####.####', '####..###', '###.#####', '.###.###.', '..##.##..', '...#.#...', '....#....'], { '#': '#ff0000' }, 2),
+  shard: spr(['#.', '##', '.#'], { '#': '#ff0000' }, 2),
+  grain: spr(['.ww.', 'wwww', '.wg.'], { w: '#ffffff', g: '#d8d8c8' }, 2),
+  clump: spr(['..wyw..', '.wwgwy.', 'ywwwwwg', 'wgywwyw', '.wwyww.'], { w: '#fff8e0', y: '#ffd21a', g: '#4cc04c' }, 2),
+  egg: spr(['..ww..', '.wwww.', 'wwwwww', 'wwwwgw', 'wwwwgw', '.wwgg.', '..gg..'], { w: '#ffffff', g: '#c8c8c8' }, 2),
+  yolk: spr(['.yy.', 'yYYy', 'yYYy', '.yy.'], { y: '#ffb000', Y: '#ffe600' }, 2),
+  plateF: spr(['...rrrr...', '.rrRRRRrr.', '.rRrrrrRr.', 'rRr....rRr', 'rRr.ww.rRr', 'rRr.ww.rRr', 'rRr....rRr', '.rRrrrrRr.', '.rrRRRRrr.', '...rrrr...'], { r: '#d81e1e', R: '#ff5a4a', w: '#ffffff' }, 2),
+  wok: spr(['...........................', 'wwwwwwwwwwwwwwwwwwwww......', '.wdddddddddddddddddw.......', '..wdddddddddddddddw..hhhhhh', '...wdddddddddddddw..hhhhhh.', '.....wwdddddddww...........', '.......wwwwwwww............'], { w: '#ffffff', d: '#3a3a3a', h: '#8b5a2b' }, 2),
+  bowl: spr(['..ywyywy..', '.wywwyywy.', 'wwwwwwwwww', '.bbbbbbbb.', '..bbbbbb..', '...bbbb...'], { w: '#fff8e0', y: '#ffd21a', b: '#ffffff' }, 2),
+  sweat: spr(['.b.', 'bbb', 'bwb', '.b.'], { b: '#5ac8ff', w: '#ffffff' }, 2),
+  bang: spr(['..#..', '..#..', '..#..', '.....', '..#..'], { '#': '#ff2020' }, 3),
+  z: spr(['####', '..#.', '.#..', '####'], { '#': '#ffffff' }, 2),
+};
+const ICON = {
+  fight: spr(['.........#', '........##', '.......##.', '......##..', '.#..##....', '..###.....', '..##......', '.#..#.....', '#.........'], { '#': '#ff7f27' }, 2),
+  act: spr(['.######.', '#......#', '#.#.#..#', '#......#', '.###.##.', '...#....'], { '#': '#ff7f27' }, 2),
+  item: spr(['..####..', '.#....#.', '########', '#......#', '#..##..#', '#......#', '########'], { '#': '#ff7f27' }, 2),
+  mercy: spr(['#.....#', '.#...#.', '..#.#..', '...#...', '..#.#..', '.#...#.', '#.....#'], { '#': '#ff7f27' }, 2),
+};
+function recolor(c, col) { const o = document.createElement('canvas'); o.width = c.width; o.height = c.height; const g = o.getContext('2d'); g.drawImage(c, 0, 0); g.globalCompositeOperation = 'source-in'; g.fillStyle = col; g.fillRect(0, 0, o.width, o.height); return o; }
+for (const k in ICON) ICON[k + 'Y'] = recolor(ICON[k], '#ffff00');
+
+/* ---------- scheduler (game-time promises, abortable) ---------- */
+let T = 0; const timers = [], waiters = [];
+const ABORT = { abort: true };
+const wait = s => new Promise((res, rej) => timers.push({ t: T + s, res, rej }));
+const until = fn => new Promise((res, rej) => waiters.push({ fn, res, rej }));
+const clearHits = () => { for (const k in hit) hit[k] = false; };
+const keyZ = () => { clearHits(); return until(() => took('z')); };
+function abortAll() { const a = timers.splice(0), b = waiters.splice(0); a.forEach(x => x.rej(ABORT)); b.forEach(x => x.rej(ABORT)); }
+function runTimers() {
+  for (let i = timers.length - 1; i >= 0; i--) if (T >= timers[i].t) { const x = timers.splice(i, 1)[0]; x.res(); }
+  for (let i = waiters.length - 1; i >= 0; i--) { let ok = false; try { ok = waiters[i].fn(); } catch (e) { ok = true; } if (ok) { const x = waiters.splice(i, 1)[0]; x.res(); } }
+}
+// animate a value over time: fn(k) with eased k
+function tween(d, fn, ez = ezo) { const t0 = T; return new Promise((res, rej) => { const w = { fn: () => { const k = clamp((T - t0) / d, 0, 1); fn(ez(k), k); return k >= 1; }, res, rej }; waiters.push(w); }); }
+const swallow = e => { if (e !== ABORT) throw e; };
+
+/* ---------- images ---------- */
+function loadImg(src) { return new Promise(r => { const i = new Image(); i.onload = () => r(i); i.onerror = () => r(null); i.src = src; }); }
+
+/* ========= 현태: body sprite + photo head (face states) + props + speech bubble ========= */
+let BODY = null, HEAD = null;
+const BW = 750, BH = 677, BS = 116 / 750;          // body source size and logical scale
+const TORSO_CUT = 360;                              // source row where the legs begin
+const HEAD_H = 108, HEAD_SC = HEAD_H / 342, HEAD_W = 240 * HEAD_SC;
+const EYE_N = { x: 86, y: 152, rx: 27, ry: 12 }, EYE_F = { x: 26, y: 158, rx: 11, ry: 11 };  // in head image px
+const SKIN = '#b98670';
+const hy = {
+  x: 320, feet: 240, dx: 0, dy: 0, lean: 0, headRot: 0, headDx: 0, headDy: 0, sq: 1,
+  face: 'normal', sweat: 0, tint: 0, alpha: 1, vis: true, idle: true, prop: null, propT: 0, propY: 0, shake: 0, flash: 0,
+  hpShow: 0, hp: 1, zzz: false,
+};
+const headCv = document.createElement('canvas'); headCv.width = 240; headCv.height = 342; const hg = headCv.getContext('2d');
+let headKey = '';
+const U = 342 / HEAD_H;   // one logical pixel in head-image px → effects snap to this grid
+function pxEllipse(g, e, col, grow = 0) {
+  g.fillStyle = col;
+  const rx = e.rx + grow * U, ry = e.ry + grow * U;
+  for (let y = e.y - ry; y <= e.y + ry; y += U) for (let x = e.x - rx; x <= e.x + rx; x += U) {
+    const cx = Math.floor(x / U) * U, cy = Math.floor(y / U) * U;
+    const nx = (cx + U / 2 - e.x) / rx, ny = (cy + U / 2 - e.y) / ry;
+    if (nx * nx + ny * ny <= 1) g.fillRect(cx, cy, U + 0.5, U + 0.5);
+  }
+}
+function px(g, gx, gy, col) { g.fillStyle = col; g.fillRect(Math.floor(gx / U) * U, Math.floor(gy / U) * U, U + 0.5, U + 0.5); }
+function closedEye(g, e) {
+  pxEllipse(g, e, SKIN, 0.4);
+  for (let x = e.x - e.rx; x <= e.x + e.rx; x += U) { const k = (x - e.x) / e.rx; px(g, x, e.y + 1 + k * k * 5, '#2a1a14'); }
+}
+function buildHead() {
+  const fl = Math.floor(T * 12) % 2, key = hy.face + '|' + hy.sweat + '|' + hy.tint.toFixed(1) + '|' + (hy.face === 'glow' ? fl : 0);
+  if (key === headKey) return; headKey = key;
+  hg.clearRect(0, 0, 240, 342); if (!HEAD) return;
+  hg.drawImage(HEAD, 0, 0);
+  hg.save(); hg.globalCompositeOperation = 'source-atop';
+  const f = hy.face;
+  if (f === 'shadow' || f === 'glow' || f === 'hollow') {
+    const vg = hg.createRadialGradient(66, 154, 6, 66, 154, 72); vg.addColorStop(0, 'rgba(0,0,0,.32)'); vg.addColorStop(1, 'rgba(0,0,0,0)'); hg.fillStyle = vg; hg.fillRect(0, 60, 240, 190);
+    pxEllipse(hg, EYE_N, '#000', 0.6); pxEllipse(hg, EYE_F, '#000', 0.5);
+  }
+  if (f === 'glow') {
+    // the right eye (screen right) burns blue/yellow like a stove flame
+    const c1 = fl ? '#2cf0ff' : '#fff35a', c2 = fl ? '#fff35a' : '#2cf0ff';
+    const ex = EYE_N.x + 2, ey = EYE_N.y;
+    for (const [ox, oy] of [[0, 0], [1, 0], [0, 1], [1, 1]]) px(hg, ex + ox * U, ey + oy * U, '#ffffff');
+    for (const [ox, oy] of [[-1, -1], [2, -1], [-1, 2], [2, 2]]) px(hg, ex + ox * U, ey + oy * U, c1);
+    for (const [ox, oy] of [[-1, 0], [2, 0], [-1, 1], [2, 1], [0, -1], [1, -1], [0, 2], [1, 2]]) px(hg, ex + ox * U, ey + oy * U, c1);
+    for (const [ox, oy] of [[2, -2], [3, -3], [3, -2], [4, -4], [5, -4], [2, -1], [4, -5], [5, -6], [6, -6], [6, -7], [3, -4]]) px(hg, ex + ox * U, ey + oy * U, c2);
+    for (const [ox, oy] of [[-2, 0], [3, 0], [-2, 1], [3, 1], [0, -2], [1, -2], [0, 3], [1, 3]]) px(hg, ex + ox * U, ey + oy * U, fl ? 'rgba(44,240,255,.45)' : 'rgba(255,243,90,.4)');
+  }
+  if (f === 'closed' || f === 'sleep') { closedEye(hg, EYE_N); closedEye(hg, EYE_F); }
+  if (f === 'wink') { closedEye(hg, EYE_N); }
+  if (f === 'angry') {
+    hg.fillStyle = 'rgba(255,30,0,.28)'; hg.fillRect(0, 0, 240, 342);
+    pxEllipse(hg, EYE_N, 'rgba(0,0,0,.55)', 0.3); pxEllipse(hg, EYE_F, 'rgba(0,0,0,.55)', 0.2);
+    for (let i = 0; i < 9; i++) px(hg, 62 + i * U * 1.1, 128 + i * U * 0.55, '#000');
+  }
+  if (hy.tint > 0) { hg.fillStyle = `rgba(255,40,20,${hy.tint * 0.4})`; hg.fillRect(0, 0, 240, 342); }
+  hg.restore();
+  for (let i = 0; i < hy.sweat; i++) { const sx = 196 - i * 20, sy = 96 + (i % 2) * 22; hg.imageSmoothingEnabled = false; hg.drawImage(SPR.sweat, sx, sy, SPR.sweat.width * U / 2, SPR.sweat.height * U / 2); }
+}
+function hyIdle() {
+  if (!hy.idle) return { b: 0, h: 0, s: 0 };
+  const t = T * 2.3;
+  return { b: Math.round(Math.sin(t) * 1), h: Math.round(Math.sin(t - 0.7) * 2), s: Math.round(Math.sin(T * 1.15) * 1) };
+}
+function drawHy() {
+  if (!hy.vis || !BODY) return;
+  buildHead();
+  const id = hyIdle();
+  const sh = hy.shake ? Math.round((rand() - .5) * hy.shake * 2) : 0;
+  const bx = hy.x + hy.dx + sh, bodyW = BW * BS, bodyH = BH * BS;
+  const top = hy.feet + hy.dy - bodyH;
+  ctx.save(); ctx.globalAlpha = hy.alpha; ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
+  // legs
+  const cut = TORSO_CUT * BS;
+  ctx.drawImage(BODY, 0, TORSO_CUT, BW, BH - TORSO_CUT, Math.round(bx - bodyW / 2), Math.round(top + cut), bodyW, bodyH - cut);
+  // torso (bobs) — squash for slams
+  const tx = Math.round(bx - bodyW / 2 + hy.lean), ty = Math.round(top + id.b + (1 - hy.sq) * cut);
+  ctx.drawImage(BODY, 0, 0, BW, TORSO_CUT, tx, ty, bodyW, cut * hy.sq);
+  // prop behind? (barbell over head draws after head)
+  if (hy.prop === 'wok') drawWok(bx + hy.lean + 8, top + 38 + id.b + hy.propY, hy.propT);
+  if (hy.prop === 'bowl') drawSpr(SPR.bowl, bx + hy.lean, top + 40 + id.b + hy.propY, { sc: 1.5 });
+  // head
+  const chinX = bx + hy.lean * 1.4 + hy.headDx + id.s, chinY = top + 26 + id.h + hy.headDy + (1 - hy.sq) * cut;
+  ctx.save(); ctx.translate(Math.round(chinX), Math.round(chinY)); ctx.rotate(hy.headRot + Math.sin(T * 1.15) * 0.012);
+  ctx.drawImage(headCv, -HEAD_W * 0.5, -HEAD_H, HEAD_W, HEAD_H);
+  if (hy.flash > 0) { ctx.globalAlpha = hy.alpha * hy.flash; ctx.globalCompositeOperation = 'lighter'; ctx.drawImage(headCv, -HEAD_W * 0.5, -HEAD_H, HEAD_W, HEAD_H); }
+  ctx.restore();
+  ctx.imageSmoothingEnabled = false;
+  if (hy.prop === 'barbell') drawBarbellH(chinX - 78, chinX + 78, chinY - HEAD_H - 6 + hy.propY, 'w');
+  if (hy.zzz) for (let i = 0; i < 3; i++) { const k = ((T * 0.45 + i / 3) % 1); ctx.globalAlpha = hy.alpha * (1 - k); drawSpr(SPR.z, chinX + 34 + k * 30 + i * 4, chinY - HEAD_H + 10 - k * 46, { sc: 1 + k }); }
+  ctx.restore();
+  if (hy.hpShow > 0) {
+    const w = 100, x = hy.x - w / 2, y = 34;
+    ctx.globalAlpha = hy.hpShow; rect(x - 2, y - 2, w + 4, 16, '#000'); rect(x, y, w, 12, '#3c3c3c'); rect(x, y, w * hy.hp, 12, '#00ff40'); ctx.globalAlpha = 1;
+  }
+}
+function drawWok(x, y, t) { drawSpr(SPR.wok, x, y, { rot: Math.sin(t) * 0.25 }); }
+// horizontal barbell from x1..x2 centred on y; col: 'w' white / 'c' cyan / 'o' orange
+const BCOL = { w: ['#d8d8d8', '#ffffff', '#d81e1e', '#ff5a4a'], c: ['#2cc8ff', '#9ff0ff', '#1078ff', '#2cc8ff'], o: ['#ff9a1a', '#ffd08a', '#ff7a00', '#ffb000'] };
+function drawBarbellH(x1, x2, y, col = 'w', plateH = 22) {
+  const c = BCOL[col]; x1 = Math.round(x1); x2 = Math.round(x2); y = Math.round(y);
+  rect(x1, y - 2, x2 - x1, 4, c[0]); rect(x1, y - 2, x2 - x1, 2, c[1]);
+  for (const [px0, dir] of [[x1, 1], [x2, -1]]) {
+    const ph = plateH;
+    rect(px0 + (dir > 0 ? 4 : -10), y - ph / 2, 6, ph, c[2]); rect(px0 + (dir > 0 ? 4 : -10), y - ph / 2, 2, ph, c[3]);
+    rect(px0 + (dir > 0 ? 11 : -16), y - ph / 2 + 4, 4, ph - 8, c[2]);
+    rect(px0 + (dir > 0 ? 0 : -4), y - 3, 4, 6, c[0]);
+  }
+}
+// vertical barbell from y1..y2 at x (plates at the ends that are inside 'caps')
+function drawBarbellV(x, y1, y2, col = 'w', caps = 3, plateW = 20) {
+  const c = BCOL[col]; x = Math.round(x); y1 = Math.round(y1); y2 = Math.round(y2);
+  rect(x - 3, y1, 6, y2 - y1, c[0]); rect(x - 3, y1, 2, y2 - y1, c[1]);
+  if (caps & 1) { rect(x - plateW / 2, y1, plateW, 5, c[2]); rect(x - plateW / 2, y1, plateW, 2, c[3]); rect(x - plateW / 2 + 3, y1 + 6, plateW - 6, 3, c[2]); }
+  if (caps & 2) { rect(x - plateW / 2, y2 - 5, plateW, 5, c[2]); rect(x - plateW / 2, y2 - 5, plateW, 2, c[3]); rect(x - plateW / 2 + 3, y2 - 9, plateW - 6, 3, c[2]); }
+}
+
+/* ---- speech bubble beside 현태 ---- */
+const bubble = { lines: [], n: 0, on: false, w: 214 };
+function drawBubble() {
+  if (!bubble.on) return;
+  const x = hy.x + 74, y = 52, w = bubble.w, lh = 22, h = Math.max(46, bubble.lines.length * lh + 22);
+  rect(x, y, w, h, '#fff');
+  // pixel corners
+  rect(x, y, 2, 2, '#000'); rect(x + w - 2, y, 2, 2, '#000'); rect(x, y + h - 2, 2, 2, '#000'); rect(x + w - 2, y + h - 2, 2, 2, '#000');
+  // tail
+  for (let i = 0; i < 8; i++) rect(x - 2 - i * 2, y + 20 + i, 2 + i * 2, 2, '#fff');
+  let left = bubble.n;
+  bubble.lines.forEach((l, i) => { text(l, x + 12, y + 20 + i * lh, { size: 15, color: '#000000', n: left }); left -= l.length; });
+}
+
+/* ========= battle: soul, box, bullets, patterns, menus, script ========= */
+let SAVE = { deaths: 0, wins: 0, lastPh: 1, easy: false };
+try { const s = JSON.parse(localStorage.getItem('hyuntaetale') || 'null'); if (s) Object.assign(SAVE, s); } catch (e) { }
+const save = () => { try { localStorage.setItem('hyuntaetale', JSON.stringify(SAVE)); } catch (e) { } };
+
+let G = null;                    // battle state
+let scene = 'logo';              // logo | title | battle | dead | win
+let GOD = false, AUTO = 0;
+const BOT = 385;
+const B = { x: 37, y: 255, w: 565, h: 130 };
+const soul = { x: 320, y: 320, vis: false, mode: 'red', gx: 0, gy: 1, va: 0, grounded: false, moved: false, px: 0, py: 0, slamV: 0, hold: false };
+let bullets = [], fx = [];
+let shake = 0, flashA = 0, fade = 0, banner = null;
+const ui = { mode: 'none', sel: 0, list: [], cols: 1, page: 0, dim: false, fightX: -1, fightOn: false, fightStop: false, fightFlash: 0 };
+const boxText = { lines: [], n: 0, on: false };
+
+/* ---------- box ---------- */
+function setBox(w, h, d = 0.28, cx = 320) {
+  const s = { x: B.x, y: B.y, w: B.w, h: B.h }, t = { x: cx - w / 2, y: BOT - h, w, h };
+  if (d <= 0) { Object.assign(B, t); return Promise.resolve(); }
+  return tween(d, k => { B.x = lerp(s.x, t.x, k); B.y = lerp(s.y, t.y, k); B.w = lerp(s.w, t.w, k); B.h = lerp(s.h, t.h, k); }, ezio);
+}
+const MENU_BOX = () => setBox(565, 130, 0.25);
+
+/* ---------- soul ---------- */
+function soulReset(mode = 'red') {
+  soul.mode = mode; soul.gx = 0; soul.gy = 1; soul.va = 0; soul.vis = true; soul.slamV = 0;
+  soul.x = B.x + B.w / 2; soul.y = mode === 'blue' ? B.y + B.h - 8 : B.y + B.h / 2;
+}
+function setGrav(gx, gy, slam = 0) { soul.mode = 'blue'; soul.gx = gx; soul.gy = gy; soul.va = slam; soul.slamV = slam; }
+const JUMP = 255, GRAV = 760;
+function updSoul(dt) {
+  if (!soul.vis || scene !== 'battle' || ui.mode !== 'none') { soul.moved = false; return; }
+  const ix = (keys.right ? 1 : 0) - (keys.left ? 1 : 0), iy = (keys.down ? 1 : 0) - (keys.up ? 1 : 0);
+  const sp = keys.x ? 75 : 150, ox = soul.x, oy = soul.y;
+  const L = B.x + 8, R = B.x + B.w - 8, Tp = B.y + 8, Bt = B.y + B.h - 8;
+  if (soul.mode === 'red') { soul.x += ix * sp * dt; soul.y += iy * sp * dt; }
+  else {
+    const gx = soul.gx, gy = soul.gy, lat = gx === 0 ? ix : iy;            // move perpendicular to gravity
+    const jumpKey = gy === 1 ? keys.up : gy === -1 ? keys.down : gx === 1 ? keys.left : keys.right;
+    if (soul.grounded && jumpKey) { soul.va = -JUMP; soul.grounded = false; }
+    if (!jumpKey && soul.va < -90) soul.va = -90;
+    soul.va = Math.min(soul.va + GRAV * dt * (soul.slamV ? 2.2 : 1), soul.slamV || 520);
+    soul.x += gx * soul.va * dt + (gx === 0 ? lat * sp * dt : 0);
+    soul.y += gy * soul.va * dt + (gy === 0 ? lat * sp * dt : 0);
+  }
+  const was = soul.grounded; soul.grounded = false;
+  if (soul.x < L) { soul.x = L; if (soul.gx === -1) land(); }
+  if (soul.x > R) { soul.x = R; if (soul.gx === 1) land(); }
+  if (soul.y < Tp) { soul.y = Tp; if (soul.gy === -1) land(); }
+  if (soul.y > Bt) { soul.y = Bt; if (soul.gy === 1) land(); }
+  function land() { if (soul.mode !== 'blue') return; if (soul.slamV && !was) { audio.slam(); shake = Math.max(shake, 5); } soul.grounded = true; if (soul.va > 0) soul.va = 0; soul.slamV = 0; }
+  soul.moved = Math.abs(soul.x - ox) + Math.abs(soul.y - oy) > 0.05;
+}
+
+/* ---------- damage & 기름(KR) ---------- */
+function circRect(cx, cy, r, x, y, w, h) { const nx = clamp(cx, x, x + w), ny = clamp(cy, y, y + h); return (cx - nx) ** 2 + (cy - ny) ** 2 < r * r; }
+let invT = 0, krT = 0;
+function hurt(b) {
+  if (GOD || !G || G.dead) return;
+  if (b && b.col === 'c' && !soul.moved) return;
+  if (b && b.col === 'o' && soul.moved) return;
+  if (invT > 0) return;
+  invT = G.easy ? 0.1 : 0.05;
+  G.hp -= (b && b.dmg) || 1;
+  if (G.hp > 1) G.kr = Math.min(G.kr + (G.easy ? 0.5 : 1), 40, G.hp - 1); else G.kr = 0;
+  audio.hurt(); G.hits++;
+  if (G.hp <= 0) { G.hp = 0; die(b && b.betray ? 'betray' : 'normal'); }
+}
+function updKR(dt) {
+  if (!G || G.kr <= 0.01 || G.dead) return;
+  krT += dt;
+  const iv = G.kr >= 40 ? 1 / 30 : G.kr >= 30 ? 2 / 30 : G.kr >= 20 ? 5 / 30 : G.kr >= 10 ? 15 / 30 : 1;
+  if (krT >= iv) { krT = 0; G.kr = Math.max(0, G.kr - 1); if (G.hp > 1) G.hp -= 1; }
+}
+
+/* ---------- bullets ---------- */
+function add(b) { b.t = 0; if (b.clip === undefined) b.clip = true; bullets.push(b); return b; }
+function stdUpd(b, dt) {
+  b.vx += (b.ax || 0) * dt; b.vy += (b.ay || 0) * dt; b.x += b.vx * dt; b.y += b.vy * dt;
+  if (b.spin) b.rot = (b.rot || 0) + b.spin * dt;
+  if (b.onUpd && b.onUpd(b, dt) === false) return false;
+  return b.t < (b.life || 9) && b.x > -90 && b.x < LW + 90 && b.y > -120 && b.y < LH + 40;
+}
+// sprite bullet
+function shot(o) {
+  const b = Object.assign({ vx: 0, vy: 0, hw: 4, hh: 4 }, o);
+  b.upd = b.upd || stdUpd;
+  b.draw = b.draw || (() => { const sn = b.snap ? Math.round((b.rot || 0) / (PI / 4)) * (PI / 4) : b.rot; drawSpr(b.spr, b.x, b.y, { rot: sn, sc: b.sc || 1 }); });
+  b.hit = b.hit || ((x, y) => circRect(x, y, 4, b.x - b.hw, b.y - b.hh, b.hw * 2, b.hh * 2));
+  return add(b);
+}
+const YE = () => tbmp('예.', 16, '#ffffff', 900).c;
+const grain = (x, y, vx, vy, o = {}) => shot(Object.assign({ x, y, vx, vy, spr: SPR.grain, hw: 3, hh: 2, ph: rand() * 6, onUpd: o.sway ? (b) => { b.x += Math.sin(b.t * 5 + b.ph) * 0.6; } : null }, o));
+const clump = (x, y, vx, vy, o = {}) => shot(Object.assign({ x, y, vx, vy, spr: SPR.clump, hw: 5, hh: 4 }, o));
+const yeShot = (x, y, vx, vy, o = {}) => shot(Object.assign({ x, y, vx, vy, spr: YE(), hw: 8, hh: 6 }, o));
+function aim(x, y, sp, off = 0) { const a = Math.atan2(soul.y - y, soul.x - x) + off; return [Math.cos(a) * sp, Math.sin(a) * sp]; }
+// rect-list bullets (barbells etc.)
+function rbul(o) {
+  const b = Object.assign({ vx: 0, vy: 0 }, o);
+  b.upd = b.upd || stdUpd;
+  b.hit = (x, y) => b.rects().some(r => circRect(x, y, 4, r[0], r[1], r[2], r[3]));
+  return add(b);
+}
+// vertical barbell standing from y1 to y2 (caps: 1 top plate, 2 bottom plate)
+function barV(x, y1, y2, vx, o = {}) {
+  return rbul(Object.assign({
+    x, y1, y2, vx, caps: o.caps === undefined ? 3 : o.caps, col: o.col || 'w',
+    upd: (b, dt) => { b.x += b.vx * dt; if (b.vy1) { b.y1 += b.vy1 * dt; b.y2 += b.vy1 * dt; } if (b.onUpd && b.onUpd(b, dt) === false) return false; return b.t < (b.life || 9) && b.x > B.x - 60 && b.x < B.x + B.w + 60; },
+    rects() { const r = [[this.x - 3, this.y1, 6, this.y2 - this.y1]]; if (this.caps & 1) r.push([this.x - 10, this.y1, 20, 9]); if (this.caps & 2) r.push([this.x - 10, this.y2 - 9, 20, 9]); return r; },
+  }, o, { draw: function () { drawBarbellV(this.x, this.y1, this.y2, this.col, this.caps); } }));
+}
+// horizontal barbell spanning x1..x2 at y (plates hang ±11)
+function barH(x1, x2, y, o = {}) {
+  return rbul(Object.assign({
+    x1, x2, y, vx: 0, vy: 0, col: 'w',
+    upd(b, dt) { b.vy += (b.ay || 0) * dt; b.x1 += b.vx * dt; b.x2 += b.vx * dt; b.y += b.vy * dt; if (b.onUpd && b.onUpd(b, dt) === false) return false; return b.t < (b.life || 9); },
+    draw() { drawBarbellH(this.x1, this.x2, this.y, this.col); },
+    rects() { return [[this.x1, this.y - 3, this.x2 - this.x1, 6], [this.x1 + 2, this.y - 11, 14, 22], [this.x2 - 16, this.y - 11, 14, 22]]; },
+  }, o));
+}
+// spikes = short barbells poking out of a wall (dir: which wall: 'down','up','left','right')
+function spikeRow(dir, life = 0.42, h = 22, gap = 0, gapC = 0) {
+  return add({
+    dir, life, h, k: 0, clip: true,
+    upd(b, dt) { b.k = b.t < 0.07 ? b.t / 0.07 : b.t > life - 0.08 ? Math.max(0, (life - b.t) / 0.08) : 1; return b.t < life; },
+    each(fn) {
+      const hz = this.dir === 'down' || this.dir === 'up', len = hz ? B.w : B.h, n = Math.floor(len / 14);
+      for (let i = 0; i <= n; i++) {
+        const p = (hz ? B.x : B.y) + 4 + i * 14; if (gap && Math.abs(p - gapC) < gap / 2) continue;
+        const hh = this.h * this.k;
+        if (this.dir === 'down') fn(p - 2, B.y + B.h - hh, 4, hh, 'v');
+        if (this.dir === 'up') fn(p - 2, B.y, 4, hh, 'v');
+        if (this.dir === 'left') fn(B.x, p - 2, hh, 4, 'h');
+        if (this.dir === 'right') fn(B.x + B.w - hh, p - 2, hh, 4, 'h');
+      }
+    },
+    draw() {
+      this.each((x, y, w, h, o) => {
+        rect(x, y, w, h, '#ffffff');
+        const tipX = this.dir === 'left' ? x + w - 3 : this.dir === 'right' ? x : x - 3, tipY = this.dir === 'up' ? y + h - 3 : this.dir === 'down' ? y : y - 3;
+        if (o === 'v') rect(x - 3, tipY, 10, 4, '#d81e1e'); else rect(tipX, y - 3, 4, 10, '#d81e1e');
+      });
+    },
+    hit(sx, sy) { if (this.k < 0.6) return false; let h = false; this.each((x, y, w, hh) => { if (!h && circRect(sx, sy, 4, x - 2, y, w + 4, hh)) h = true; }); return h; },
+  });
+}
+function wallWarn(dir, d = 0.25) {
+  return add({
+    life: d, clip: false, hit: () => false, upd: (b) => b.t < d,
+    draw() { if (Math.floor(this.t * 20) % 2) return; const c = '#ff2020'; if (dir === 'down') rect(B.x, B.y + B.h - 3, B.w, 3, c); if (dir === 'up') rect(B.x, B.y, B.w, 3, c); if (dir === 'left') rect(B.x, B.y, 3, B.h, c); if (dir === 'right') rect(B.x + B.w - 3, B.y, 3, B.h, c); },
+  });
+}
+// "예." 블래스터 — a giant speech bubble that fires a beam out of its tail
+let BLASTER = null;
+function blasterSprite() {
+  if (BLASTER) return BLASTER;
+  const rows = [
+    '....wwwwwwwwwwwwww......', '..wwwwwwwwwwwwwwwwww....', '.wwwwwwwwwwwwwwwwwwww...', 'wwwwwwwwwwwwwwwwwwwwww..', 'wwwwwwwwwwwwwwwwwwwwwww.',
+    'wwwwwwwwwwwwwwwwwwwwwwww', 'wwwwwwwwwwwwwwwwwwwwwwww', 'wwwwwwwwwwwwwwwwwwwwwww.', 'wwwwwwwwwwwwwwwwwwwwww..', '.wwwwwwwwwwwwwwwwwwww...', '..wwwwwwwwwwwwwwwwww....', '....wwwwwwwwwwwwww......'];
+  const c = spr(rows, { w: '#ffffff' }, 2), g = c.getContext('2d');
+  // little tail pointing +x
+  g.fillStyle = '#fff'; g.fillRect(c.width - 4, c.height / 2 - 4, 4, 8);
+  BLASTER = c; return c;
+}
+function blaster(tx, ty, ang, o = {}) {
+  const cT = o.charge || 0.5, fT = o.fire || 0.38, dist = 130;
+  const sx = tx - Math.cos(ang) * dist, sy = ty - Math.sin(ang) * dist;
+  return add({
+    x: sx, y: sy, ang, clip: false, st: 'in', w: 0, sc: 1,
+    upd(b, dt) {
+      const t = b.t;
+      if (t < 0.25) { const k = ezo(t / 0.25); b.x = lerp(sx, tx, k); b.y = lerp(sy, ty, k); }
+      else if (t < 0.25 + cT) { if (b.st !== 'charge') { b.st = 'charge'; audio.charge(); } b.sc = 1 + Math.sin(t * 40) * 0.04; }
+      else if (t < 0.25 + cT + fT) { if (b.st !== 'fire') { b.st = 'fire'; audio.beam(); shake = Math.max(shake, 4); } const k = (t - 0.25 - cT) / fT; b.w = (k < 0.15 ? k / 0.15 : k > 0.7 ? (1 - k) / 0.3 : 1) * (o.width || 26); b.x -= Math.cos(ang) * 40 * dt; b.y -= Math.sin(ang) * 40 * dt; }
+      else { b.st = 'out'; b.w = 0; b.x -= Math.cos(ang) * 600 * dt; b.y -= Math.sin(ang) * 600 * dt; }
+      return t < 0.25 + cT + fT + 0.5;
+    },
+    draw() {
+      const s = blasterSprite();
+      if (this.w > 0.5) {
+        ctx.save(); ctx.translate(this.x, this.y); ctx.rotate(this.ang);
+        const w = Math.round(this.w + Math.sin(T * 60) * 2), w2 = Math.round(w / 2) * 2;
+        rect(20, -w2 / 2, 1000, w2, '#ffffff'); rect(20, -w2 / 2 - 2, 1000, 2, '#9ff0ff'); rect(20, w2 / 2, 1000, 2, '#9ff0ff');
+        const st = tbmp('예.', 12, '#000000', 900).c, flip = Math.cos(this.ang) < -0.01; for (let i = 0; i < 16; i++) { const xx = 30 + ((i * 64 + T * 700) % 1000); if (w2 > 14) { ctx.save(); ctx.translate(Math.round(xx) + 11, 0); if (flip) ctx.rotate(PI); ctx.drawImage(st, -11, -9); ctx.restore(); } }
+        ctx.restore();
+      }
+      const flash = this.st === 'charge' && Math.floor(T * 16) % 2;
+      const img = flash ? recolorCache(s) : s;
+      ctx.save(); ctx.translate(Math.round(this.x), Math.round(this.y)); ctx.rotate(this.ang); if (Math.cos(this.ang) < -0.01) ctx.scale(1, -1);
+      const sc = this.sc * 1.35; ctx.drawImage(img, -img.width * sc / 2, -img.height * sc / 2, img.width * sc, img.height * sc); ctx.restore();
+      text('예.', this.x - 2, this.y, { size: 18, weight: 900, color: flash ? '#0a3cff' : '#000000', align: 'c' });
+    },
+    hit(px, py) { if (this.st !== 'fire' || this.w < 8) return false; const dx = px - this.x, dy = py - this.y, c = Math.cos(this.ang), s = Math.sin(this.ang); const al = dx * c + dy * s, pp = -dx * s + dy * c; return al > 10 && Math.abs(pp) < this.w / 2 + 2; },
+  });
+}
+let _bc = null; const recolorCache = s => _bc || (_bc = recolor(s, '#9ff0ff'));
+function plate(x, y, vx, o = {}) {
+  return shot(Object.assign({ x, y, vx, vy: o.vy || 0, ay: 640, spr: SPR.plateF, hw: 8, hh: 8, sc: o.sc || 1, snap: true,
+    onUpd(b) { b.rot = -b.x / 10 * (b.sc || 1); const fl = B.y + B.h - 10 * (b.sc || 1); if (b.y > fl) { b.y = fl; b.vy = -Math.abs(b.vy) * 0.78; if (Math.abs(b.vy) < 40) b.vy = 0; } } }, o, { hw: 8 * (o.sc || 1), hh: 8 * (o.sc || 1) }));
+}
+function eggArc(x, y, vx, vy, o = {}) {
+  return shot(Object.assign({ x, y, vx, vy, ay: 380, spr: SPR.egg, hw: 5, hh: 6, spin: (vx > 0 ? 1 : -1) * 6,
+    onUpd(b) { if (b.vy > 0 && b.y > B.y + B.h - 8) { crackAt(b.x, B.y + B.h - 6, o.n || 7); return false; } } }, o));
+}
+function crackAt(x, y, n) {
+  audio.crack(); burst(x, y, '#ffffff', 6);
+  for (let i = 0; i < n; i++) { const a = -PI + (i + 0.5) * (PI / n) + rr(-0.15, 0.15), s = rr(90, 140); shot({ x, y: y - 2, vx: Math.cos(a) * s, vy: Math.sin(a) * s, ay: 260, spr: SPR.yolk, hw: 3, hh: 3 }); }
+}
+// fried-rice column with a gap (for the tunnel wave)
+function riceCol(x, gapY, gap, vx) {
+  return add({
+    x, gapY, gap, vx, upd(b, dt) { b.x += b.vx * dt; return b.x > B.x - 20; },
+    draw() { for (let y = B.y - 6; y < B.y + B.h + 6; y += 10) { if (Math.abs(y + 5 - this.gapY) < this.gap / 2) continue; drawSpr(SPR.clump, this.x, y + 5); } },
+    hit(px, py) { if (Math.abs(px - this.x) > 10) return false; return Math.abs(py - this.gapY) > this.gap / 2 - 1; },
+  });
+}
+function yolkBeams(x, y, dur = 0.28) {
+  return add({
+    x, y, life: dur, clip: true, upd: b => b.t < dur,
+    draw() { const k = this.t / dur, w = Math.round((k < .2 ? k / .2 : 1 - (k - .2) / .8) * 6) * 2 / 2 + 2; rect(B.x, this.y - w / 2, B.w, w, '#ffd21a'); rect(this.x - w / 2, B.y, w, B.h, '#ffd21a'); rect(B.x, this.y - 1, B.w, 2, '#fff7b0'); rect(this.x - 1, B.y, 2, B.h, '#fff7b0'); },
+    hit(px, py) { const k = this.t / dur; if (k < 0.12 || k > 0.8) return false; return Math.abs(py - this.y) < 6 || Math.abs(px - this.x) < 6; },
+  });
+}
+function eggMine(x, y, d) {
+  return add({ x, y, life: d, clip: true, hit: () => false, upd: b => { if (b.t >= d) { audio.crack(); yolkBeams(b.x, b.y); return false; } return true; }, draw() { if (this.t > d * 0.6 && Math.floor(this.t * 14) % 2) return; drawSpr(SPR.egg, this.x, this.y); } });
+}
+function floorMark(x, w, d) { return add({ life: d, clip: true, hit: () => false, upd: b => b.t < d, draw() { if (Math.floor(this.t * 16) % 2) return; for (let i = x - w / 2; i < x + w / 2; i += 8) rect(i, B.y + B.h - 4, 4, 4, '#ff2020'); } }); }
+
+/* ---------- fx ---------- */
+function burst(x, y, col, n = 8, sp = 80) { for (let i = 0; i < n; i++) { const a = rand() * TAU, s = rr(sp * .4, sp); fx.push({ k: 'p', x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s - 30, col, t: 0, life: rr(.3, .6), s: 2 }); } }
+function floatText(str, x, y, o = {}) { fx.push(Object.assign({ k: 't', str, x, y, vy: -60, t: 0, life: 1.1, col: '#c0c0c0', size: 22, px: 1 }, o)); }
+function updFx(dt) {
+  for (let i = fx.length - 1; i >= 0; i--) {
+    const f = fx[i]; f.t += dt;
+    if (f.k === 'p') { f.x += f.vx * dt; f.y += f.vy * dt; f.vy += 300 * dt; }
+    if (f.k === 't') { f.y += f.vy * dt; f.vy += 140 * dt; if (f.vy > 0 && f.t < 0.6) f.vy = 0; }
+    if (f.k === 'shard') { f.x += f.vx * dt; f.y += f.vy * dt; f.vy += 420 * dt; }
+    if (f.t > f.life) fx.splice(i, 1);
+  }
+}
+function drawFx() {
+  for (const f of fx) {
+    if (f.k === 'p') rect(f.x, f.y, f.s, f.s, f.col);
+    if (f.k === 't') { const a = f.t > f.life - 0.3 ? (f.life - f.t) / 0.3 : 1; ctx.globalAlpha = a; text(f.str, f.x, f.y, { size: f.size, color: f.col, weight: 900, align: 'c', px: f.px }); ctx.globalAlpha = 1; }
+    if (f.k === 'shard') drawSpr(SPR.shard, f.x, f.y);
+    if (f.k === 'slash') { const k = f.t / f.life; for (let i = 0; i < 3; i++) { const len = Math.min(1, k * 3 - i * 0.4) * 50; if (len <= 0) continue; for (let j = 0; j < len; j += 2) rect(f.x - 25 + j + i * 10 - 10, f.y - 25 + j, 4, 4, '#ff2020'); } }
+  }
+}
+
+/* ---------- 현태 animations ---------- */
+async function hyLean(v, d = 0.12) { const s = hy.lean; await tween(d, k => hy.lean = lerp(s, v, k)); }
+async function hySlam(dir) {
+  const [dx, dy] = { down: [0, 1], up: [0, -1], left: [-1, 0], right: [1, 0] }[dir];
+  hy.idle = false;
+  await tween(0.08, k => { hy.lean = -dx * 6 * k; hy.headDx = -dx * 8 * k; hy.headDy = -dy * 6 * k; hy.sq = 1 + dy * 0.04 * k; });
+  await tween(0.1, k => { hy.lean = lerp(-dx * 6, dx * 10, k); hy.headDx = lerp(-dx * 8, dx * 14, k); hy.headDy = lerp(-dy * 6, dy * 10, k); hy.sq = 1 - dy * 0.06 * k; });
+  tween(0.3, k => { hy.lean = dx * 10 * (1 - k); hy.headDx = dx * 14 * (1 - k); hy.headDy = dy * 10 * (1 - k); hy.sq = lerp(1 - dy * 0.06, 1, k); }).then(() => hy.idle = true).catch(swallow);
+}
+async function slam(dir, ph = 1) {
+  hySlam(dir).catch(swallow);
+  const g = { down: [0, 1], up: [0, -1], left: [-1, 0], right: [1, 0] }[dir];
+  setGrav(g[0], g[1], 720); await wait(0.1);
+}
+async function hyThrow() { hy.idle = false; await hyLean(-5, 0.1); await hyLean(7, 0.08); await hyLean(0, 0.2); hy.idle = true; }
+
+/* ---------- attack patterns ---------- */
+const ATK = {};
+ATK.rain = { box: [230, 145], mode: 'red', async fn(ph) {
+  const dur = ph > 1 ? 7 : 6, rate = ph > 1 ? 17 : 11; let cl = 0; const t0 = T;
+  hyThrow().catch(swallow);
+  while (T - t0 < dur) {
+    await wait(1 / rate);
+    grain(rr(B.x + 4, B.x + B.w - 4), B.y - 6, rr(-12, 12), rr(95, 145) * (ph > 1 ? 1.2 : 1), { sway: 1 });
+    cl += 1 / rate; if (cl > (ph > 1 ? 0.8 : 1.2)) { cl = 0; clump(clamp(soul.x + rr(-18, 18), B.x + 6, B.x + B.w - 6), B.y - 8, 0, 200); }
+  }
+  await wait(1.1);
+} };
+ATK.eggs = { box: [250, 140], mode: 'red', async fn(ph) {
+  const n = ph > 1 ? 15 : 10, iv = ph > 1 ? 0.38 : 0.55;
+  for (let i = 0; i < n; i++) {
+    const L = i % 2 === 0, y = rr(B.y + 20, B.y + B.h - 40);
+    eggArc(L ? B.x - 8 : B.x + B.w + 8, y, (L ? 1 : -1) * rr(110, 175), rr(-170, -60), { clip: false });
+    if (i % 3 === 0) hyThrow().catch(swallow);
+    await wait(iv);
+  }
+  await wait(1.6);
+} };
+ATK.stream = { box: [200, 145], mode: 'red', async fn(ph) {
+  const dur = ph > 1 ? 6.5 : 6, iv = ph > 1 ? 0.36 : 0.5, sp = ph > 1 ? 215 : 170; const t0 = T;
+  while (T - t0 < dur) {
+    const a = rr(-PI * 0.95, -PI * 0.05) + (rand() < 0.25 ? PI : 0), cx = B.x + B.w / 2, cy = B.y + B.h / 2;
+    const x = cx + Math.cos(a) * 190, y = cy + Math.sin(a) * 150;
+    for (const off of [-0.17, 0, 0.17]) { const [vx, vy] = aim(x, y, sp, off); yeShot(x, y, vx, vy); }
+    audio.spawn(); await wait(iv);
+  }
+  await wait(1.2);
+} };
+ATK.wall = { box: [260, 140], mode: 'red', async fn(ph) {
+  const n = ph > 1 ? 12 : 9, iv = ph > 1 ? 0.6 : 0.75, sp = ph > 1 ? 190 : 160, gap = ph > 1 ? 44 : 50;
+  for (let i = 0; i < n; i++) {
+    const gy = B.y + B.h / 2 + Math.sin(i * 0.9) * 36, x = B.x + B.w + 14;
+    barV(x, B.y - 12, gy - gap / 2, -sp, { caps: 2 }); barV(x, gy + gap / 2, B.y + B.h + 12, -sp, { caps: 1 });
+    await wait(iv);
+  }
+  await wait(1.8);
+} };
+ATK.jump = { box: [260, 120], mode: 'blue', async fn(ph) {
+  const n = ph > 1 ? 12 : 9, iv = ph > 1 ? 0.52 : 0.66, sp = ph > 1 ? 215 : 180, fl = () => B.y + B.h;
+  for (let i = 0; i < n; i++) {
+    const x = B.x + B.w + 14;
+    if (i % 4 === 3) barV(x, B.y - 12, fl() - 30, -sp, { caps: 2 });
+    else { barV(x, fl() - rr(18, 26), fl() + 12, -sp, { caps: 1 }); if (ph > 1 && i % 3 === 1) barV(x + 26, fl() - 18, fl() + 12, -sp, { caps: 1 }); }
+    await wait(iv);
+  }
+  await wait(1.6);
+} };
+ATK.plates = { box: [280, 120], mode: 'blue', async fn(ph) {
+  const n = ph > 1 ? 13 : 9, iv = ph > 1 ? 0.5 : 0.7;
+  for (let i = 0; i < n; i++) {
+    const big = i % 4 === 2, sc = big ? 1.5 : 1;
+    plate(B.x + B.w + 16, B.y + B.h - 10 * sc, -rr(130, 185), { vy: -rr(0, 220), sc, clip: true });
+    await wait(iv);
+  }
+  await wait(2);
+} };
+ATK.wok = { box: [240, 145], mode: 'red', async fn(ph) {
+  const n = ph > 1 ? 5 : 3, iv = ph > 1 ? 1.05 : 1.45;
+  hy.prop = 'wok';
+  try {
+    await wait(0.4);
+    for (let i = 0; i < n; i++) {
+      await tween(0.18, k => { hy.propT = -k * 1.3; hy.propY = -k * 6; });
+      audio.noise(0.25, 0.12, 2000);
+      const ox = hy.x + 10, oy = hy.feet - 66;
+      for (let j = 0; j < (ph > 1 ? 22 : 16); j++) grain(ox + rr(-14, 14), oy, rr(-150, 150), rr(-260, -120), { ay: 330, clip: false, onUpd: b => !(b.vy > 0 && b.y > B.y + B.h + 2) });
+      if (i % 2 === 0) clump(ox, oy, aim(ox, oy, 120)[0], -200, { ay: 330, clip: false });
+      tween(0.3, k => { hy.propT = -1.3 * (1 - k); hy.propY = -6 * (1 - k); }).catch(swallow);
+      await wait(iv);
+    }
+    await wait(1.4);
+  } finally { hy.prop = null; }
+} };
+ATK.blaster = { box: [170, 145], mode: 'red', async fn(ph) {
+  const cx = () => B.x + B.w / 2, cy = () => B.y + B.h / 2, ch = ph > 1 ? 0.4 : 0.52;
+  blaster(B.x - 50, soul.y, 0, { charge: ch }); await wait(0.3); blaster(B.x + B.w + 50, soul.y, PI, { charge: ch }); await wait(1.2);
+  for (const [x, y] of [[B.x - 40, B.y - 30], [B.x + B.w + 40, B.y - 30]]) blaster(x, y, Math.atan2(soul.y - y, soul.x - x), { charge: ch });
+  await wait(1.2);
+  for (const [x, y] of [[cx(), B.y - 60], [B.x - 60, cy()], [B.x + B.w + 60, cy()], [cx(), B.y + B.h + 50]]) blaster(x, y, Math.atan2(soul.y - y, soul.x - x), { charge: ch + 0.1 });
+  await wait(1.3);
+  for (let i = 0; i < (ph > 1 ? 6 : 3); i++) { const a = rand() * TAU, x = cx() + Math.cos(a) * 140, y = Math.min(cy() + Math.sin(a) * 120, B.y + B.h + 40); blaster(x, y, Math.atan2(soul.y - y, soul.x - x), { charge: ch }); await wait(ph > 1 ? 0.3 : 0.42); }
+  await wait(1.3);
+} };
+ATK.slam = { box: [200, 140], mode: 'blue', async fn(ph) {
+  const n = ph > 1 ? 6 : 4, dirs = ['down', 'left', 'up', 'right']; let last = '';
+  await wait(0.3);
+  for (let i = 0; i < n; i++) {
+    let d; do d = i === 0 ? 'down' : pick(dirs); while (d === last); last = d;
+    await slam(d, ph); await wait(ph > 1 ? 0.18 : 0.24); wallWarn(d, 0.12); await wait(0.12);
+    spikeRow(d, 0.42); await wait(ph > 1 ? 0.62 : 0.85);
+  }
+  setGrav(0, 1, 0); await wait(0.6);
+} };
+ATK.bluorange = { box: [260, 140], mode: 'red', async fn(ph) {
+  const n = ph > 1 ? 10 : 8, sp = ph > 1 ? 170 : 140;
+  for (let i = 0; i < n; i++) {
+    const col = i < 2 ? (i === 0 ? 'c' : 'o') : (rand() < 0.5 ? 'c' : 'o');
+    barV(B.x + B.w + 12, B.y - 14, B.y + B.h + 14, -sp, { caps: 0, col, life: 6 });
+    if (ph > 1 && i % 3 === 2) { await wait(0.32); barV(B.x + B.w + 12, B.y - 14, B.y + B.h + 14, -sp, { caps: 0, col: col === 'c' ? 'o' : 'c', life: 6 }); }
+    await wait(0.82);
+  }
+  await wait(1.7);
+} };
+ATK.drop = { box: [280, 120], mode: 'blue', async fn(ph) {
+  const n = ph > 1 ? 14 : 10, iv = ph > 1 ? 0.45 : 0.6;
+  hy.prop = 'barbell'; hy.idle = false;
+  try {
+    for (let i = 0; i < n; i++) {
+      tween(iv * 0.9, k => hy.propY = -Math.sin(k * PI) * 10).catch(swallow);
+      const x = clamp(soul.x + rr(-40, 40), B.x + 36, B.x + B.w - 36);
+      floorMark(x, 66, 0.38);
+      (async () => {
+        await wait(0.38);
+        const fl = B.y + B.h - 11;
+        barH(x - 30, x + 30, B.y - 26, { vy: 760, onUpd(b) { if (b.y >= fl) { if (!b.landed) { b.landed = b.t; audio.slam(); shake = Math.max(shake, 3); } b.y = fl; b.vy = 0; } return !(b.landed && b.t - b.landed > 0.32); } });
+      })().catch(swallow);
+      await wait(iv);
+    }
+    await wait(1.2);
+  } finally { hy.prop = null; hy.idle = true; hy.propY = 0; }
+} };
+ATK.ring = { box: [190, 145], mode: 'red', async fn(ph) {
+  const waves = ph > 1 ? 7 : 5, N = ph > 1 ? 11 : 10, sp = ph > 1 ? 105 : 90;
+  for (let w = 0; w < waves; w++) {
+    const cx = soul.x, cy = soul.y, a0 = rand() * TAU, spin = (w % 2 ? 1 : -1) * (ph > 1 ? 1.4 : 1.0);
+    for (let i = 0; i < N; i++) {
+      add({ r: 118, a: a0 + i * TAU / N, cx, cy, x: 0, y: 0, clip: true, upd(b, dt) { b.a += spin * dt; if (b.t > 0.38) b.r -= sp * dt; b.x = b.cx + Math.cos(b.a) * b.r; b.y = b.cy + Math.sin(b.a) * b.r; return b.r > -130; },
+        draw() { if (this.t < 0.38 && Math.floor(this.t * 16) % 2) return; ctx.drawImage(YE(), Math.round(this.x - 11), Math.round(this.y - 12)); },
+        hit(px, py) { return this.t > 0.38 && circRect(px, py, 4, this.x - 8, this.y - 6, 16, 12); } });
+    }
+    audio.spawn(); await wait(ph > 1 ? 1.15 : 1.35);
+  }
+  await wait(1.3);
+} };
+ATK.wave = { box: [270, 140], mode: 'red', async fn(ph) {
+  const dur = ph > 1 ? 7 : 6, sp = ph > 1 ? 205 : 175, gap = ph > 1 ? 44 : 48; const t0 = T;
+  while (T - t0 < dur) {
+    const t = T - t0, gy = B.y + B.h / 2 + Math.sin(t * (ph > 1 ? 2.5 : 2)) * 40 + (ph > 1 ? Math.sin(t * 5.2) * 7 : 0);
+    riceCol(B.x + B.w + 8, gy, gap, -sp); await wait(0.1);
+  }
+  await wait(1.8);
+} };
+ATK.mines = { box: [230, 145], mode: 'red', async fn(ph) {
+  const waves = ph > 1 ? 6 : 5, n = ph > 1 ? 5 : 4, d = ph > 1 ? 0.72 : 0.92;
+  for (let w = 0; w < waves; w++) {
+    for (let i = 0; i < n; i++) { let x, y, k = 0; do { x = rr(B.x + 14, B.x + B.w - 14); y = rr(B.y + 14, B.y + B.h - 14); k++; } while (Math.hypot(x - soul.x, y - soul.y) < 30 && k < 20); eggMine(Math.round(x), Math.round(y), d); }
+    audio.spawn(); await wait(d + 0.55);
+  }
+  await wait(0.6);
+} };
+// phase-2 combos
+ATK.combo1 = { box: [240, 145], mode: 'red', async fn() { await Promise.all([ATK.wok.fn(1), (async () => { await wait(1.2); for (let i = 0; i < 4; i++) { const L = i % 2 === 0; blaster(L ? B.x - 50 : B.x + B.w + 50, soul.y, L ? 0 : PI, { charge: 0.5 }); await wait(1.1); } })()]); } };
+ATK.combo2 = { box: [270, 140], mode: 'red', async fn() { await Promise.all([ATK.wave.fn(1), (async () => { for (let i = 0; i < 9; i++) { await wait(0.62); const x = B.x + B.w / 2 + rr(-100, 100), y = B.y - 50; const [vx, vy] = aim(x, y, 150); yeShot(x, y, vx, vy); } })()]); } };
+ATK.combo3 = { box: [200, 140], mode: 'blue', async fn() {
+  await wait(0.2);
+  for (let i = 0; i < 5; i++) {
+    const d = ['down', 'left', 'right', 'up', 'down'][i];
+    await slam(d, 2); await wait(0.18); wallWarn(d, 0.1); await wait(0.1); spikeRow(d, 0.4);
+    if (i === 1 || i === 3) blaster(B.x + B.w / 2, B.y - 70, PI / 2, { charge: 0.55, width: 22 });
+    await wait(0.66);
+  }
+  setGrav(0, 1, 0); await wait(0.4);
+  await ATK.jump.fn(2);
+} };
+// the very first attack — comes right after the greeting
+ATK.opener = { box: [230, 125], mode: 'blue', async fn(ph, v = 0, delay = 0.2) {
+  await wait(delay);
+  if (v === 1) { blaster(B.x - 40, B.y - 30, Math.atan2(soul.y - B.y + 30, soul.x - B.x + 40), { charge: 0.5 }); blaster(B.x + B.w + 40, B.y - 30, Math.atan2(soul.y - B.y + 30, soul.x - B.x - B.w - 40), { charge: 0.5 }); await wait(1.3); }
+  wallWarn('down', 0.3); await wait(0.3); spikeRow('down', 0.55, 20); await wait(0.9);
+  const fl = B.y + B.h;
+  for (let i = 0; i < 5; i++) { barV(B.x - 12, fl - 20, fl + 12, 200, { caps: 1 }); barV(B.x + B.w + 12, fl - 20, fl + 12, -200, { caps: 1 }); await wait(0.45); }
+  await wait(0.5);
+  blaster(B.x - 50, fl - 10, 0, { charge: 0.55 }); blaster(B.x + B.w + 50, fl - 40, PI, { charge: 0.55 }); await wait(1.4);
+  barV(B.x + B.w + 12, B.y - 12, fl - 28, -230, { caps: 2 }); await wait(0.4); barV(B.x + B.w + 12, fl - 22, fl + 12, -230, { caps: 1 }); await wait(1.2);
+  await slam('down', 1); await wait(0.24); wallWarn('down', 0.12); await wait(0.12); spikeRow('down', 0.45); await wait(1.0);
+} };
+// final: 얼티밋 디 계란 오브 볶음밥 펀찌.
+ATK.final = { box: [200, 140], mode: 'blue', async fn() {
+  const ds = ['down', 'left', 'up', 'right', 'down', 'right', 'up', 'left', 'down'];
+  for (let i = 0; i < ds.length; i++) { await slam(ds[i], 2); await wait(0.17); wallWarn(ds[i], 0.09); await wait(0.09); spikeRow(ds[i], 0.36); await wait(0.5); }
+  setGrav(0, 1, 0); soul.mode = 'red'; await setBox(170, 145, 0.25);
+  for (let w = 0; w < 4; w++) { for (let i = 0; i < 4; i++) { const a = w * 0.4 + i * PI / 2, x = 320 + Math.cos(a) * 150, y = B.y + B.h / 2 + Math.sin(a) * 130; blaster(x, y, Math.atan2(soul.y - y, soul.x - x), { charge: 0.48 }); } await wait(1.0); }
+  await setBox(230, 145, 0.25);
+  await Promise.all([ATK.rain.fn(2), (async () => { for (let i = 0; i < 5; i++) { await wait(1.2); const L = i % 2 === 0; blaster(L ? B.x - 50 : B.x + B.w + 50, soul.y, L ? 0 : PI, { charge: 0.45 }); } })()]);
+  await setBox(200, 140, 0.25); soul.mode = 'blue';
+  for (let i = 0; i < 6; i++) { const d = ['left', 'right'][i % 2]; await slam(d, 2); await wait(0.16); wallWarn(d, 0.08); await wait(0.08); spikeRow(d, 0.34); await wait(0.42); }
+  setGrav(0, 1, 0); await wait(0.3);
+  hy.sweat = 2;
+  for (let i = 0; i < 4; i++) { await slam('down', 1); await wait(0.5 + i * 0.25); hy.sweat = Math.min(3, 2 + (i >> 1)); }
+  await wait(1.2);
+} };
+
+async function runAttack(name, ph, ...args) {
+  const a = ATK[name];
+  await setBox(a.box[0], a.box[1], 0.3);
+  soulReset(a.mode); ui.mode = 'none';
+  try { await a.fn(ph, ...args); }
+  finally { bullets = bullets.filter(b => b.persist); setGrav(0, 1, 0); }
+}
+
+/* ---------- dialogue ---------- */
+async function typeInto(obj, total, voice) {
+  obj.n = 0; clearHits();
+  while (obj.n < total) {
+    if (took('z') || took('x') || AUTO) { obj.n = total; break; }
+    await wait(1 / 32); obj.n++; if (obj.n % 2 === 0) audio.blip(voice);
+  }
+}
+async function hySay(lines, o = {}) {
+  for (const line of lines) {
+    if (line[0] === '#') { const [cmd, arg] = line.slice(1).split(':'); if (cmd === 'face') hy.face = arg; else hy.face = cmd; continue; }
+    bubble.lines = wrap(line, bubble.w - 22, 15); bubble.on = true;
+    const total = bubble.lines.reduce((a, l) => a + l.length, 0);
+    await typeInto(bubble, total, 'hy');
+    if (AUTO) await wait(0.25); else await keyZ();
+  }
+  bubble.on = false;
+}
+async function boxSay(paras, o = {}) {
+  ui.mode = 'text';
+  for (const p of paras) {
+    boxText.lines = wrap(p, 510, 17); boxText.on = true;
+    const total = boxText.lines.reduce((a, l) => a + l.length, 0);
+    await typeInto(boxText, total, o.voice || 'sys');
+    if (o.noWait) break;
+    if (AUTO) await wait(0.2); else await keyZ();
+  }
+  if (!o.keep) boxText.on = false;
+  ui.mode = 'none';
+}
+
+/* ---------- player turn (menu) ---------- */
+const ITEMS = {
+  r2: { n: '볶음밥 2인분', heal: 99, say: ['* 계란 볶음밥 2인분을 먹었다.', '* HP가 가득 찼다!'], re: ['예. 2인분은 맛잇씁니다.'] },
+  r1: { n: '볶음밥 1인분', heal: 40, say: ['* 계란 볶음밥 1인분을 먹었다.', '* HP가 40 회복되었다.'], re: ['…1인분은 안 판다고 햇씁니다.'] },
+  guk: { n: '국밥', heal: 60, say: ['* 국밥을 먹었다. 어디선가 ㄲㄲ 소리가 들린다.', '* HP가 60 회복되었다.'], re: ['…상욱이 냄새가 납니다.'] },
+  egg: { n: '날계란', heal: 15, say: ['* 날계란을 마셨다. 비리다.', '* HP가 15 회복되었다.'], re: [] },
+  shake: { n: '단백질 쉐이크', heal: 45, say: ['* 현태의 쉐이크를 마셨다. 바벨 맛이 난다.', '* HP가 45 회복되었다.'], re: ['…그거 제 겁니다.'] },
+};
+const ACTS = [['살펴보기', 'check'], ['2인분 주문', 'o2'], ['1인분 주문', 'o1'], ['"예." 하기', 'ye']];
+function listUI(entries, cols = 1) { ui.list = entries; ui.cols = cols; ui.sel = 0; }
+async function chooseList(entries, cols = 1) {
+  ui.mode = 'list'; listUI(entries, cols); clearHits();
+  for (; ;) {
+    await until(() => hit.z || hit.x || hit.up || hit.down || hit.left || hit.right || AUTO);
+    if (AUTO) { await wait(0.15); return AUTO.pickList ? AUTO.pickList(entries) : 0; }
+    const n = entries.length;
+    if (took('x')) { audio.move(); return -1; }
+    if (took('z')) { audio.sel(); return ui.sel; }
+    if (took('down')) { ui.sel = Math.min(n - 1, ui.sel + cols); audio.move(); }
+    if (took('up')) { ui.sel = Math.max(0, ui.sel - cols); audio.move(); }
+    if (took('right') && cols > 1 && ui.sel % cols < cols - 1 && ui.sel + 1 < n) { ui.sel++; audio.move(); }
+    if (took('left') && cols > 1 && ui.sel % cols > 0) { ui.sel--; audio.move(); }
+  }
+}
+async function playerTurn(flavor) {
+  await MENU_BOX(); soul.vis = false; bullets = []; ui.mode = 'menu'; ui.sel = G.menuSel || 0; clearHits();
+  boxText.lines = wrap(flavor, 510, 17); boxText.on = true; boxText.n = 0;
+  let total = boxText.lines.reduce((a, l) => a + l.length, 0);
+  (async () => { while (boxText.n < total && ui.mode === 'menu') { await wait(1 / 32); boxText.n++; if (boxText.n % 2 === 0) audio.blip('sys'); } boxText.n = total; })().catch(swallow);
+  for (; ;) {
+    ui.mode = 'menu'; boxText.on = true;
+    await until(() => hit.z || hit.left || hit.right || AUTO);
+    let choice;
+    if (AUTO) { await wait(0.2); choice = AUTO.pick ? AUTO.pick() : 0; }
+    else { if (took('left')) { ui.sel = (ui.sel + 3) % 4; audio.move(); continue; } if (took('right')) { ui.sel = (ui.sel + 1) % 4; audio.move(); continue; } took('z'); audio.sel(); choice = ui.sel; }
+    G.menuSel = ui.sel = choice;
+    boxText.on = false;
+    if (choice === 0) { const r = await chooseList(['* 김현태']); if (r < 0) continue; return { t: 'fight' }; }
+    if (choice === 1) { const r = await chooseList(['* 김현태']); if (r < 0) continue; const a = await chooseList(ACTS.map(x => '* ' + x[0]), 2); if (a < 0) continue; return { t: 'act', id: ACTS[a][1] }; }
+    if (choice === 2) { if (!G.items.length) { await boxSay(['* 가방이 비어 있다.', '* 현태가 2인분을 권한다.'], {}); ui.mode = 'menu'; continue; } const r = await chooseList(G.items.map(k => '* ' + ITEMS[k].n), 2); if (r < 0) continue; return { t: 'item', id: G.items[r], idx: r }; }
+    if (choice === 3) { const r = await chooseList(['* 살려주기', '* 도망치기']); if (r < 0) continue; return { t: 'mercy', id: r === 0 ? 'spare' : 'flee' }; }
+  }
+}
+// FIGHT: the attack bar
+async function fightBar() {
+  ui.mode = 'fight'; ui.fightX = B.x + 4; ui.fightStop = false; ui.fightFlash = 0; clearHits();
+  const t0 = T, D = 1.25;
+  let stopped = false;
+  await until(() => { ui.fightX = B.x + 4 + (T - t0) / D * (B.w - 8); if (took('z') || (AUTO && T - t0 > D * 0.5)) { stopped = true; return true; } return T - t0 > D; });
+  ui.fightStop = stopped;
+  const acc = stopped ? 1 - Math.abs((ui.fightX - (B.x + B.w / 2)) / (B.w / 2)) : 0;
+  if (stopped) { await wait(0.15); }
+  return acc;
+}
+async function attackHyuntae(acc, real = false) {
+  const hx = hy.x, hyY = hy.feet - 110;
+  if (!real) {
+    // 현태 dodges, like he always does
+    audio.slash(); fx.push({ k: 'slash', x: hx, y: hyY, t: 0, life: 0.5 });
+    hy.idle = false; await tween(0.18, k => hy.dx = -62 * k);
+    floatText('예.', hx, hyY - 30, { col: '#c0c0c0', size: 26 });
+    await wait(0.75); await tween(0.25, k => hy.dx = -62 * (1 - k)); hy.idle = true;
+  } else {
+    audio.slash(); fx.push({ k: 'slash', x: hx, y: hyY, t: 0, life: 0.5 });
+    await wait(0.45); audio.big(); shake = 10; flashA = 0.6; hy.shake = 4; hy.flash = 0.8;
+    hy.hpShow = 1; floatText('예.', hx, hyY - 40, { col: '#ff2020', size: 30, px: 2, life: 2.4 });
+    await tween(1.2, k => { hy.hp = 1 - k; hy.flash = 0.8 * (1 - k); });
+    hy.shake = 0; await wait(0.8); hy.hpShow = 0;
+  }
+  ui.mode = 'none';
+}
+
+/* ---------- the script ---------- */
+const P1 = [
+  { atk: 'rain', say: ['예. 첫 공격을 피하셧씁니다.', '다들 첫 방에 죽는데. 꽤 하씁니다.'], fl: '* 현태가 2인분을 기다린다.' },
+  { atk: 'jump', say: ['볶음밥은 기름부터 두르는 겁니다.', '알바도 기름부터 두르는 겁니다. 예.'], fl: '* 웍에서 기름 냄새가 난다.' },
+  { atk: 'eggs', say: ['계란은 1인분에 2개씁니다.', '지금 날아가는 건… 서비스씁니다.'], fl: '* 현태가 계란을 만지작거린다.' },
+  { atk: 'stream', say: ['제가 왜 "예."만 하는지 아씁니까?', '…예.'], fl: '* 현태: 예.' },
+  { atk: 'wall', say: ['무에타이에서 배운 게 하나 잇씁니다.', '맞기 전에 피하는 것.'], fl: '* 현태가 바벨을 만지작거린다.' },
+  { atk: 'wok', say: ['웍 쓰는 법 보여드리겟씁니다.', '손목 스냅이 중요하씁니다.'], fl: '* 웍이 달궈지는 소리가 들린다.' },
+  { atk: 'blaster', say: ['이건 "예. 블래스터"씁니다.', '제 대답을 그대로 쏘는 겁니다.'], fl: '* 현태의 대답이 점점 커진다.' },
+  { atk: 'plates', say: ['원판 굴러가는 소리.', '좋지 않씁니까?'], fl: '* 바닥에 원판 자국이 있다.' },
+  { atk: 'slam', say: ['이제 몸 좀 풀렷씁니다.', '#wink', '예.', '#normal'], fl: '* 현태가 목을 푼다.' },
+];
+const P2 = [
+  { atk: 'bluorange', say: ['주방은 전쟁터씁니다.', '파란 바벨은 가만히, 주황 바벨은 움직이면서 피하씹시오.', '…예. 친절하지요?'] },
+  { atk: 'drop', say: ['바벨 들 시간이씁니다.'] },
+  { atk: 'ring', say: ['예. 예. 예. 예. 예.'] },
+  { atk: 'combo1', say: ['기름 튀는 건 조리사의 숙명이씁니다.'] },
+  { atk: 'combo2', say: ['포기하면 편하씁니다.', '계란 볶음밥 먹고 쉬씹시오.'] },
+  { atk: 'mines', say: ['상욱이는 지금 국밥 먹고 잇씁니다.', '…부럽씁니다.'] },
+  { atk: 'combo3', say: ['다음이 진짜 마지막이씁니다.', '…이걸 버티면 2인분 사겟씁니다.'] },
+];
+const P2_FL = '* 당신의 등에 볶음밥 기름이 흘러내림을 느낀다.';
+
+function introFor(d) {
+  const deathsPh2 = SAVE.lastPh === 2;
+  if (d === 0) return { lines: ['정말 아름다운 날임미다.', '새들은 노래하고, 계란은 지글지글 익어가씁니다…', '이런 날엔, 당신 같은 알바는…', '#shadow', '웍에서 바싹 볶아져야 합니다.'], delay: 0.15, v: 0 };
+  if (d === 1) return { lines: ['…한 번 죽은 표정이씁니다.', '예. 다 알고 잇씁니다.', '정말 아름다운 날임미다.', '#shadow', '다시 볶아드리겟씁니다.'], delay: 0.5, v: 0 };
+  if (d === 2) return { lines: ['두 번 죽엇씁니다.', '2인분이씁니다. 예.', '#shadow', '이번엔 좀 더 빨리 가겟씁니다.'], delay: 0, v: 1 };
+  if (d === 3) return { lines: ['세 번이씁니다.', '볶음밥 3인분이면 계란이 6개 필요하씁니다.', '…지금 그런 얘기 할 때가 아니씁니까?', '#shadow', '예.'], delay: 1.2, v: 0 };
+  if (d === 4) return { lines: ['#shadow', '이번엔 인사 안 하겟씁니다.'], delay: 0, v: 0 };
+  if (d === 5) return { lines: ['…', '…', '#shadow', '예.'], delay: 2.2, v: 1 };
+  if (d === 10) return { lines: ['10번이씁니다. 예.', '이건 서비스씁니다.', '(볶음밥 2인분을 받았다.)', '#shadow', '…그래도 봐드리진 않씁니다.'], delay: 0.4, v: 0, bonus: 'r2' };
+  const pool = [
+    [`${d}번째씁니다. 세고 잇씁니다.`, '#shadow', '정말 아름다운 날임미다. …매번 그렇씁니다.'],
+    ['그만 죽으씹시오.', '저도 피곤하씁니다.', '#shadow', '…예.'],
+    ['상욱이도 이것보단 잘 피합니다.', '국밥 먹으면서요.', '#shadow', '예.'],
+    ['정말 아름다운 날임미다.', '#shadow', '…그리고 당신은 또 왓씁니다.'],
+    ['#shadow', '…'],
+  ];
+  const lines = pick(pool).slice();
+  if (deathsPh2 && rand() < 0.5) lines.unshift('2페이즈까지 갓엇씁니다. 대단하씁니다.');
+  return { lines, delay: pick([0, 0, 0.3, 0.8, 1.6]), v: rand() < 0.5 ? 1 : 0 };
+}
+
+function freshG(easy) {
+  return { hp: 92, max: 92, kr: 0, items: ['r2', 'r2', 'r1', 'r1', 'guk', 'egg', 'egg', 'shake'], ph: 1, turn: 0, dead: false, easy, hits: 0, menuSel: 0, o2: 0, ye: 0, fought: 0, t0: T, sleeping: false };
+}
+async function battle(fromP2) {
+  G = freshG(SAVE.easy); scene = 'battle'; bullets = []; fx = []; hy.face = 'normal'; hy.sweat = 0; hy.dx = 0; hy.alpha = 1; hy.vis = true; hy.prop = null; hy.zzz = false; hy.hp = 1; hy.hpShow = 0; hy.idle = true; hy.headRot = 0;
+  setBox(565, 130, 0); soul.vis = false; ui.mode = 'none'; boxText.on = false; bubble.on = false; fade = 0;
+  const d = SAVE.deaths;
+  if (fromP2) {
+    G.ph = 2; SAVE.lastPh = 2;
+    await hySay(['다시 2페이즈부터 하겟씁니다. 예.', '#glow', '…진심으로.']);
+    audio.music(2);
+    return await phase2();
+  }
+  const intro = introFor(d);
+  if (intro.bonus) G.items.unshift(intro.bonus);
+  await wait(0.6);
+  await hySay(intro.lines);
+  // the first attack — no turn for you
+  audio.music(1);
+  await setBox(ATK.opener.box[0], ATK.opener.box[1], 0.12); soulReset('blue'); ui.mode = 'none';
+  try { await ATK.opener.fn(1, intro.v, intro.delay); } finally { bullets = []; setGrav(0, 1, 0); }
+  hy.face = 'normal';
+  for (let i = 0; i < P1.length; i++) {
+    G.turn = i + 1;
+    const r = await turnAction(P1[i].fl);
+    await hySay([...r, ...(d > 0 && i === 0 ? ['또 피하셧씁니다. 이번엔 몇 번째씁니까?'] : P1[i].say)]);
+    await runAttack(P1[i].atk, 1);
+  }
+  // mercy offer
+  await MENU_BOX(); soul.vis = false;
+  hy.sweat = 1;
+  await hySay(['…예.', '솔직히 좀 지쳣씁니다.', '당신도 지쳣지요?', '그래서 제안 하나 하겟씁니다.', '저한테 자비를 베푸씹시오.', '그럼 "합격"시켜 드리겟씁니다.', '…예. 진심이씁니다.']);
+  hy.sweat = 0;
+  const a = await playerTurn('* 현태가 자비를 기다린다.');
+  if (a.t === 'mercy' && a.id === 'spare') {
+    await boxSay(['* 현태를 살려주었다.']);
+    await hySay(['예. 합격이씁니다.', '이리 오씹시오. 악수 하씹시다.', '#shadow', '…']);
+    await setBox(120, 120, 0.15); soulReset('red'); ui.mode = 'none';
+    for (const dd of ['down', 'up', 'left', 'right']) spikeRow(dd, 3, 60);
+    await wait(0.05); G.hp = 1; hurt({ dmg: 99, betray: true }); await wait(5); return;
+  }
+  if (a.t === 'fight') { await fightBar(); await attackHyuntae(0); }
+  else if (a.t !== 'mercy') await doAction(a);
+  else await boxSay(['* 도망칠 수 없다.']);
+  G.ph = 2; SAVE.lastPh = 2; save();
+  await hySay(['…예.', '그럴 줄 알앗씁니다.', '그럼…', '#glow', '진심으로 하겟씁니다.']);
+  audio.music(2);
+  return await phase2();
+}
+async function phase2() {
+  for (let i = 0; i < P2.length; i++) {
+    G.turn = 10 + i + 1;
+    const r = await turnAction(P2_FL);
+    await hySay([...r, ...P2[i].say]);
+    await runAttack(P2[i].atk, 2);
+  }
+  // FINAL
+  const r = await turnAction(P2_FL);
+  await hySay([...r, '예.', '그럼…', '얼티밋 디 계란 오브 볶음밥 펀찌.']);
+  banner = { str: '얼티밋 디 계란 오브 볶음밥 펀찌.', t: 0 }; audio.big(); shake = 8;
+  await wait(1.6); banner = null;
+  await runAttack('final', 2);
+  // he's spent
+  audio.stopMusic();
+  await setBox(200, 140, 0.2);
+  hy.face = 'normal'; hy.sweat = 3;
+  await hySay(['…예.', '…헉… 헉…', '…배고프씁니다.', '잠깐만… 볶음밥 좀… 먹고 하겟씁니다.']);
+  hy.prop = 'bowl';
+  for (let i = 0; i < 4; i++) { await tween(0.18, k => { hy.headDy = 6 * k; hy.headRot = 0.08 * k; }); audio.tone(300, 0.05, 0.08); await tween(0.18, k => { hy.headDy = 6 * (1 - k); hy.headRot = 0.08 * (1 - k); }); }
+  await hySay(['…맛잇씁니다.', '#closed', '…2인분… 2인분부터…']);
+  hy.prop = null; hy.face = 'sleep'; hy.zzz = true; hy.idle = true; G.sleeping = true;
+  await tween(0.6, k => hy.headRot = 0.22 * k);
+  // he sleeps. your turn — finally for real
+  for (; ;) {
+    const a = await playerTurn(pick(['* 현태가 잠들었다.', '* 현태가 2인분 꿈을 꾸는 것 같다.', '* 현태가 "예…" 하고 잠꼬대를 한다.']));
+    if (a.t === 'fight') { await fightBar(); await finalHit(); return 'win'; }
+    if (a.t === 'act') await boxSay(['* 현태를 살펴봤다.', '* 숨소리가 "예… 예…" 하고 들린다.']);
+    else if (a.t === 'item') await useItem(a);
+    else await boxSay(['* 자고 있는 현태를 살려두었다.', '* …아무 일도 일어나지 않았다.']);
+  }
+}
+async function turnAction(flavor) {
+  const a = await playerTurn(flavor);
+  return await doAction(a);
+}
+async function doAction(a) {
+  if (a.t === 'fight') { const acc = await fightBar(); await attackHyuntae(acc); G.fought++; return G.fought === 1 ? ['예. 피햇씁니다.', '가만히 맞을 줄 알앗씁니까?'] : []; }
+  if (a.t === 'act') {
+    if (a.id === 'check') { await boxSay(['* 김현태 - ATK 1 DEF 1', '* 가장 쉬운 적.', '* 2인분부터 받는다.']); return []; }
+    if (a.id === 'o2') { G.o2++; if (G.o2 === 1) { await boxSay(['* 계란 볶음밥 2인분을 주문했다.', '* …현태가 진짜로 만들어 줬다! (볶음밥 2인분을 받았다)']); G.items.push('r2'); return ['예. 2인분 나왓씁니다.', '…이건 싸움이랑 별개씁니다.']; } await boxSay(['* 2인분을 또 주문했다.']); return ['…아까 드렷씁니다.']; }
+    if (a.id === 'o1') { await boxSay(['* 1인분을 주문했다.', '* 현태의 눈빛이 바뀌었다.']); hy.face = 'angry'; return ['1인분은 안 받씁니다.', '#normal']; }
+    if (a.id === 'ye') { G.ye++; await boxSay(['* "예."라고 했다.']); return G.ye >= 3 ? ['…따라하지 마씹시오.'] : ['예.']; }
+  }
+  if (a.t === 'item') return await useItem(a);
+  if (a.t === 'mercy') {
+    if (a.id === 'spare') { await boxSay(['* 현태는 자비를 받지 않는다…', '* 아직은.']); return ['예. 아직이씁니다.']; }
+    await boxSay(['* 도망칠 수 없다.', '* 현태가 출구를 막고 있다.']); return ['어디 가씁니까? 예.'];
+  }
+  return [];
+}
+async function useItem(a) {
+  const it = ITEMS[a.id]; G.items.splice(a.idx, 1);
+  G.hp = Math.min(G.max, G.hp + it.heal); if (G.hp >= G.max) G.kr = 0; G.kr = Math.min(G.kr, G.hp - 1);
+  audio.heal(); await boxSay(it.say);
+  return G.sleeping ? [] : it.re;
+}
+async function finalHit() {
+  hy.zzz = false; hy.face = 'normal'; hy.headRot = 0;
+  await attackHyuntae(1, true);
+  hy.face = 'closed'; hy.sweat = 3;
+  await hySay(['…예.', '…그렇게 됐씁니다.', '…볶음밥 2인분, 결국 못 팔앗씁니다.', '…', '#normal', '상욱아…', '국밥 먹으러 가자.']);
+  await tween(1.6, k => hy.alpha = 1 - k);
+  hy.vis = false; await wait(0.8);
+}
+
+/* ---------- death ---------- */
+let deathKind = 'normal';
+function die(kind) {
+  if (G.dead) return; G.dead = true; deathKind = kind;
+  abortAll(); audio.stopMusic();
+}
+async function deathSeq() {
+  scene = 'dead'; const sx = soul.x, sy = soul.y; bullets = []; fx = []; bubble.on = false; boxText.on = false; banner = null;
+  const D = { st: 'heart', x: sx, y: sy, go: 0 }; deathState = D;
+  await wait(0.7); D.st = 'broken'; audio.crack(); await wait(1.0);
+  D.st = 'gone'; audio.shatter();
+  for (let i = 0; i < 6; i++) fx.push({ k: 'shard', x: sx + rr(-6, 6), y: sy + rr(-6, 6), vx: rr(-120, 120), vy: rr(-220, -60), t: 0, life: 2.5 });
+  await wait(1.3);
+  await tween(1.2, k => D.go = k);
+  SAVE.deaths++; save();
+  const msg = deathKind === 'betray' ? ['* 예. 속앗씁니까?', '* 다음부턴 믿지 마씹시오.'] :
+    pick([['* 포기하지 마씹시오…', '* 알바… 의지를 가지씹시오!'], ['* 예.', '* …다시 하씹시오.'], ['* 계란은 2개, 밥은 1공기.', '* 그리고 당신은 한 번 더.'], ['* 아직 2인분이 남앗씁니다.', '* 일어나씹시오.']]);
+  D.msg = { lines: [], n: 0 };
+  for (const m of msg) { D.msg.lines = [m]; await typeInto(D.msg, m.length, 'hy'); if (AUTO) await wait(0.3); else await keyZ(); }
+  D.msg = null;
+  await tween(0.6, k => fade = k);
+}
+let deathState = null;
+
+/* ---------- logo / title / win ---------- */
+let titleSel = 0;
+async function logoSeq() {
+  scene = 'logo'; fade = 1; await tween(0.5, k => fade = 1 - k); await Promise.race([wait(1.4), keyZ()]); await tween(0.5, k => fade = k);
+}
+async function titleSeq() {
+  scene = 'title'; titleSel = SAVE.easy ? 1 : 0; hy.face = 'normal'; hy.vis = true; hy.alpha = 1; hy.dx = 0; hy.prop = null; hy.zzz = false; hy.sweat = 0; hy.headRot = 0;
+  await tween(0.5, k => fade = 1 - k); clearHits();
+  for (; ;) {
+    await until(() => hit.z || hit.up || hit.down || AUTO);
+    if (AUTO) { await wait(0.2); break; }
+    if (took('up') || took('down')) { titleSel = 1 - titleSel; audio.move(); continue; }
+    if (took('z')) { audio.sel(); break; }
+  }
+  SAVE.easy = titleSel === 1; save();
+  await tween(0.5, k => fade = k);
+}
+async function winSeq() {
+  scene = 'win'; SAVE.wins++; save();
+  fade = 0; G.win = { n: 0, lines: [] };
+  const L = ['* YOU WON!', '* 0 EXP와 계란 2개를 얻었다.', '* 현태: 다음엔 2인분 시키씹시오. 예.'];
+  for (const l of L) { G.win.lines.push(l); G.win.n = 0; await typeInto(G.win, l.length, 'sys'); await wait(0.3); }
+  if (AUTO) await wait(0.5); else await keyZ();
+  G.win.credits = true; await wait(0.6); if (AUTO) await wait(0.5); else await keyZ();
+  await tween(0.6, k => fade = k);
+}
+
+/* ---------- main flow ---------- */
+async function main() {
+  await logoSeq();
+  for (; ;) {
+    await titleSeq();
+    let fromP2 = false;
+    for (; ;) {
+      fade = 0;
+      let res;
+      try { res = await battle(fromP2); } catch (e) { if (e !== ABORT) { console.error(e); throw e; } res = 'dead'; }
+      if (G.dead || res !== 'win') {
+        await deathSeq(); fade = 0;
+        fromP2 = G.easy && G.ph === 2;
+        continue;
+      }
+      await winSeq(); break;
+    }
+  }
+}
+
+/* ========= main loop & rendering ========= */
+
+function step(dt) {
+  T += dt; invT -= dt;
+  runTimers();
+  if (scene === 'battle' && G && !G.dead) {
+    updSoul(dt);
+    for (let i = bullets.length - 1; i >= 0; i--) {
+      const b = bullets[i]; if (!b) continue; b.t += dt;
+      if (!b.upd(b, dt)) { bullets.splice(i, 1); continue; }
+      if (soul.vis && ui.mode === 'none' && b.hit(soul.x, soul.y)) hurt(b);
+      if (G.dead) break;
+    }
+    updKR(dt);
+  }
+  updFx(dt);
+  shake = Math.max(0, shake - dt * 30); flashA = Math.max(0, flashA - dt * 2);
+  if (banner) banner.t += dt;
+}
+
+/* ---------- drawing ---------- */
+function drawBox() {
+  const x = Math.round(B.x), y = Math.round(B.y), w = Math.round(B.w), h = Math.round(B.h);
+  rect(x - 5, y - 5, w + 10, h + 10, '#ffffff'); rect(x, y, w, h, '#000000');
+}
+function drawBoxContent() {
+  const x = Math.round(B.x), y = Math.round(B.y);
+  if ((ui.mode === 'menu' || ui.mode === 'text' || ui.mode === 'none') && boxText.on) {
+    let left = boxText.n; boxText.lines.forEach((l, i) => { text(l, x + 20, y + 26 + i * 30, { size: 17, n: left }); left -= l.length; });
+  }
+  if (ui.mode === 'list') {
+    const per = ui.cols === 2 ? 6 : 3, page = Math.floor(ui.sel / per), start = page * per;
+    ui.list.slice(start, start + per).forEach((s, j) => {
+      const i = start + j, cx = x + 60 + (j % ui.cols) * 260, cy = y + 26 + Math.floor(j / ui.cols) * 34;
+      text(s, cx, cy, { size: 17 });
+      if (i === ui.sel) drawSpr(SPR.heart, cx - 24, cy);
+    });
+    if (ui.list.length > per) text(`PAGE ${page + 1}`, x + B.w - 20, y + B.h - 18, { size: 14, align: 'r' });
+  }
+  if (ui.mode === 'fight') {
+    const cx = x + B.w / 2, cy = y + B.h / 2;
+    // the target — concentric pixel ellipses
+    for (let r = 0; r < 4; r++) {
+      const rx = (B.w / 2 - 10) * (1 - r * 0.24), ry = (B.h / 2 - 8) * (1 - r * 0.24);
+      for (let a = 0; a < TAU; a += 0.02) rect(cx + Math.cos(a) * rx - 1, cy + Math.sin(a) * ry - 1, 2, 2, r === 3 ? '#ff7f27' : '#ffffff');
+    }
+    rect(cx - 1, y + 6, 2, B.h - 12, '#ffffff');
+    const bx = Math.round(ui.fightX), on = !ui.fightStop || Math.floor(T * 14) % 2;
+    rect(bx - 7, y + 3, 14, B.h - 6, on ? '#ffffff' : '#000000'); rect(bx - 3, y + 7, 6, B.h - 14, '#000000');
+  }
+}
+function drawHUD() {
+  const y = 404;
+  text('알바', 30, y, { size: 17, weight: 900 }); text('LV 19', 110, y, { size: 17, weight: 900 });
+  text('HP', 238, y, { size: 12, weight: 900 });
+  const bx = 266, bw = Math.round(G.max * 1.25), hpW = Math.round(G.hp * 1.25), krW = Math.round(G.kr * 1.25);
+  rect(bx, y - 10, bw, 20, '#c00000'); rect(bx, y - 10, Math.max(0, hpW - krW), 20, '#ffff00'); if (krW) rect(bx + hpW - krW, y - 10, krW, 20, '#ff8c00');
+  text('기름', bx + bw + 10, y, { size: 12, weight: 900, color: G.kr > 0 ? '#ff8c00' : '#ffffff' });
+  text(`${Math.ceil(G.hp)} / ${G.max}`, bx + bw + 46, y, { size: 17, weight: 900, color: G.kr > 0 ? '#ff8c00' : '#ffffff' });
+  const X = [32, 185, 345, 500], IC = ['fight', 'act', 'item', 'mercy'];
+  for (let i = 0; i < 4; i++) {
+    const act = (ui.mode === 'menu' || ui.mode === 'list' || ui.mode === 'fight') && ui.sel === i && scene === 'battle' && G.menuSel === i || (ui.mode === 'menu' && ui.sel === i);
+    const col = act ? '#ffff00' : '#ff7f27', x = X[i], yy = 432;
+    rect(x, yy, 110, 42, col); rect(x + 3, yy + 3, 104, 36, '#000');
+    if (act && ui.mode === 'menu') drawSpr(SPR.heart, x + 22, yy + 21); else drawSpr(act ? ICON[IC[i] + 'Y'] : ICON[IC[i]], x + 22, yy + 21);
+    text('예.', x + 68, yy + 21, { size: 24, weight: 900, color: col, align: 'c' });
+  }
+}
+function drawBattle() {
+  drawHy(); drawBubble();
+  drawBox();
+  ctx.save(); ctx.beginPath(); ctx.rect(Math.round(B.x), Math.round(B.y), Math.round(B.w), Math.round(B.h)); ctx.clip();
+  for (const b of bullets) if (b.clip) b.draw();
+  ctx.restore();
+  drawBoxContent();
+  if (soul.vis && ui.mode === 'none') drawSpr(soul.mode === 'blue' ? SPR.heartB : SPR.heart, soul.x, soul.y);
+  for (const b of bullets) if (!b.clip) b.draw();
+  drawFx();
+  drawHUD();
+  if (banner) {
+    const k = Math.min(1, banner.t / 0.2), sx = Math.round((rand() - .5) * 4);
+    ctx.globalAlpha = k; rect(0, 128, LW, 54, '#000'); text(banner.str, 320 + sx + 3, 158, { size: 28, weight: 900, color: '#7a0000', align: 'c' }); text(banner.str, 320 + sx, 155, { size: 28, weight: 900, color: '#ff2020', align: 'c' }); ctx.globalAlpha = 1;
+  }
+}
+const HAMMER = spr(['.####..', '######.', '######.', '.####..', '...#...', '...#...', '...#...', '...#...', '..###..'], { '#': '#ff7f27' }, 4);
+function drawLogo() {
+  drawSpr(HAMMER, 320, 190);
+  text('시우 공방', 320, 270, { size: 30, weight: 900, px: 2, align: 'c' });
+  text('SIWOO WORKSHOP', 320, 318, { size: 12, weight: 900, color: '#808080', align: 'c' });
+}
+function drawTitle() {
+  const sv = hy.feet; hy.feet = 312; drawHy(); hy.feet = sv;
+  text('현태테일', 320, 62, { size: 30, weight: 900, px: 2, align: 'c' });
+  text('H Y U N T A E T A L E', 320, 108, { size: 12, weight: 900, color: '#ff7f27', align: 'c' });
+  const opts = ['시작하기 (보통)', '시작하기 (쉬움 · 2페이즈 이어하기)'];
+  opts.forEach((o, i) => { const y = 352 + i * 30; text(o, 230, y, { size: 17, color: titleSel === i ? '#ffff00' : '#ffffff' }); if (titleSel === i) drawSpr(SPR.heart, 210, y); });
+  text(`죽은 횟수 ${SAVE.deaths}   ·   승리 ${SAVE.wins}`, 320, 422, { size: 13, color: '#9a9a9a', align: 'c' });
+  text(isTouch ? '예.: 확인   X: 취소/천천히   방향: 이동' : 'Z: 예.(확인)   X: 취소·천천히   방향키: 이동   M: 소리', 320, 446, { size: 12, color: '#7a7a7a', align: 'c' });
+  text('© 시우 공방', 320, 468, { size: 11, color: '#5a5a5a', align: 'c' });
+}
+function drawDead() {
+  const D = deathState; if (!D) return;
+  if (D.st === 'heart') drawSpr(SPR.heart, D.x, D.y);
+  if (D.st === 'broken') { const s = Math.round((rand() - .5) * 2); drawSpr(SPR.heartBroken, D.x + s, D.y); }
+  drawFx();
+  if (D.go > 0) {
+    ctx.globalAlpha = D.go;
+    text('GAME', 320, 120, { size: 40, weight: 900, px: 2, align: 'c' }); text('OVER', 320, 220, { size: 40, weight: 900, px: 2, align: 'c' });
+    ctx.globalAlpha = 1;
+  }
+  if (D.msg) D.msg.lines.forEach((l, i) => text(l, 150, 340 + i * 30, { size: 18, n: D.msg.n }));
+}
+function drawWin() {
+  if (!G || !G.win) return;
+  if (!G.win.credits) {
+    rect(32, 250, 576, 140, '#fff'); rect(37, 255, 566, 130, '#000');
+    G.win.lines.forEach((l, i) => text(l, 57, 281 + i * 30, { size: 17, n: i === G.win.lines.length - 1 ? G.win.n : Infinity }));
+  } else {
+    text('현태테일', 320, 120, { size: 26, weight: 900, px: 2, align: 'c' });
+    text('THE END', 320, 190, { size: 16, weight: 900, color: '#ff7f27', align: 'c' });
+    text('주연  김현태 (예.)', 320, 250, { size: 16, align: 'c' });
+    text('특별 출연  상욱이 (국밥 먹으러 감)', 320, 280, { size: 16, align: 'c' });
+    text(`죽은 횟수  ${SAVE.deaths}`, 320, 310, { size: 16, align: 'c' });
+    text('제작  시우 공방', 320, 350, { size: 16, weight: 900, align: 'c' });
+    text('Z: 타이틀로', 320, 420, { size: 13, color: '#8a8a8a', align: 'c' });
+  }
+}
+function render() {
+  ctx.setTransform(K, 0, 0, K, 0, 0); ctx.imageSmoothingEnabled = false;
+  rect(0, 0, LW, LH, '#000');
+  ctx.save();
+  if (shake > 0.5) ctx.translate(Math.round((rand() - .5) * shake), Math.round((rand() - .5) * shake));
+  if (scene === 'logo') drawLogo();
+  else if (scene === 'title') drawTitle();
+  else if (scene === 'battle') drawBattle();
+  else if (scene === 'dead') drawDead();
+  else if (scene === 'win') drawWin();
+  ctx.restore();
+  if (flashA > 0) { ctx.globalAlpha = flashA; rect(0, 0, LW, LH, '#fff'); ctx.globalAlpha = 1; }
+  if (fade > 0) { ctx.globalAlpha = fade; rect(0, 0, LW, LH, '#000'); ctx.globalAlpha = 1; }
+}
+let last = performance.now(), acc = 0;
+function frame(now) {
+  const dt = Math.min(0.1, (now - last) / 1000) * SPEED; last = now; acc += dt;
+  let n = 0; while (acc >= 1 / 60 && n < 40) { step(1 / 60); acc -= 1 / 60; n++; }
+  if (n >= 40) acc = 0;
+  render(); requestAnimationFrame(frame);
+}
+
+(async function boot() {
+  [HEAD, BODY] = await Promise.all([loadImg('data:image/webp;base64,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'), loadImg('data:image/png;base64,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')]);
+  try { await Promise.race([Promise.all([document.fonts.load(`700 17px 'Noto Sans KR'`), document.fonts.load(`900 17px 'Noto Sans KR'`)]), new Promise(r => setTimeout(r, 2500))]); } catch (e) { }
+  tcache.clear(); BLASTER = null;
+  fit();
+  requestAnimationFrame(frame);
+  if (!window.__HT_NOMAIN) main().catch(e => console.error(e));
+})();
+
+</script>
+</body>
+</html>
