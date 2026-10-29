@@ -503,7 +503,7 @@ const tileTex = canvasTex(256, 256, (g, w, h) => {
     g.fillStyle = `hsl(38,14%,${80 + rand() * 5}%)`; g.fillRect(c * 64 + (r % 2 ? 32 : 0) + 2, r * 32 + 2, 60, 28);
   }
 });
-tileTex.wrapS = tileTex.wrapT = THREE.RepeatWrapping; tileTex.repeat.set(7, 3.5);
+tileTex.wrapS = tileTex.wrapT = THREE.RepeatWrapping; tileTex.repeat.set(7, 6.2);
 const glowTex = canvasTex(128, 128, (g, w) => {
   const gr = g.createRadialGradient(w / 2, w / 2, 0, w / 2, w / 2, w / 2);
   gr.addColorStop(0, 'rgba(255,150,60,1)'); gr.addColorStop(.55, 'rgba(255,110,40,.55)'); gr.addColorStop(1, 'rgba(255,90,30,0)');
@@ -535,7 +535,7 @@ scene.add(new THREE.HemisphereLight(0xfff1dc, 0x3b2a1e, 0.95));
 const sun = new THREE.DirectionalLight(0xffe2bf, 0.75); sun.position.set(-3, 9, 6); scene.add(sun);
 const fireLight = new THREE.PointLight(0xff8a3d, 0, 4.5, 2); scene.add(fireLight);
 add(new THREE.Mesh(new THREE.BoxGeometry(16, 0.6, 7.2), lam(0xffffff, { map: woodTex })), 0.3, -0.3, 0.4);
-const wallMesh = add(new THREE.Mesh(new THREE.PlaneGeometry(18, 9), lam(0xffffff, { map: tileTex })), 0.3, 4.2, -3.2);
+const wallMesh = add(new THREE.Mesh(new THREE.PlaneGeometry(18, 16), lam(0xffffff, { map: tileTex })), 0.3, 7.6, -3.2);
 const signTex = textTex(512, 160, (g, w, h) => {
   g.fillStyle = '#3b2618'; g.fillRect(0, 0, w, h); g.strokeStyle = '#f5bf2a'; g.lineWidth = 6; g.strokeRect(10, 10, w - 20, h - 20);
   g.fillStyle = '#fbfaf5'; g.font = '72px "Black Han Sans", sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('현태네 주방', w / 2, h / 2 + 4);
@@ -954,13 +954,13 @@ function tweenTo(obj, pos, rot, dur) {
 /* ===== camera ===== */
 const VIEWS = {
   title: { p: [0.4, 5.6, 9.0], l: [0.4, 0.3, -0.2] },
-  face: { p: [0.6, 2.45, 1.0], l: [0.6, 2.2, -2.8] },
+  face: { p: [0.64, 8.3, 3.8], l: [0.64, 8.4, -2.9] },
   all: { p: [0.2, 8.0, 7.4], l: [0.2, 0.45, 0.0] },
   prep: { p: [-2.5, 4.6, 4.6], l: [-2.5, 0.2, 0.15] },
   stove: { p: [0.9, 5.0, 4.5], l: [0.9, 0.35, -0.7] },
   right: { p: [4.0, 4.6, 4.7], l: [4.0, 0.3, 0.1] },
   plate: { p: [4.2, 3.2, 3.9], l: [4.2, 0.35, 1.0] },
-  eat: { p: [4.15, 3.3, 7.6], l: [4.15, 2.05, -0.6] },
+  eat: { p: [4.15, 4.3, 9.0], l: [4.15, 2.7, -0.6] },
 };
 let camName = 'title', portrait = 1, vw = 1, vh = 1;
 const camP = new THREE.Vector3(...VIEWS.title.p), camL = new THREE.Vector3(...VIEWS.title.l), tP = new THREE.Vector3(), tL = new THREE.Vector3();
@@ -1857,17 +1857,50 @@ const TASTER = { x: 4.15, z: -2.3 };
 const taster = new THREE.Group(); taster.position.set(TASTER.x, 0, TASTER.z); taster.visible = false; scene.add(taster);
 const cutMat = (tex) => new THREE.MeshBasicMaterial({ map: tex, transparent: true, alphaTest: 0.45 });
 const headTex = new THREE.TextureLoader().load(document.querySelector('.kht-head').src);
-const bodyTex = canvasTex(440, 380, () => {});
-{
-  const svg = new XMLSerializer().serializeToString(document.querySelector('.kht-body'));
-  const img = new Image();
-  img.onload = () => { bodyTex.image.getContext('2d').drawImage(img, 0, 0, 440, 380); bodyTex.needsUpdate = true; };
-  img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
-}
+// crayon-style bodybuilder torso, drawn by hand on a canvas
+const BODY_W = 3.0, BODY_H = 3.28;
+const bodyTex = canvasTex(512, 560, g => {
+  const J = () => (rand() - .5) * 5;
+  const poly = (pts, fill, lw) => {
+    g.beginPath(); pts.forEach(([x, y], i) => i ? g.lineTo(x + J(), y + J()) : g.moveTo(x + J(), y + J())); g.closePath();
+    if (fill) { g.fillStyle = fill; g.fill(); }
+    g.lineWidth = lw || 9; g.strokeStyle = '#111'; g.lineJoin = 'round'; g.stroke();
+  };
+  const line = (pts, lw, col) => { g.beginPath(); pts.forEach(([x, y], i) => i ? g.lineTo(x + J() * .5, y + J() * .5) : g.moveTo(x, y)); g.lineWidth = lw || 5; g.strokeStyle = col || '#5a2e14'; g.lineCap = 'round'; g.stroke(); };
+  const SK = '#c9875a', SKD = '#a9673c';
+  const arm = s => {
+    const X = x => s > 0 ? x : 512 - x;
+    poly([[130, 120], [70, 130], [32, 185], [22, 265], [40, 345], [48, 420], [66, 478], [120, 476], [126, 420], [112, 345], [124, 265], [140, 190]].map(([x, y]) => [X(x), y]), SK);
+    line([[X(48), 235], [X(78), 262], [X(110), 238]], 6, SKD);
+    line([[X(55), 330], [X(70), 360], [X(62), 395], [X(78), 430]], 4, '#7a3d1c');
+    line([[X(92), 300], [X(100), 340], [X(94), 380]], 4, '#7a3d1c');
+  };
+  arm(1); arm(-1);
+  poly([[205, 40], [307, 40], [318, 82], [194, 82]], SK);
+  poly([[194, 76], [318, 76], [408, 112], [424, 175], [398, 255], [352, 335], [344, 450], [168, 450], [160, 335], [114, 255], [88, 175], [104, 112]], SK, 10);
+  // shoulders
+  g.beginPath(); g.arc(110, 150, 52, PI * 0.9, PI * 1.9); g.lineWidth = 8; g.strokeStyle = '#111'; g.stroke();
+  g.beginPath(); g.arc(402, 150, 52, PI * 1.1, PI * 0.1); g.stroke();
+  // pecs
+  line([[256, 112], [200, 118], [160, 150], [168, 205], [256, 212]], 7, '#5a2e14');
+  line([[256, 112], [312, 118], [352, 150], [344, 205], [256, 212]], 7, '#5a2e14');
+  // abs
+  line([[256, 215], [256, 430]], 6, '#5a2e14');
+  [[228, 245], [228, 300], [228, 355]].forEach(([x, y]) => {
+    poly([[x - 28, y - 22], [x + 22, y - 24], [x + 24, y + 22], [x - 26, y + 24]], SKD, 5);
+    poly([[512 - x - 22, y - 24], [512 - x + 28, y - 22], [512 - x + 26, y + 24], [512 - x - 24, y + 22]], SKD, 5);
+  });
+  line([[190, 220], [178, 300], [192, 400]], 5, '#5a2e14'); line([[322, 220], [334, 300], [320, 400]], 5, '#5a2e14');
+  // shorts and legs
+  poly([[170, 498], [240, 498], [236, 560], [174, 560]], SK, 8); poly([[272, 498], [342, 498], [338, 560], [276, 560]], SK, 8);
+  poly([[164, 430], [348, 430], [356, 505], [290, 510], [256, 480], [222, 510], [156, 505]], '#151515', 9);
+});
 const HW = 1.83, HH = HW * 342 / 240;
 const rig = new THREE.Group(); taster.add(rig);
-const bodyMesh = add(new THREE.Mesh(new THREE.PlaneGeometry(2.4, 2.07), cutMat(bodyTex)), 0, 1.035, 0, rig);
-const headPivot = new THREE.Group(); headPivot.position.set(0.11, 1.74, 0.02); rig.add(headPivot);
+const bodyMesh = add(new THREE.Mesh(new THREE.PlaneGeometry(BODY_W, BODY_H), cutMat(bodyTex)), 0, BODY_H / 2, 0, rig);
+const NECK_Y = BODY_H * (1 - 44 / 560);
+const headPivot = new THREE.Group(); headPivot.position.set(0.11, NECK_Y, 0.02); rig.add(headPivot);
+const HEAD_C = NECK_Y + HH / 2 - 0.1;
 const fistTex = canvasTex(160, 140, g => {
   g.lineJoin = 'round'; g.lineWidth = 9; g.strokeStyle = '#111'; g.fillStyle = '#f2c79c';
   g.beginPath(); g.moveTo(22, 40); g.quadraticCurveTo(30, 12, 70, 14); g.quadraticCurveTo(128, 8, 140, 44);
@@ -1875,7 +1908,7 @@ const fistTex = canvasTex(160, 140, g => {
   g.lineWidth = 6; [52, 82, 112].forEach(x => { g.beginPath(); g.moveTo(x, 18); g.quadraticCurveTo(x + 6, 40, x - 2, 60); g.stroke(); });
   g.beginPath(); g.moveTo(28, 78); g.quadraticCurveTo(70, 66, 108, 84); g.stroke();
 });
-const FIST_Y = 1.45, FIST_HOME = [new THREE.Vector3(-1.35, FIST_Y, 0.2), new THREE.Vector3(1.35, FIST_Y, 0.2)];
+const FIST_Y = 0.62, FIST_HOME = [new THREE.Vector3(-0.98, FIST_Y, 0.2), new THREE.Vector3(0.98, FIST_Y, 0.2)];
 const fists = FIST_HOME.map((p, i) => { const m = add(new THREE.Mesh(new THREE.PlaneGeometry(0.95, 0.83), cutMat(fistTex)), p.x, p.y, p.z, rig); if (i) m.scale.x = -1; m.visible = false; return m; });
 const headMesh = add(new THREE.Mesh(new THREE.PlaneGeometry(HW, HH), cutMat(headTex)), -0.09, HH / 2 - 0.1, 0, headPivot);
 const MOUTH_L = new THREE.Vector3((0.15 - 0.5) * HW, (0.5 - 0.78) * HH, 0.05);
@@ -1903,7 +1936,7 @@ const arm = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.14, 1, 7), lam(0xb
 const _a = new THREE.Vector3(), _b = new THREE.Vector3(), _up = new THREE.Vector3(0, 1, 0);
 function placeHand(p) {
   spoon.position.copy(p); spoon.rotation.set(0.3, 0, 0.5);
-  _a.set(TASTER.x - 0.85, 1.75, TASTER.z + 0.1);
+  _a.set(TASTER.x - 0.95, 2.45, TASTER.z + 0.1);
   _b.copy(p).add(new THREE.Vector3(0.12, 0.3, 0)).sub(_a);
   const len = _b.length(); arm.position.copy(_a).addScaledVector(_b, 0.5);
   arm.quaternion.setFromUnitVectors(_up, _b.normalize()); arm.scale.set(1, len, 1);
@@ -1937,7 +1970,7 @@ async function eatScene(score) {
   bubble('어디 한번 먹어 볼까');
   spoon.visible = true; arm.visible = true;
   const scoop = new THREE.Vector3(PLATE.x - 0.15, PLATE.y + 0.35, PLATE.z - 0.05);
-  const mid = new THREE.Vector3(TASTER.x - 0.9, 1.7, -0.4);
+  const mid = new THREE.Vector3(TASTER.x - 1.1, 2.4, -0.4);
   for (let b = 0; b < 4; b++) {
     spoonFood.visible = false; placeHand(scoop); await sleep(0.32);
     SETS.forEach(s => { for (let i = b; i < s.n; i += 4) if (s.mode[i] === 4 || s.mode[i] === 3) s.hide(i); });
@@ -2040,7 +2073,7 @@ async function flipAndBeat(view) {
   // 3) charges straight at the player
   bubble('');
   const cam = camera.position.clone();
-  const start = taster.position.clone(), goal = new THREE.Vector3(cam.x, Math.max(0, cam.y - 3.05 * taster.scale.y), cam.z - 2.5 * taster.scale.y);
+  const start = taster.position.clone(), goal = new THREE.Vector3(cam.x, Math.max(0, cam.y - HEAD_C * taster.scale.y), cam.z - 2.5 * taster.scale.y);
   const hw = new THREE.Vector3();
   camTrack = { look: () => { headMesh.getWorldPosition(hw); return hw; }, pos: () => cam, k: 9 };
   await anim(1.15, (k, raw) => {
@@ -2056,7 +2089,7 @@ async function flipAndBeat(view) {
   const words = ['퍽!', '퍽퍽!', '빡!', '쾅!', '퍽!!', '우당탕!', '빠악!', '퍼퍽!', '쾅쾅!', '퍽!!!'];
   for (let i = 0; i < 10; i++) {
     const f = fists[i % 2], side = i % 2 ? 1 : -1, p0 = f.position.clone();
-    const hit = new THREE.Vector3(side * 0.35, FIST_Y + 0.9 + (rand() - .5) * 0.4, 1.9);
+    const hit = new THREE.Vector3(side * 0.35, HEAD_C - 0.35 + (rand() - .5) * 0.4, 1.9);
     await anim(0.08, k => { f.position.lerpVectors(p0, hit, k); f.scale.setScalar(1 + k * 1.1); }, x => x);
     punchFx(words[i], i);
     await anim(0.09, k => { f.position.lerpVectors(hit, FIST_HOME[i % 2], k); f.scale.setScalar(2.1 - k * 1.1); }, x => x);
@@ -2086,7 +2119,7 @@ function resetTaster() {
   FLY.forEach(id => { OBJ[id].visible = true; });
   camTrack = null; camRoll = 0; camDrop = 0; hurt = 0; hurtEl.hidden = true; hurtEl.style.opacity = 0; koEl.hidden = true; powsEl.innerHTML = '';
   fists.forEach((f, i) => { f.visible = false; f.position.copy(FIST_HOME[i]); f.scale.setScalar(1); });
-  angerMarks.forEach(m => m.visible = false); taster.position.set(WATCH.x, 0, WATCH.z); taster.scale.setScalar(WATCH.s); raging = false; stareT = 0; lookByMouse = false; headPivot.rotation.set(0, 0, 0); rig.position.set(0, 0, 0);
+  angerMarks.forEach(m => m.visible = false); taster.position.set(WATCH.x, 0, WATCH.z); taster.scale.setScalar(WATCH.s); raging = false; stareT = 0; lookByMouse = false; glanceBack = null; glanceUntil = 0; headPivot.rotation.set(0, 0, 0); rig.position.set(0, 0, 0);
   headMesh.material.color.setRGB(1, 1, 1); bodyMesh.material.color.setRGB(1, 1, 1);
   taster.visible = false; spoon.visible = false; arm.visible = false; eyeFires.forEach(e => e.visible = false);
   faceLight.intensity = 0; headMode = 'off'; flashEl.hidden = true; bubble('');
@@ -2094,7 +2127,7 @@ function resetTaster() {
 
 
 /* ===== Hyuntae watches you cook: staring and food-play both wind him up ===== */
-const WATCH = { x: 0.6, z: -2.8, s: 0.72 };
+const WATCH = { x: 0.6, z: -2.85, s: 2.0 };
 let lookByMouse = false, prevView = 'all', stareT = 0, raging = false;
 const STARE_LINES = ['뭐하씹니까? 요리합니따.', '마지막 경고입니따. 요리합니따.', '참을 만큼 참앗습니따 이리 옵니따.'];
 const PRANK_LINES = ['먹는거로 장난치지 안씁니다.', '경고햇씁니다. 장난치지 안씁니다.', '이제 참을 수 업씁니다.'];
@@ -2127,7 +2160,9 @@ function strike() {
   S.strikes++; audio.nope();
   if (S.strikes >= 3) { triggerRage('prank'); return; }
   say(PRANK_LINES[S.strikes - 1]); showAnger(angerLevel());
-  headMode = 'rage'; setTimeout(() => { if (!raging && headMode === 'rage') headMode = 'idle'; }, 900);
+  if (camName !== 'face') glanceBack = camName;
+  lookByMouse = false; camGo('face'); glanceUntil = T + 2.4; camShake = 0.2;
+  headMode = 'rage'; setTimeout(() => { if (!raging && headMode === 'rage') headMode = 'idle'; }, 1800);
 }
 function checkPranks() {
   for (const [k, get, th] of PRANKS) {
@@ -2135,8 +2170,10 @@ function checkPranks() {
     if (n < th.length && get() >= th[n]) { S.prankHit[k] = n + 1; strike(); return; }
   }
 }
+let glanceUntil = 0, glanceBack = null;
 function updateWatch(dt) {
   if (!playing || raging || modalOpen) { stareT = 0; return; }
+  if (glanceBack) { if (T < glanceUntil) { stareT = 0; return; } if (camName === 'face') camGo(glanceBack); glanceBack = null; }
   if (camName === 'face') {
     stareT += dt;
     if (stareT > 5) { stareT = 0; warnStare(); }
