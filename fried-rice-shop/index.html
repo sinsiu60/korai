@@ -230,6 +230,35 @@ button:focus-visible{outline:3px dashed var(--red);outline-offset:3px}
 .tot div{background:#fff;border:4px solid var(--ink);box-shadow:5px 5px 0 var(--ink);padding:6px 14px;font:900 18px var(--f-b);text-align:center;min-width:150px}
 .tot b{display:block;font:400 40px var(--f-display)}
 .tot .me{background:var(--yolk)}.tot .sw{background:#f7c9a8}
+.dlg{position:fixed;z-index:11;left:50%;transform:translateX(-50%);bottom:calc(96px + env(safe-area-inset-bottom,0px));width:min(640px,calc(100% - 32px));display:flex;gap:12px;align-items:stretch;background:#fffbea;border:4px solid var(--ink);box-shadow:6px 6px 0 var(--ink);padding:10px 12px;pointer-events:none;animation:mpop2 .2s both}
+.dlg.top{left:max(16px,env(safe-area-inset-left,0px));transform:none;top:calc(72px + env(safe-area-inset-top,0px));bottom:auto;width:min(470px,calc(100% - 32px))}
+@media (max-width:560px){.dlg.top{top:calc(150px + env(safe-area-inset-top,0px))}}
+.dlg .pf{flex:0 0 92px;height:110px;border:3px solid var(--ink);background:linear-gradient(#ffe27a,#ffb347);overflow:hidden;position:relative}
+.dlg .pf img{position:absolute;left:50%;bottom:-6px;width:96px;transform:translateX(-50%)}
+.dlg.mad .pf{background:linear-gradient(#ff8a7a,#e3120b);animation:shake .1s infinite steps(2)}
+.dlg.mad .pf img{filter:sepia(1) saturate(4) hue-rotate(-30deg)}
+.dlg .tx{flex:1;display:flex;flex-direction:column;gap:4px;min-width:0}
+.dlg .tx b{font:900 14px var(--f-b);color:var(--red)}
+.dlg .tx p{margin:0;font:900 clamp(16px,2.4vw,20px)/1.45 var(--f-b);color:var(--ink);word-break:keep-all}
+.dlg .tx small{font:700 12px var(--f-b);color:var(--muted)}
+@media (max-width:560px){.dlg .pf{flex-basis:70px;height:84px}.dlg .pf img{width:74px}}
+.spot{position:fixed;z-index:6;left:0;top:0;width:10px;height:10px;border-radius:50%;pointer-events:none;box-shadow:0 0 0 200vmax rgba(0,0,0,.62);border:3px dashed var(--yolk);transition:left .35s,top .35s,width .35s,height .35s}
+.spot.none{box-shadow:0 0 0 200vmax rgba(0,0,0,.62);width:0;height:0;border:0}
+.hurt{position:fixed;inset:0;z-index:9;pointer-events:none;opacity:0;background:radial-gradient(ellipse at center,rgba(255,0,0,0) 35%,rgba(200,0,0,.85) 100%)}
+.fist{position:fixed;z-index:9;pointer-events:none;width:min(46vw,420px);transition:none}
+.wg{position:fixed;left:0;top:0;z-index:7;transform:translate(-50%,-100%);width:150px;pointer-events:none;background:#fff;border:3px solid var(--ink);box-shadow:3px 3px 0 var(--ink);padding:3px 5px 4px;font:900 11px var(--f-b);text-align:center}
+.wg .gb{height:14px;border:2px solid var(--ink);background:#eee;position:relative;overflow:hidden;margin-top:2px}
+.wg .gb i{position:absolute;inset:0;transform-origin:left;transform:scaleX(0);background:linear-gradient(90deg,#f7f3e8,#f0c35a,#9a5a1a,#2a1a0a)}
+.wg .gb b{position:absolute;top:0;bottom:0;background:rgba(31,194,31,.35);border-left:2px solid var(--green);border-right:2px solid var(--green)}
+.wg .gb em{position:absolute;top:-2px;bottom:-2px;width:4px;margin-left:-2px;background:var(--red)}
+.cg{position:fixed;left:0;top:0;z-index:7;transform:translate(-50%,-100%);min-width:96px;pointer-events:none;background:#fff;border:3px solid var(--ink);box-shadow:3px 3px 0 var(--ink);padding:3px 6px;font:900 11px/1.3 var(--f-b);text-align:center;white-space:nowrap}
+.cg .gb{height:10px;border:2px solid var(--ink);background:#eee;position:relative;overflow:hidden;margin-top:2px}
+.cg .gb i{position:absolute;inset:0;transform-origin:left;transform:scaleX(0);background:var(--blue)}
+.cg.ready{background:var(--yolk);animation:bounce .5s infinite steps(2)}
+.cg.warn{background:none;border:0;box-shadow:none;padding:0}
+.cg svg{width:64px;height:58px;display:block;animation:blink2 var(--bl,.6s) infinite steps(2)}
+@keyframes blink2{50%{opacity:.15}}
+.fire-tag{position:fixed;left:0;top:0;z-index:7;transform:translate(-50%,-50%);pointer-events:none;background:#ff3b1f;color:#fff;border:3px solid var(--ink);border-radius:10px;padding:4px 10px;font:900 15px var(--f-b);white-space:nowrap;animation:bounce .4s infinite steps(2)}
 .ob{position:fixed;left:0;top:0;z-index:6;transform:translate(-50%,-100%);pointer-events:none;background:#fff;border:3px solid var(--ink);border-radius:12px;padding:3px 9px;font:900 13px/1.3 var(--f-b);white-space:nowrap;box-shadow:3px 3px 0 var(--ink);text-align:center}
 .ob::after{content:"";position:absolute;left:50%;bottom:-11px;margin-left:-6px;border:6px solid transparent;border-top:7px solid var(--ink)}
 .ob b{color:var(--red);display:block;font-size:14px}
@@ -262,6 +291,11 @@ button:focus-visible{outline:3px dashed var(--red);outline-offset:3px}
 <div class="race" id="race" hidden>현태 볶음밥 10인분<div class="rb me"><i id="raceMe"></i></div>상욱 국밥 10그릇<div class="rb sw"><i id="raceSw"></i></div></div>
 <div class="tot" id="tot" hidden><div class="sw">진상욱 국밥<b id="totSw">0</b></div><div class="me">김현태 볶음밥<b id="totMe">0</b></div></div>
 <div id="scs"></div>
+<div class="spot none" id="spot" hidden></div>
+<div class="dlg" id="dlg" hidden><div class="pf"><img id="dlgImg" alt=""></div><div class="tx"><b id="dlgN">김현태 사장</b><p id="dlgT"></p><small id="dlgS"></small></div></div>
+<div class="hurt" id="hurt"></div>
+<img class="fist" id="fistL" alt="" hidden><img class="fist" id="fistR" alt="" hidden>
+<div id="gauges"></div>
 <div class="ctl" id="ctl"></div>
 <div class="banner" id="banner" hidden><span id="bannerT"></span></div>
 <div class="lb" id="lb"></div>
@@ -589,7 +623,7 @@ ING.forEach(d => {
   const g = new THREE.Group(); g.position.set(d.x, 1.03, 2.75); scene.add(g); ingG[d.k] = g;
   if (d.k === 'oil') { add(new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.15, 0.55, 12), lam(0xf2c14e, { transparent: true, opacity: 0.85 })), 0, 0.28, 0, g); add(new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.07, 0.14, 10), lam(0xd62a2a)), 0, 0.62, 0, g); }
   if (d.k === 'egg') { add(box(0.62, 0.08, 0.46, 0xc9b38a), 0, 0.04, 0, g); for (let i = 0; i < 6; i++) { const e = add(new THREE.Mesh(new THREE.SphereGeometry(0.075, 10, 8), lam(0xfff5e6)), -0.2 + (i % 3) * 0.2, 0.14, -0.1 + ((i / 3) | 0) * 0.2, g); e.scale.y = 1.3; } }
-  if (d.k === 'rice') { add(new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.32, 0.4, 16), lam(0xeeeeee)), 0, 0.2, 0, g); add(new THREE.Mesh(new THREE.SphereGeometry(0.3, 14, 8, 0, PI * 2, 0, PI / 2), lam(0xd62a2a)), 0, 0.4, 0, g); }
+  if (d.k === 'rice') { add(new THREE.Mesh(new THREE.CylinderGeometry(0.27, 0.25, 0.36, 16), lam(0xc9ced4)), 0, 0.18, 0, g); add(new THREE.Mesh(new THREE.CylinderGeometry(0.29, 0.29, 0.05, 16), lam(0xaab0b8)), 0, 0.38, 0, g); add(new THREE.Mesh(new THREE.SphereGeometry(0.05, 8, 6), lam(0x333333)), 0, 0.43, 0, g); add(plane(0.34, 0.14, basic({ map: label(160, 64, '밥통', { bg: '#fff', border: 5, font: '900 36px "Malgun Gothic",sans-serif' }) })), 0, 0.2, 0.27, g); }
   if (d.k === 'chicken') { add(box(0.5, 0.06, 0.4, 0xffffff), 0, 0.03, 0, g); for (let i = 0; i < 5; i++) add(box(0.12, 0.08, 0.1, 0xe8d2b0), -0.15 + (i % 3) * 0.15, 0.1, -0.06 + ((i / 3) | 0) * 0.12, g); }
   if (d.k === 'onion') { add(box(0.5, 0.06, 0.4, 0xffffff), 0, 0.03, 0, g); for (let i = 0; i < 8; i++) add(box(0.06, 0.04, 0.06, 0x3fae3a), -0.18 + (i % 4) * 0.12, 0.08, -0.08 + ((i / 4) | 0) * 0.14, g); }
   const hit = add(new THREE.Mesh(new THREE.SphereGeometry(0.42, 8, 6), basic({ visible: false })), 0, 0.3, 0, g); hit.userData = { pick: true, ing: d.k };
@@ -815,9 +849,9 @@ addEventListener('pointerup', () => { dragXY = null; if (onRelease) onRelease();
 
 
 /* ===== extra scene bits for the deep version ===== */
-VIEWS.cook = { p: [-0.55, 3.15, 5.6], l: [-0.35, 1.45, 1.2] };
+VIEWS.cook = { p: [0.05, 3.35, 6.1], l: [0.05, 1.45, 1.2] };
 // tighter station around the wok so the close-up holds everything
-const ING_X = { oil: -1.95, egg: -1.35, rice: -0.78, chicken: 0.82, onion: 1.38 };
+const ING_X = { oil: -1.95, egg: -1.35, rice: -0.78, chicken: 0.75, onion: 1.25 };
 ING.forEach(d => { d.g.position.x = ING_X[d.k]; }); eggMachine.position.x = ING_X.egg; plates.visible = false;
 // rice grains that actually toss in the wok
 const GRN = 260, grains = new THREE.InstancedMesh(new THREE.BoxGeometry(0.045, 0.028, 0.03), lam(0xffffff), GRN); fill.add(grains);
@@ -881,9 +915,11 @@ const UPG = [
   { id: 'chick', name: '닭가슴살 메뉴', d: '닭가슴살 볶음밥이 생깁니다. 한 그릇 8,000원.', cost: [20000], max: 1 },
   { id: 'noguk', name: '"국밥 금지" 표지판', d: '상욱이가 국밥을 안 찾습니다. 아마도.', cost: [15000], max: 1 },
   { id: 'statue', name: '현태 황금 동상', d: '평판이 오르고 진상 손님이 덜 옵니다.', cost: [60000], max: 1 },
+  { id: 'cooker', name: '밥솥 추가', d: '밥솥이 하나 늘어납니다.', cost: [25000, 40000], max: 2 },
+  { id: 'cookspd', name: '압력 밥솥', d: '밥이 더 빨리 지어집니다.', cost: [20000, 35000], max: 2 },
 ];
 const TRUST_LV = [0, 12, 32, 58, 85], TRUST_NAME = ['수습 알바', '알바', '주방 보조', '부주방장', '주방장'];
-function fresh() { return { day: 1, money: 50000, rep: 3.0, rage: 0, up: {}, served: 0, two: 0, eggs: 0, waste: 0, starsSum: 0, punches: 0, revenue: 0, duelWin: false, calm: 0, ach: {}, clock: 0, ds: null, trust: 0, tlv: 1, skill: {}, aff: { sw: 0, iv: 0, jin: 0, rev: 0 }, street: 0, lessons: [], warn: 0, jinReformed: false, flyers: 0 }; }
+function fresh() { return { day: 1, money: 50000, rep: 3.0, rage: 0, up: {}, served: 0, two: 0, eggs: 0, waste: 0, starsSum: 0, punches: 0, revenue: 0, duelWin: false, calm: 0, ach: {}, clock: 0, ds: null, trust: 0, tlv: 1, skill: {}, aff: { sw: 0, iv: 0, jin: 0, rev: 0 }, street: 0, lessons: [], warn: 0, jinReformed: false, flyers: 0, stock: 0 }; }
 const lv = id => G.up[id] || 0;
 const won = n => Math.round(n).toLocaleString('ko-KR') + '원';
 function hud() {
@@ -914,6 +950,7 @@ function drawMenu() {
 function applyUpgrades() {
   stools.forEach((s, i) => { s.visible = seatOpen(i); });
   neon.visible = !!lv('neon'); neonLight.intensity = lv('neon') ? 1.2 : 0; noGuk.visible = !!lv('noguk'); statue.visible = !!lv('statue'); eggMachine.visible = !!lv('eggm');
+  cookers.forEach((c, i) => { c.g.visible = i < 1 + lv('cooker'); });
   flame.material.color.setHex(lv('fire') >= 2 ? 0xff3a1a : lv('fire') ? 0xff8a1a : 0x3a8cff); flame.scale.setScalar(1 + lv('fire') * 0.25);
   drawMenu();
 }
@@ -934,6 +971,287 @@ function setStreet(stage) {
     if (stage >= 3) { const n = stage === 3 ? 2 : 6; for (let i = 0; i < n; i++) { const x = 270 - i * 26; g.fillStyle = pick(['#2a6dd8', '#1fc21f', '#ff7fa8', '#f5c518']); g.fillRect(x, h - 70, 16, 30); g.beginPath(); g.arc(x + 8, h - 78, 9, 0, PI * 2); g.fillStyle = '#f1c9a3'; g.fill(); } }
   }
   streetTex.needsUpdate = true;
+}
+
+/* ===== rice cookers, the warmer, fire ===== */
+const COOKER_X = [1.85, 2.45, -2.55];
+const cookers = COOKER_X.map((x, i) => {
+  const g = new THREE.Group(); g.position.set(x, 1.03, 2.75); scene.add(g);
+  add(new THREE.Mesh(new THREE.CylinderGeometry(0.26, 0.28, 0.38, 16), lam(0xf4f4f4)), 0, 0.19, 0, g);
+  const lid = add(new THREE.Mesh(new THREE.SphereGeometry(0.26, 14, 8, 0, PI * 2, 0, PI / 2), lam(0xd62a2a)), 0, 0.38, 0, g);
+  add(new THREE.Mesh(new THREE.SphereGeometry(0.04, 8, 6), lam(0x333333)), 0, 0.64, 0, g);
+  const led = add(new THREE.Mesh(new THREE.BoxGeometry(0.13, 0.06, 0.02), basic({ color: 0x333333 })), 0, 0.2, 0.28, g);
+  const hit = add(new THREE.Mesh(new THREE.SphereGeometry(0.4, 8, 6), basic({ visible: false })), 0, 0.3, 0, g); hit.userData = { pick: true, cooker: i };
+  const el = document.createElement('div'); el.className = 'cg'; el.hidden = true; $('#gauges').appendChild(el);
+  return { i, g, lid, led, hit, el, st: 'empty', t: 0 };
+});
+const WARN_SVG = '<svg viewBox="0 0 64 58"><polygon points="32,3 61,55 3,55" fill="#e3120b" stroke="#111" stroke-width="4" stroke-linejoin="round"/><rect x="28" y="18" width="8" height="22" rx="3" fill="#fff"/><circle cx="32" cy="47" r="4.5" fill="#fff"/></svg>';
+const cookT = () => G.tut ? 3.5 : 9 / (1 + 0.45 * lv('cookspd'));
+const cookerOn = c => c.g.visible;
+// every place a fire can sit
+const STN = [...ING.map(d => ({ key: d.k, g: d.g, n: d.n })), { key: 'wok', g: wokG, n: '웍' }, ...cookers.map(c => ({ key: 'cooker' + c.i, g: c.g, n: '밥솥', cooker: c }))];
+STN.forEach(s => {
+  s.fire = add(plane(0.95, 1.4, new THREE.MeshBasicMaterial({ map: flameTex, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending })), 0, 0.75, 0.12, s.g); s.fire.visible = false;
+  s.hitF = add(new THREE.Mesh(new THREE.SphereGeometry(0.5, 8, 6), basic({ visible: false })), 0, 0.5, 0.1, s.g); s.hitF.userData = { pick: true, fire: s };
+  s.tag = document.createElement('div'); s.tag.className = 'fire-tag'; s.tag.hidden = true; $('#gauges').appendChild(s.tag);
+  s.burn = false; s.hp = 0; s.spreadT = 0;
+});
+const stn = key => STN.find(s => s.key === key);
+const burning = key => { const s = stn(key); return !!(s && s.burn); };
+function ignite(s) {
+  if (!s || s.burn || !s.g.visible) return;
+  s.burn = true; s.hp = 3; s.spreadT = 0; s.fire.visible = true; G.fireN = (G.fireN || 0) + 1;
+  audio.fwoosh(); camShake = 0.4; burst(s.g.position.clone().add(V(0, 0.6, 0)), 0xff5a1a, 14, 2.4, 0.8);
+  if (s.key === 'rice' && G.stock) { pop(`밥통 밥 ${G.stock}공기가 탓씁니다`, s.g.position.clone().add(V(0, 1.2, 0))); G.stock = 0; }
+  if (s.key === 'wok' && wokUsed()) { pop('웍 속 볶음밥이 탓씁니다', WOK.clone().add(V(0, 1.2, 0))); resetWok(); }
+  if (s.cooker) { s.cooker.st = 'empty'; s.cooker.t = 0; }
+  const first = STN.filter(x => x.burn).length === 1;
+  hySay(first ? '불이씁니다!!' : '불이 번졋씁니다!!', 1500); addRage(14); addTrust(-2); tremble = 0.8; setTimeout(() => tremble = 0, 700 / SPEED);
+  if (first) whisper('불이 났습니다! 불을 연타해서 끄세요. 그냥 두면 옆으로 번집니다.', 2800);
+  refreshPicks(); updateTags();
+  if (G.rage >= 100 && !bizPause && !G.tut) exclusive(() => beatdown(true));
+}
+function putOutAll() { STN.forEach(s => { s.burn = false; s.fire.visible = false; s.tag.hidden = true; }); }
+function douse(s) {
+  if (!s.burn) return;
+  s.hp--; audio.burst(1800, 0.6, 0.25, 0.6); burst(s.g.position.clone().add(V(0, 0.7, 0.2)), 0xffffff, 12, 2.2, 0.7);
+  if (s.hp <= 0) { s.burn = false; s.fire.visible = false; pop('진화!', s.g.position.clone().add(V(0, 1.1, 0)), 'good'); G.doused = (G.doused || 0) + 1; if (G.doused >= 3) G.ach.fireman = true; if (!STN.some(x => x.burn)) { hySay('…휴.', 1000); addRage(-6); } refreshPicks(); updateTags(); }
+}
+function fireFrame(dt) {
+  let any = false;
+  for (const s of STN) {
+    if (!s.burn) { s.tag.hidden = true; continue; }
+    any = true; s.fire.lookAt(camera.position); const f = 1 + Math.sin(T * 24 + s.g.position.x * 3) * 0.12; s.fire.scale.set(f, f * (1.1 + Math.sin(T * 17) * 0.1), 1);
+    s.spreadT += dt;
+    if (s.spreadT > 4.5) { s.spreadT = 0; const p = s.g.position, cand = STN.filter(o => !o.burn && o.g.visible && o.g.position.distanceTo(p) < 1.35).sort((a, b) => a.g.position.distanceTo(p) - b.g.position.distanceTo(p)); if (cand[0]) ignite(cand[0]); }
+    if (rand() < 0.25) burst(s.g.position.clone().add(V((rand() - .5) * 0.3, 1.0, 0)), 0x333333, 1, 0.4, 1.2, -0.7);
+    const [x, y] = toScreen(s.g.position.clone().add(V(0, 1.5, 0))); s.tag.hidden = !!G.talking; s.tag.style.left = x + 'px'; s.tag.style.top = y + 'px'; s.tag.textContent = `🧯 연타! ${s.hp}`;
+  }
+  if (any) { fireLight.position.set(0.3, 2, 3); fireLight.intensity = Math.max(fireLight.intensity, 2.5 + Math.sin(T * 30) * 0.8); }
+  return any;
+}
+function cookerClick(c) {
+  if (bizPause || !G || !G.cooking) return;
+  if (burning('cooker' + c.i)) { douse(stn('cooker' + c.i)); return; }
+  if (c.st === 'empty') { c.st = 'cook'; c.t = 0; audio.tone(700, 0.1, 0.15, 'square'); setTimeout(() => audio.tone(900, 0.12, 0.15, 'square'), 120 / SPEED); pop('밥 짓기 시작', c.g.position.clone().add(V(0, 1.0, 0)), 'good'); return; }
+  if (c.st === 'cook') { hySay('아직이씁니다.', 1000); return; }
+  // ready or warning → scoop into the warmer
+  c.st = 'empty'; c.t = 0; G.stock += 4; audio.plop();
+  anim(0.3, (k, raw) => { c.lid.rotation.x = -Math.sin(raw * PI) * 1.2; c.lid.position.y = 0.38 + Math.sin(raw * PI) * 0.15; }, x => x);
+  const from = c.g.position.clone().add(V(0, 0.6, 0)), to = ingG.rice.position.clone().add(V(0, 0.5, 0));
+  for (let i = 0; i < 4; i++) { const m = new THREE.Mesh(new THREE.IcosahedronGeometry(0.12, 1), lam(0xf7f5f0)); m.position.copy(from); scene.add(m); anim(0.35, k => { m.position.lerpVectors(from, to, k); m.position.y += Math.sin(k * PI) * (0.6 + i * 0.1); }).then(() => { scene.remove(m); m.geometry.dispose(); }); }
+  pop('밥 +4공기', to.clone().add(V(0, 0.5, 0)), 'good'); updateTags();
+}
+function cookerFrame(dt) {
+  for (const c of cookers) {
+    if (!cookerOn(c)) { c.el.hidden = true; continue; }
+    if (c.st === 'cook') { c.t += dt; c.lid.position.y = 0.38 + (Math.floor(T * 14) % 2 ? 0.015 : 0); if (rand() < 0.2) burst(c.g.position.clone().add(V(0, 0.7, 0)), 0xffffff, 1, 0.3, 1.3, -0.9); if (c.t >= cookT()) { c.st = 'ready'; c.t = 0; audio.ding(); burst(c.g.position.clone().add(V(0, 0.7, 0)), 0xffffff, 10, 0.6, 1.4, -1); } }
+    else if (c.st === 'ready') { c.t += dt; if (!G.tut && c.t > 4) { c.st = 'warn'; c.t = 0; } }
+    else if (c.st === 'warn') { c.t += dt; c.lid.position.y = 0.38 + (rand() - .5) * 0.03; if (rand() < 0.3) burst(c.g.position.clone().add(V(0, 0.7, 0)), 0x555555, 1, 0.4, 1.2, -0.8); if (c.t > 6) { c.st = 'empty'; c.t = 0; ignite(stn('cooker' + c.i)); } }
+    c.led.material.color.setHex(c.st === 'cook' ? 0xff8a1a : c.st === 'ready' ? 0x1fc21f : c.st === 'warn' ? (Math.floor(T * 8) % 2 ? 0xe3120b : 0x330000) : 0x333333);
+    // gauge above the cooker
+    const el = c.el, show = G.cooking && !G.talking && !burning('cooker' + c.i) && (c.st !== 'empty' || G.stock < 4 || G.tut);
+    el.hidden = !show; if (!show) continue;
+    const mode = c.st === 'warn' ? 'warn' : c.st === 'ready' ? 'ready' : '';
+    if (el.dataset.m !== c.st) { el.dataset.m = c.st; el.className = 'cg ' + mode; el.innerHTML = c.st === 'cook' ? '밥 짓는 중<div class="gb"><i></i></div>' : c.st === 'ready' ? '다 됐다! 눌러서 푸기' : c.st === 'warn' ? WARN_SVG : `🍚 밥 짓기 <kbd>6</kbd>`; }
+    if (c.st === 'cook') el.querySelector('i').style.transform = `scaleX(${clamp(c.t / cookT(), 0, 1)})`;
+    if (c.st === 'warn') el.style.setProperty('--bl', lerp(0.7, 0.07, clamp(c.t / 6, 0, 1)).toFixed(2) + 's');
+    const [x, y] = toScreen(c.g.position.clone().add(V(0, 0.85, 0))); el.style.left = x + 'px'; el.style.top = y + 'px';
+  }
+}
+function cookerKey() { const r = cookers.find(c => cookerOn(c) && (c.st === 'ready' || c.st === 'warn')) || cookers.find(c => cookerOn(c) && c.st === 'empty'); if (r) { if (G.tut && !tutAllow('cooker', r)) return; cookerClick(r); } }
+// gauge above the wok
+const wgEl = document.createElement('div'); wgEl.className = 'wg'; wgEl.hidden = true; wgEl.innerHTML = '볶기<div class="gb"><b style="left:55%;width:25%"></b><i></i><em></em></div>'; $('#gauges').appendChild(wgEl);
+function wokGauge() {
+  const show = G && G.cooking && !G.talking && W.rice > 0; wgEl.hidden = !show; if (!show) return;
+  const d = Math.min(W.done, 1); wgEl.querySelector('i').style.transform = `scaleX(${d})`; wgEl.querySelector('em').style.left = d * 100 + '%';
+  wgEl.firstChild.textContent = d < 0.55 ? '볶는 중' : d <= 0.8 ? '노릇노릇! 지금!' : d <= 0.95 ? '탄다!' : '숯…';
+  const [x, y] = toScreen(WOK.clone().add(V(0, 1.0, 0))); wgEl.style.left = x + 'px'; wgEl.style.top = y + 'px';
+}
+// pickables in one place
+function refreshPicks() {
+  if (!G || !G.cooking) return;
+  pickables = [...STN.filter(s => s.burn).map(s => s.hitF), ...ING.map(d => d.hit), wokHit, ...cookers.filter(cookerOn).map(c => c.hit), ...custs.flatMap(c => c.head ? [c.m, c.head] : [c.m]), ...flyers.filter(f => f.visible).map(f => f.children[0])];
+  if (G.lurer) pickables.push(G.lurer.m, G.lurer.head);
+  if (G.tutHy) pickables.push(hyBody, hyHead);
+}
+
+/* ===== the interview room ===== */
+const IRX = -40;
+{
+  const ft = canvasTex(128, 128, (g, w) => { g.fillStyle = '#9b7b5a'; g.fillRect(0, 0, w, w); for (let i = 0; i < 4; i++) { g.fillStyle = i % 2 ? '#8e6f50' : '#a68566'; g.fillRect(0, i * 32, w, 30); } }); ft.wrapS = ft.wrapT = THREE.RepeatWrapping; ft.repeat.set(4, 4);
+  add(plane(10, 9, lam(0xffffff, { map: ft })), IRX, 0, 0).rotation.x = -PI / 2;
+  const wm = lam(0xe9e4d8); add(plane(10, 5, wm), IRX, 2.5, -3.5); add(plane(9, 5, wm), IRX - 5, 2.5, 0).rotation.y = PI / 2; add(plane(9, 5, wm), IRX + 5, 2.5, 0).rotation.y = -PI / 2;
+  add(box(3.4, 0.12, 1.3, 0x6b4b2a), IRX, 1.05, -0.5); add(box(3.4, 1.0, 0.08, 0x5a3d22), IRX, 0.5, 0.12);
+  add(box(0.5, 0.06, 0.35, 0xffffff), IRX - 0.9, 1.14, -0.5).rotation.y = 0.3; add(new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.07, 0.2, 10), lam(0xbfe6ff, { transparent: true, opacity: 0.8 })), IRX + 1.0, 1.21, -0.6);
+  add(plane(2.0, 1.3, basic({ map: label(400, 260, '알바 구함\n(2인분부터)', { bg: '#fffbea', border: 12, font: '900 64px "Malgun Gothic",sans-serif', lh: 86, fg: '#d62a2a' }) })), IRX - 2.2, 2.6, -3.48);
+  add(plane(1.4, 0.9, basic({ map: label(280, 180, '사장실', { bg: '#1e3a6b', fg: '#fff', font: '900 80px "Malgun Gothic",sans-serif' }) })), IRX + 2.2, 3.2, -3.48);
+  add(box(0.6, 0.8, 0.6, 0x8a5a3a), IRX + 3.6, 0.4, -2.8); add(new THREE.Mesh(new THREE.IcosahedronGeometry(0.6, 0), lam(0x3d8a3a)), IRX + 3.6, 1.4, -2.8);
+  const ch = new THREE.Group(); ch.position.set(IRX, 0, -1.8); scene.add(ch); add(box(1.2, 1.8, 0.15, 0x222222), 0, 1.4, -0.2, ch); add(box(1.0, 0.12, 0.9, 0x222222), 0, 0.75, 0.2, ch);
+}
+VIEWS.ivroom = { p: [IRX + 0.3, 2.55, 3.6], l: [IRX, 2.35, -1.3] };
+
+/* ===== 현태's dialogue box with portrait ===== */
+const dlgEl = $('#dlg'); $('#dlgImg').src = HY_SRC;
+let dlgTimer = 0, dlgTyping = 0;
+function dlgShow(text, sub, mad) {
+  dlgEl.hidden = false; dlgEl.classList.toggle('mad', !!mad); $('#dlgS').textContent = sub || '';
+  const p = $('#dlgT'); clearInterval(dlgTyping); let i = 0; p.textContent = '';
+  dlgTyping = setInterval(() => { i += 1; p.textContent = text.slice(0, i); if (i % 2) audio.tone(mad ? 160 : 230, 0.04, 0.08, 'triangle'); if (i >= text.length) clearInterval(dlgTyping); }, 34 / SPEED);
+  hyTalk = Math.min(1.6, text.length * 0.06);
+}
+async function dlg(text, ms, mad) { dlgShow(text, '', mad); await sleep((ms || Math.max(1400, text.length * 85)) / 1000); }
+function dlgHide() { dlgEl.hidden = true; clearInterval(dlgTyping); }
+// spotlight on one thing, everything else in translucent black
+const spotEl = $('#spot');
+let spotT = null;
+function spotOn(target, r) { spotT = target ? { target, r: r || 0.55 } : null; spotEl.hidden = false; spotEl.classList.toggle('none', !target); }
+function spotOff() { spotT = null; spotEl.hidden = true; }
+function placeSpot() {
+  if (spotEl.hidden || !spotT) return;
+  const t = spotT.target, c = t.isObject3D ? t.getWorldPosition(V(0, 0, 0)) : t.clone();
+  if (t.isObject3D && t.userData.spotY) c.y += t.userData.spotY;
+  const [x, y] = toScreen(c); _p.copy(c).add(V(spotT.r, 0, 0)).project(camera); const x2 = (_p.x + 1) / 2 * vw, rr = Math.max(46, Math.abs(x2 - x) * 1.25);
+  spotEl.style.left = (x - rr) + 'px'; spotEl.style.top = (y - rr) + 'px'; spotEl.style.width = rr * 2 + 'px'; spotEl.style.height = rr * 2 + 'px';
+}
+
+/* ===== the beating (무현태 각성) ===== */
+const fistURL = (() => { const c = document.createElement('canvas'); c.width = 320; c.height = 280; const g = c.getContext('2d'); g.scale(2, 2); g.lineJoin = 'round'; g.lineWidth = 9; g.strokeStyle = '#111'; g.fillStyle = '#e2a878';
+  g.beginPath(); g.moveTo(22, 40); g.quadraticCurveTo(30, 12, 70, 14); g.quadraticCurveTo(128, 8, 140, 44); g.quadraticCurveTo(152, 92, 120, 118); g.quadraticCurveTo(70, 134, 34, 116); g.quadraticCurveTo(10, 90, 22, 40); g.closePath(); g.fill(); g.stroke();
+  g.lineWidth = 6; [52, 82, 112].forEach(x => { g.beginPath(); g.moveTo(x, 18); g.quadraticCurveTo(x + 6, 40, x - 2, 60); g.stroke(); }); return c.toDataURL(); })();
+$('#fistL').src = fistURL; $('#fistR').src = fistURL; $('#fistR').style.transform = 'scaleX(-1)';
+async function beatdown(fromFire) {
+  const wasPause = bizPause; bizPause = true; stirring = false; G.talking = true; ctlEl.innerHTML = ''; keys = {}; hideBubs();
+  const spotWas = !spotEl.hidden; spotEl.hidden = true;
+  letterbox(true); dlgShow('참을 만큼 참앗씁니다.', '', true); tremble = 2; setRed(1); anger(2); audio.tone(55, 1.0, 0.5, 'sawtooth'); await sleep(1.6); tremble = 0;
+  hy.visible = false; bigHy.visible = true; bigHy.position.copy(hy.position); bigHy.scale.setScalar(0.7); flash(0.9); audio.boom(); camShake = 1.2;
+  const h = hy.position.clone(); camOv = { p: h.clone().add(V(0, 3.2, 2.4)), l: h.clone().add(V(0, 3.1, 0)), k: 8 };
+  dlgShow('「얼티밋 디 계란 오브 볶음밥 펀찌.」', '', true); await sleep(1.4);
+  const hurt = $('#hurt'), fl = $('#fistL'), fr = $('#fistR');
+  for (let i = 0; i < 8; i++) {
+    const f = i % 2 ? fr : fl, s = i % 2 ? 1 : -1; f.hidden = false;
+    await anim(0.08, k => { f.style.left = (vw / 2 + s * lerp(vw * 0.45, vw * 0.05, k) - f.offsetWidth / 2) + 'px'; f.style.top = (vh * lerp(0.75, 0.32, k)) + 'px'; f.style.width = lerp(30, 52, k) + 'vw'; }, x => x);
+    audio.hit(); camShake = 1.1; camRoll = s * 0.14; hurt.style.opacity = Math.min(0.9, 0.2 + i * 0.1);
+    await anim(0.1, k => { f.style.top = (vh * lerp(0.32, 0.9, k)) + 'px'; }, x => x); f.hidden = true;
+  }
+  await anim(0.5, k => { camRoll = k * 1.3; $('#fade').style.opacity = k; }, x => x * x); audio.slam();
+  bigHy.visible = false; hy.visible = true; await sleep(1.0);
+  await anim(0.7, k => { camRoll = 1.3 * (1 - k); $('#fade').style.opacity = 1 - k; hurt.style.opacity = 0.9 * (1 - k); }, x => x);
+  camRoll = 0; camOv = null; letterbox(false); G.ach.beaten = true; G.rage = fromFire ? 30 : G.rage; addRage(0); setRed(G.rage / 100); anger(0);
+  dlgShow('…다시 하씹시오.'); await sleep(1.3);
+  G.talking = false; if (spotWas) spotEl.hidden = false;
+  if (!G.tut) dlgHide();
+  bizPause = wasPause && false; if (G.cooking) { cookCtl(); if (!G.tut) mg(G.duel ? '결승 · 한 그릇 승부' : '주방', '', true); }
+}
+
+/* ===== interview + tutorial (day 1) ===== */
+async function interviewScene() {
+  $('#hud').hidden = true; await fade(true, 0.01); hy.position.set(IRX, 0, -1.25); hy.updateMatrixWorld(true); goView('ivroom', true); G.talking = true;
+  await fade(false, 0.6);
+  await dlg('알바 지원하셧씁니까?');
+  const Q = [
+    { q: '알바 지원하셧씁니까?', o: [['예!', '예.', 0], ['아니요', '…그럼 왜 왓씁니까?', 1], ['국밥 먹으러 왔는데요', '여긴 볶음밥 집이씁니다.', 2]] },
+    { q: '계란 볶음밥 1인분에 계란은 몇 개이씁니까?', o: [['2개요', '예. 정답이씁니다.', 0], ['1개요', '…반만 맞앗씁니다.', 1], ['10개요', '…계란이 울고 잇씁니다.', 2]] },
+    { q: '마지막 질문이씁니다. 2인분은?', o: [['기본이죠', '예.', 0], ['많은데요', '2인분은 기본이씁니다.', 2], ['3인분이 기본 아닌가요', '……이야...!!!!!!', 3]] },
+  ];
+  let score = 0;
+  for (let qi = 0; qi < Q.length; qi++) {
+    const q = Q[qi]; if (qi) await dlg(q.q, 1200);
+    dlgShow(q.q, '대답을 고르세요');
+    const opts = q.o.slice(), ci = await choose(opts.map(o => o[0]), 30);
+    const [, rep, kind] = opts[ci < 0 ? 0 : ci];
+    if (kind === 2) { anger(1); camShake = 0.3; audio.bad(); } else if (kind === 3) { eyeFire(1.2); score += 2; } else if (kind === 0) score++;
+    await dlg(rep, 1700, kind === 2); anger(0);
+  }
+  G.ivScore = score;
+  await dlg('…', 900);
+  audio.drum(); await dlg('예. 합격이씁니다.', 1800);
+  await dlg('따라오씹시오. 어떻게 하는지 알려드리겟씁니다.', 2400);
+  await fade(true, 0.5);
+}
+const TUT_R = 0.6;
+function tutAllow(kind, c) {
+  if (!G.tut) return true;
+  if (G.tutBusy) return false;
+  const e = G.tutExpect;
+  const ok = e === kind || (Array.isArray(e) && e.includes(kind)) || (kind === 'cooker' && e === 'cooker');
+  if (!ok) tutWrong(kind);
+  return ok;
+}
+const TUT_WRONG = ['그게 아니씁니다. 제가 비추는 것만 누르씹시오.', '경고햇씁니다. 순서대로 하씹시오.', '이제 참을 수 업씁니다.'];
+async function tutWrong() {
+  if (G.tutBusy) return;
+  G.tutStrikes = (G.tutStrikes || 0) + 1; audio.bad();
+  const n = G.tutStrikes;
+  addRage(n >= 3 ? 40 : 18); tremble = 0.6 * n; setTimeout(() => tremble = 0, 600 / SPEED);
+  dlgShow(TUT_WRONG[Math.min(n, 3) - 1], '', n >= 2); camShake = 0.2 * n;
+  if (n >= 3) { G.tutBusy = true; await sleep(1.2); await beatdown(); G.tutStrikes = 0; G.rage = 0; addRage(0); G.tutBusy = false; tutPrompt(); }
+  else setTimeout(() => { if (G.tut && !G.tutBusy) tutPrompt(); }, 1800 / SPEED);
+}
+function tutPrompt() { const s = G.tutStage; if (!s) return; dlgShow(s.say(), s.sub || ''); spotOn(s.spot(), s.r || TUT_R); }
+async function kitchenTutorial() {
+  G.tut = true; G.cooking = true; G.stock = 0; G.talking = true; resetWok();
+  cookers.forEach(c => { c.st = 'empty'; c.t = 0; });
+  hy.position.copy(HY_HOME); hy.updateMatrixWorld(true); goView('cook', true); $('#hud').hidden = false; hud(); dlgEl.classList.add('top');
+  await fade(false, 0.5);
+  spotOn(null); await dlg('여기가 주방이씁니다.', 1500);
+  const tour = [
+    [cookers[0].g, '밥은 여기 밥솥에서 짓씁니다.', 0.5], [cookers[0].g, '다 되면 바로 퍼서 밥통에 옮기씹시오. 그냥 두면… 불이 납니다.', 0.5],
+    [ingG.rice, '지은 밥은 여기 밥통에 들어갑니다.', 0.45], [ingG.oil, '볶음밥은 기름부터이씁니다.', 0.4], [ingG.egg, '그다음 계란. 1인분에 2개이씁니다.', 0.45],
+    [wokG, '웍을 꾹 누르면 볶아집니다. 웍 위에 뜨는 게이지가 초록 구간일 때 내씹시오.', 0.85], [stools[2], '다 되면 손님을 클릭해서 드리씹시오.', 0.9],
+  ];
+  for (const [o, t, r] of tour) { if (o === stools[2]) o.userData.spotY = 1.8; spotOn(o, r); await dlg(t, Math.max(1700, t.length * 80)); }
+  spotOn(null); await dlg('예. 제가 한번 주문해보겟씁니다.', 1900);
+  await fade(true, 0.3); spotOff(); hy.position.copy(seatPos(2)); hy.updateMatrixWorld(true); await fade(false, 0.3);
+  hyBody.userData = { pick: true, hyTut: true }; hyHead.userData = { pick: true, hyTut: true }; G.tutHy = true;
+  await dlg('계란 볶음밥 2인분 주씹시오.', 1800);
+  const tk = makeTicket(null, 'egg', 2, null, '현태 사장님 · 계란 볶음밥 2인분'); tk.hyTut = true; $('#tickets').hidden = false;
+  G.talking = false; cookCtl(); G.tutStrikes = 0;
+  // guided steps
+  const stage = (expect, spot, say, r, until_) => ({ expect, spot, say, r, until: until_ });
+  const steps = [
+    stage('cooker', () => cookers[0].g, () => '먼저 밥솥을 눌러 밥을 지으씹시오.', 0.5, () => cookers[0].st === 'cook'),
+    stage('none', () => cookers[0].g, () => '밥이 될 때까지 기다리씹시오. 밥솥 위 게이지를 보씹시오.', 0.5, () => cookers[0].st === 'ready'),
+    stage('cooker', () => cookers[0].g, () => '다 됐씁니다. 밥솥을 눌러 밥통으로 퍼씹시오.', 0.5, () => G.stock >= 2 && cookers[0].st === 'empty'),
+    stage('ing:oil', () => ingG.oil, () => '웍에 기름부터 넣으씹시오. (1)', 0.4, () => W.oil >= 1),
+    stage('ing:egg', () => ingG.egg, () => `계란을 넣으씹시오. 2인분이니 4개이씁니다. (${W.egg}/4)`, 0.45, () => W.egg >= 4),
+    stage('ing:rice', () => ingG.rice, () => `밥통에서 밥을 넣으씹시오. 2공기이씁니다. (${W.rice}/2)`, 0.45, () => W.rice >= 2),
+    stage('wok', () => wokG, () => W.done < 0.55 ? '웍을 꾹 누르고 있으씹시오. 게이지가 초록 구간이 되면 떼씹시오.' : '지금이씁니다! 손을 떼씹시오.', 0.85, () => W.done >= 0.55 && !stirring),
+    stage(['serve', 'wok'], () => hyHead, () => '저를 클릭해서 주씹시오.', 0.7, () => G.tutServed),
+  ];
+  G.tutServed = false;
+  for (let si = 0; si < steps.length; si++) {
+    const s = steps[si]; G.tutStage = s; G.tutExpect = s.expect; tutPrompt();
+    let lastSay = '';
+    await until(dt => {
+      if (!G.tutBusy) { wokFrame(dt, 0.3); const t = s.say(); if (t !== lastSay && !G.tutStrikes) { lastSay = t; dlgShow(t); } }
+      if (AUTO && !G.tutBusy) tutAuto(s);
+      if (W.done > 0.95 && si >= 6) { return true; }
+      return s.until();
+    });
+    if (W.done > 0.95 && !G.tutServed) { // burnt it
+      G.tutExpect = 'none'; await sleep(0.2); await tutWrong(); resetWok(); G.stock += 2; si = 2; continue;
+    }
+    G.tutStrikes = 0;
+  }
+  G.tutExpect = 'none'; spotOff();
+  // 현태 eats
+  const gr = G.tutGrade || { stars: 3 };
+  G.talking = true; letterbox(true); camOv = { p: hy.position.clone().add(V(0.3, 2.6, 3.0)), l: hy.position.clone().add(V(0, 2.4, 0)), k: 6 };
+  for (let i = 0; i < 3; i++) { audio.chomp(); hyTalk = 0.3; await sleep(0.35); }
+  if (G.tutDish) { dropFood(G.tutDish); G.tutDish = null; }
+  if (gr.stars >= 5) { eyeFire(1.4); await dlg('이야...!!!!!!', 1600); addTrust(4); } else if (gr.stars >= 4) await dlg('예. 먹을 만하씁니다.', 1600); else await dlg('…예. 연습하씹시오.', 1600);
+  await dlg('이제 진짜 합격이씁니다. 손님 받겟씁니다.', 2200);
+  await fade(true, 0.3); hy.position.copy(HY_HOME); hy.updateMatrixWorld(true); hyBody.userData = {}; hyHead.userData = {}; G.tutHy = false; camOv = null; letterbox(false); await fade(false, 0.3);
+  dlgHide(); dlgEl.classList.remove('top'); G.tut = false; G.talking = false; G.cooking = false; goView('shop', true);
+}
+function tutAuto(s) {
+  if (rand() > 0.12) return;
+  const e = s.expect;
+  if (e === 'cooker') cookerClick(cookers[0]);
+  else if (e === 'ing:oil') addIng('oil'); else if (e === 'ing:egg') addIng('egg'); else if (e === 'ing:rice') addIng('rice');
+  else if (e === 'wok') { if (W.done < 0.66) stirOn(); else stirOff(); }
+  else if (Array.isArray(e)) { stirOff(); serve(); }
 }
 
 /* ===== customers ===== */
@@ -1048,9 +1366,14 @@ async function tossBits(k) {
 }
 function addIng(k) {
   if (bizPause || !G || !G.cooking) return;
+  if (G.tut && !tutAllow('ing:' + k)) return;
+  if (burning(k)) { douse(stn(k)); return; }
   if (!G.active) { hySay('주문이 없씁니다.', 1200); return; }
+  if (burning('wok')) { hySay('웍에 불이씁니다!', 1000); return; }
+  if (k === 'rice' && G.stock <= 0) { hySay('밥이 없씁니다. 밥솥에 밥부터 지으씹시오.', 1600); pop('밥통이 비었다! 밥솥 (6)', ingG.rice.position.clone().add(V(0, 1.1, 0))); return; }
   const t = G.active, r = t.req;
   let n = k === 'egg' && lv('eggm') ? 2 : 1;
+  if (k === 'rice') G.stock -= 1;
   if (k === 'egg' && G.skill.eggHelp) n = Math.max(n, r.egg - W.egg);
   if (k === 'onion' && W.oil && !W.egg && !W.rice && G.skill.scallion) W.scallion = true;
   W[k] += n; W.seq.push(k); if (k === 'egg') G.eggs += n;
@@ -1064,6 +1387,7 @@ function addIng(k) {
 // 현태 watches every move, like the first game
 const WARN_LINES = ['{x} 많씁니다.', '경고햇씁니다. {x} 많씁니다.', '이제 참을 수 업씁니다.'];
 function watchIng(k) {
+  if (G.tut) return;
   const t = G.active, r = t.req, scallionOk = k === 'onion' && G.skill.scallion && W.onion <= 1;
   if (W[k] > (r[k] || 0) && !scallionOk) {
     G.warn++; const name = { oil: '기름이', egg: '계란이', rice: '밥이', chicken: '닭가슴살이', onion: '파가' }[k];
@@ -1075,7 +1399,7 @@ function watchIng(k) {
   if (k !== 'oil' && !W.oil) { hySay('기름부터이씁니다.', 1400); return; }
   if (rand() < 0.25) hySay(pick(['예.', '좋씁니다.', '음.']), 900);
 }
-function stirOn() { if (bizPause || !G || !G.cooking) return; if (!W.rice) { hySay('밥부터 넣으씹시오.', 1200); return; } stirring = true; }
+function stirOn() { if (bizPause || !G || !G.cooking) return; if (G.tut && !tutAllow('wok')) return; if (burning('wok')) { douse(stn('wok')); return; } if (!W.rice) { hySay('밥부터 넣으씹시오.', 1200); return; } stirring = true; }
 function stirOff() { stirring = false; }
 let tossCd = 0;
 function toss() {
@@ -1103,13 +1427,15 @@ function grade(t) {
   const d = W.done; if (d < 0.55) { pen += 1.5; why.push('덜 익음'); } else if (d > 0.95) { pen += 2.5; why.push('숯'); } else if (d > 0.8) { pen += 1; why.push('조금 탐'); }
   return { stars: clamp(Math.round(5 - pen), 1, 5), why, kind: d > 0.95 ? 'burnt' : d < 0.55 ? 'raw' : 'friedrice', fire: W.fire, scallion: W.scallion };
 }
-function serve() { if (G && G.active) serveTo(G.active); }
+function serve() { if (G && G.tut && !tutAllow('serve')) return; if (G && G.active) serveTo(G.active); }
 function serveTo(t) {
   if (bizPause || !G || !G.cooking || !t) return;
   if (W.done < 0.05) { hySay('아직 안 볶앗씁니다.', 1200); return; }
+  if (burning('wok')) { douse(stn('wok')); return; }
   const gr = grade(t); stirring = false;
   const dish = spawnFood(gr.kind, WOK.clone().add(V(0, 0.3, 0)), 1.0); dish.userData.spin = 0;
   const to = t.c ? V(SEATS[t.c.seat], 1.18, 0.75) : V(0, 1.18, 0.75);
+  if (t.hyTut) { G.tutGrade = gr; G.tutServed = true; const m2 = V(0, 1.18, 1.35); flyAt(dish, m2, 0.3, 0.5).then(() => flyAt(dish, V(0, 1.18, 0.75), 0.35, 0)); G.tutDish = dish; audio.whoosh(); pop('★'.repeat(gr.stars), WOK.clone().add(V(0, 1.0, 0)), 'good'); dropTicket(t); resetWok(); return; }
   // the plate slides along the counter, bar style
   const mid = V(to.x, 1.18, 1.35);
   flyAt(dish, mid, 0.3, 0.5).then(() => { audio.whoosh(); return flyAt(dish, to, 0.35, 0); }).then(() => { if (t.c && !t.c.gone) t.c.dish = dish; else if (!t.judge) dropFood(dish); else G.duelDish = dish; });
@@ -1129,15 +1455,17 @@ function serveTo(t) {
   if (t.judge) G.duelGrade = gr; else if (t.c) t.c.served = gr; else G.duelGrade = gr;
   dropTicket(t); resetWok();
 }
-function dump() { if (bizPause || !G || !G.cooking || !wokUsed()) return; G.waste += W.egg; addMoney(-1000, WOK.clone().add(V(0, 0.8, 0))); burst(WOK.clone().add(V(0, 0.4, 0)), 0xe8c26a, 12, 2); audio.slam(); hySay('아깝씁니다.', 1200); addTrust(-1); resetWok(); }
+function dump() { if (bizPause || !G || !G.cooking || !wokUsed()) return; if (G.tut) { tutWrong(); return; } G.waste += W.egg; addMoney(-1000, WOK.clone().add(V(0, 0.8, 0))); burst(WOK.clone().add(V(0, 0.4, 0)), 0xe8c26a, 12, 2); audio.slam(); hySay('아깝씁니다.', 1200); addTrust(-1); resetWok(); }
 function cookCtl() {
   ctl([{ label: '꾹 볶기', key: 'Space', kname: 'Space', down: stirOn, up: stirOff }, { label: '불쇼', key: 'ArrowUp', kname: '↑', down: () => { if (!stirring && W.rice) stirOn(); toss(); } }, { label: '내기', key: 'Enter', kname: 'Enter', down: serve }, { label: '버리기', cls: 'r', key: 'Backspace', kname: '⌫', down: dump }]);
   ING.forEach(d => { keys[d.key] = { down: () => addIng(d.k), up() {} }; });
-  keys.KeyW = { down: toss, up() {} };
-  pickables = [...ING.map(d => d.hit), wokHit, ...custs.flatMap(c => c.head ? [c.m, c.head] : [c.m]), ...flyers.filter(f => f.visible).map(f => f.children[0])];
-  if (G.lurer) pickables.push(G.lurer.m, G.lurer.head);
+  keys.KeyW = { down: toss, up() {} }; keys.Digit6 = { down: cookerKey, up() {} };
+  refreshPicks();
   onPick = o => {
     const u = o.userData;
+    if (u.fire) { douse(u.fire); return; }
+    if (u.cooker != null) { if (G.tut && !tutAllow('cooker')) return; cookerClick(cookers[u.cooker]); return; }
+    if (u.hyTut) { if (!tutAllow('serve')) return; if (W.done >= 0.05 && G.active) serveTo(G.active); return; }
     if (u.ing) addIng(u.ing); else if (u.wok) stirOn();
     else if (u.flyer) tearFlyer(u.flyer);
     else if (u.cust && u.cust === G.lurer) chaseLurer();
@@ -1148,7 +1476,7 @@ function cookCtl() {
 }
 // floating labels over ingredients
 const tagEls = ING.map(d => { const e = document.createElement('div'); e.className = 'ing'; e.innerHTML = `${d.n}<kbd>${d.key.slice(-1)}</kbd>`; e.hidden = true; $('#tags').appendChild(e); return e; });
-function updateTags() { const t = G && G.active; ING.forEach((d, i) => { const el = tagEls[i]; el.classList.toggle('need', !!t && (W[d.k] || 0) < (t.req[d.k] || 0)); el.style.opacity = d.k === 'chicken' && !lv('chick') && !(t && t.req.chicken) ? 0.35 : 1; }); }
+function updateTags() { const t = G && G.active; ING.forEach((d, i) => { const el = tagEls[i]; if (d.k === 'rice' && G) el.innerHTML = `밥통 ${G.stock}공기<kbd>3</kbd>`; el.classList.toggle('need', !!t && (W[d.k] || 0) < (t.req[d.k] || 0)); el.style.opacity = d.k === 'chicken' && !lv('chick') && !(t && t.req.chicken) ? 0.35 : 1; }); }
 function placeTags() {
   const on = G && G.cooking && !G.talking, ready = on && W.done >= 0.55 && !bizPause; ING.forEach((d, i) => { const el = tagEls[i]; el.hidden = !on; if (!on) return; const [x, y] = toScreen(d.g.position.clone().add(V(0, 0.95, 0))); el.style.left = x + 'px'; el.style.top = y + 'px'; });
   for (const c of custs) {
@@ -1166,7 +1494,7 @@ function nextHint() {
   if (W.oil < r.oil) return `① 기름을 넣으세요 (1)`;
   if (G.skill.scallion && !W.egg && !W.onion) return '② 파를 먼저 넣으면 파기름! (5) · 계란 (2)';
   if (W.egg < r.egg) return `② 계란 ${r.egg - W.egg}개 더 (2)`;
-  if (W.rice < r.rice) return `③ 밥 ${r.rice - W.rice}공기 더 (3)`;
+  if (W.rice < r.rice) return G.stock > 0 ? `③ 밥통에서 밥 ${r.rice - W.rice}공기 더 (3)` : '③ 밥통이 비었다! 밥솥에서 밥 짓기 (6)';
   if (W.chicken < r.chicken) return `④ 닭가슴살 ${r.chicken - W.chicken}개 더 (4)`;
   if (W.onion < r.onion) return `④ 파 넣기 (5)`;
   if (W.done < 0.55) return G.skill.show ? `⑤ 꾹 볶다가 위로 튕겨 불쇼! (↑) 불향 ${W.fire}/3` : '⑤ 웍을 꾹 눌러 볶으세요 (Space)';
@@ -1440,11 +1768,12 @@ function wokFrame(dt, rate) {
   if (W.done > 0.95 && rand() < 0.3) burst(WOK.clone().add(V(0, 0.5, 0)), 0x222222, 2, 0.8, 1.0, -0.6);
   audio.sizzleSet(!wokUsed() ? 0 : stirring ? 0.16 : 0.05);
   updateGrains(dt);
-  bar(Math.min(W.done, 1), [0.55, 0.8], true); mgDesc(nextHint());
+  wokGauge(); cookerFrame(dt); fireFrame(dt); if (!G.tut) mgDesc(nextHint());
   // camera: close on the wok while something is cooking
-  if (!camOv && !G.talking && G.cooking) view = wokUsed() ? 'cook' : 'shop';
+  if (!camOv && !G.talking && G.cooking) view = (wokUsed() || G.tut || STN.some(x => x.burn)) ? 'cook' : 'shop';
 }
 async function business() {
+  if (G.day > 1) G.stock = Math.max(G.stock, 2); cookers.forEach(c => { c.st = 'empty'; c.t = 0; });
   G.cooking = true; G.clock = 0; G.ds = { n: 0, stars: 0, rev: 0, cost: 0, left: 0, rep0: G.rep };
   cookCtl(); mg('주방', '손님을 기다리는 중…', true); $('#tickets').hidden = false;
   const len = DAY_LEN[G.day - 1];
@@ -1479,7 +1808,7 @@ async function business() {
     if (AUTO) { autoT -= dt; if (autoT <= 0) { autoT = 0.22 * (AUTO.slow || 1); autoCook(); } }
     return t >= len && !custs.some(c => c.state === 'eat' || (c.served && c.state !== 'leave') || c.state === 'order');
   });
-  G.cooking = false; stirring = false; audio.sizzleSet(0); flyers.forEach(f => f.visible = false); G.flyers = 0;
+  G.cooking = false; stirring = false; audio.sizzleSet(0); flyers.forEach(f => f.visible = false); G.flyers = 0; putOutAll();
   if (G.lurer) { removeCust(G.lurer); G.lurer = null; }
   for (const c of custs.slice()) { if (c.state === 'wait' || c.state === 'order') { cSay(c, '영업 끝났어요? 다음에 올게요.', 1500); if (c.ticket) dropTicket(c.ticket); leave(c, 0); } }
   mgOff(); onPick = null; pickables = null; onRelease = null; $('#tickets').hidden = true; resetWok(); view = 'shop';
@@ -1488,6 +1817,9 @@ async function business() {
 }
 function autoCook() {
   if (bizPause) return;
+  { const f = STN.find(s => s.burn); if (f) { douse(f); return; } }
+  { const r = cookers.find(c => cookerOn(c) && (c.st === 'ready' || c.st === 'warn')); if (r && rand() < 0.6) { cookerClick(r); return; } }
+  if (G.stock < 4) { const e = cookers.find(c => cookerOn(c) && c.st === 'empty'); if (e && !cookers.some(c => c.st === 'cook' && cookerOn(c)) ) { cookerClick(e); return; } }
   if (G.flyers > 0 && rand() < 0.3) { const f = flyers.find(x => x.visible); if (f) tearFlyer(f); }
   if (G.lurer && rand() < 0.2) chaseLurer();
   const t = G.active; if (!t) return;
@@ -1503,7 +1835,7 @@ function autoCook() {
 async function dayIntro() {
   const d = G.day; G.clock = 0; G.holdSeats = false; hud(); goView('shop');
   setStreet([0, 1, 2, 2, 4][d - 1]);
-  if (d === 1) { await banner('DAY 1', '첫 출근'); await hireIntro(); burst(V(0.6, 4.3, -4.2), 0xffe600, 30, 3); audio.ding(); whisper('주문표대로 재료를 넣고, 웍을 꾹 눌러 볶은 뒤 손님을 클릭해서 주세요. 현태가 지켜봅니다.', 3600); await sleep(1.2); }
+  if (d === 1) { await interviewScene(); await kitchenTutorial(); await banner('DAY 1', '첫 영업'); burst(V(0.6, 4.3, -4.2), 0xffe600, 30, 3); audio.ding(); whisper('밥이 떨어지기 전에 밥솥으로 미리 지어 두세요. 다 된 밥을 오래 두면 불이 납니다!', 3600); await sleep(1.2); }
   else if (d === 2) { await banner('DAY 2', '단골이 생길지도'); hySay('오늘도 2인분부터 받씁니다.', 1800); await sleep(1.4); await peekStreet('맞은편이 공사 중이씁니다.'); }
   else if (d === 3) { await banner('DAY 3', '단체 손님 예약'); hySay('단체 손님 예약이 잇씁니다.', 1800); await sleep(1.6); whisper('깐깐 부장은 별 4개 미만이면 화를 냅니다.', 2400); await peekStreet('…국밥집이씁니까?'); }
   else if (d === 4) { await banner('DAY 4', '맛집 리뷰어 출몰'); whisper('오늘 맛집 리뷰어가 온다는 소문! 별 5개면 평판이 크게 오릅니다.', 3000); hySay('긴장됩니따.', 1600); await sleep(2.0); }
@@ -1614,6 +1946,8 @@ function upgIcon(id) {
   else if (id === 'neon') { g.shadowColor = '#ff5ab0'; g.shadowBlur = 18; P([[10, 28], [102, 28], [102, 84], [10, 84]], '#2a0a20'); g.shadowBlur = 12; g.fillStyle = '#ff7fd0'; g.font = '900 32px "Malgun Gothic",sans-serif'; g.textAlign = 'center'; g.fillText('2인분', 56, 68); g.shadowBlur = 0; }
   else if (id === 'chick') { P([[70, 16], [96, 30], [98, 56], [80, 72], [56, 70], [44, 50], [50, 28]], '#c97a2a'); P([[48, 62], [60, 70], [30, 96], [22, 90]], '#f3ead8'); E(20, 98, 9, 9, '#f3ead8'); E(28, 104, 8, 8, '#f3ead8'); }
   else if (id === 'noguk') { g.beginPath(); g.moveTo(16, 52); g.quadraticCurveTo(56, 116, 96, 52); g.closePath(); g.fillStyle = '#f4f1ea'; g.fill(); g.stroke(); E(56, 52, 40, 8, '#e0612a'); g.lineWidth = 9; g.strokeStyle = '#e3120b'; g.beginPath(); g.arc(56, 60, 46, 0, PI * 2); g.moveTo(24, 28); g.lineTo(88, 92); g.stroke(); }
+  else if (id === 'cooker') { P([[22, 40], [90, 40], [86, 100], [26, 100]], '#f4f4f4'); g.beginPath(); g.ellipse(56, 40, 36, 16, 0, PI, 0); g.closePath(); g.fillStyle = '#d62a2a'; g.fill(); g.stroke(); g.fillStyle = '#1fc21f'; g.fillRect(44, 64, 24, 10); g.strokeRect(44, 64, 24, 10); g.fillStyle = '#111'; g.font = '900 26px "Malgun Gothic",sans-serif'; g.textAlign = 'center'; g.fillText('+1', 92, 26); }
+  else if (id === 'cookspd') { P([[22, 46], [90, 46], [86, 104], [26, 104]], '#c9ced4'); g.beginPath(); g.ellipse(56, 46, 36, 14, 0, PI, 0); g.closePath(); g.fillStyle = '#555'; g.fill(); g.stroke(); E(56, 76, 16, 16, '#fff'); g.beginPath(); g.moveTo(56, 76); g.lineTo(66, 68); g.stroke(); g.strokeStyle = '#7ab'; g.lineWidth = 5; [36, 56, 76].forEach(x => { g.beginPath(); g.moveTo(x, 26); g.quadraticCurveTo(x + 8, 16, x, 6); g.stroke(); }); }
   else if (id === 'statue') { P([[30, 92], [82, 92], [90, 106], [22, 106]], '#888'); const img = hyTex.image; if (img && img.width) { g.drawImage(img, 26, 8, 60, 85); g.globalCompositeOperation = 'source-atop'; g.fillStyle = 'rgba(255,190,30,.6)'; g.fillRect(0, 0, 112, 92); g.globalCompositeOperation = 'source-over'; } g.fillStyle = '#fff'; g.beginPath(); g.arc(80, 22, 5, 0, PI * 2); g.fill(); }
   return (ICONS[id] = c.toDataURL());
 }
@@ -1729,6 +2063,7 @@ function resetWorld() {
   scene.background.set(0x2a2118); hemi.intensity = 1; camOv = null; camRoll = 0; tremble = 0; bigFlame.visible = false; eyeT = 0; eyeFires.forEach(e => e.visible = false);
   hy.visible = true; bigHy.visible = false; hy.position.copy(HY_HOME); setRed(0); anger(0); flyers.forEach(f => f.visible = false);
   sign.material.map = signTex; sign.material.needsUpdate = true; resetWok(); audio.sizzleSet(0);
+  putOutAll(); cookers.forEach(c => { c.st = 'empty'; c.t = 0; c.el.hidden = true; }); wgEl.hidden = true; dlgHide(); spotOff(); $('#hurt').style.opacity = 0; $('#fistL').hidden = $('#fistR').hidden = true; hyBody.userData = {}; hyHead.userData = {};
 }
 async function startGame() {
   if (running) return; running = true; audio.unlock();
@@ -1778,7 +2113,7 @@ function loop(ts) {
   const raw = ts - last; last = ts;
   const dt = Math.min(0.05, raw / 1000) * SPEED * timeScale; T += dt;
   frameFns.forEach(f => f(dt));
-  updateChars(dt); updateCamera(dt); placeBubbles(); placeTags(); if ((perfN & 3) === 0) updateCursor();
+  updateChars(dt); updateCamera(dt); placeBubbles(); placeTags(); placeSpot(); if ((perfN & 3) === 0) updateCursor();
   if (titleScr.hidden && splash.hidden) renderer.render(scene, camera);
   if (raw > 0 && raw < 250) { perfAcc += raw; perfN++; }
   if (perfN >= 90) { const a = perfAcc / perfN; perfAcc = 0; perfN = 0; if (a > 21 && pr > 0.75) { pr = Math.max(0.75, pr - 0.2); resize(); } else if (a < 17.5 && pr < MAX_PR) { pr = Math.min(MAX_PR, pr + 0.1); resize(); } }
