@@ -348,9 +348,9 @@ button:focus-visible{outline:3px solid var(--yolk);outline-offset:2px}
       <span class="serv">만드는 순서</span>
       <ol class="steps">
         <li><span><b>재료 준비</b> · 대파는 송송 썰고, 계란은 그릇에 깨서 소금 한 꼬집을 넣고 고르게 풀어 둔다.</span></li>
-        <li><span><b>파기름</b> · 팬에 식용유를 두르고 <u>중불</u>에서 대파를 볶아 노릇하게 향을 낸다.</span></li>
+        <li><span><b>파기름</b> · 팬에 식용유를 두르고 <u>중불</u>에서 충분히 달군 뒤, 대파를 넣고 <u>계속 뒤적이며</u> 노릇하게 향을 낸다.</span></li>
         <li><span><b>스크램블</b> · 파를 한쪽으로 밀고 계란물을 부어, 휘저어서 <u>반숙</u>으로 만든다.</span></li>
-        <li><span><b>밥 볶기</b> · 반숙일 때 밥을 넣고 <u>센불</u>로 올려 웍질하며 수분을 날린다.</span></li>
+        <li><span><b>밥 볶기</b> · 반숙일 때 밥을 넣고 <u>센불</u>로 올려, 밥이 뜨겁게 데워지도록 쉬지 않고 웍질하며 수분을 날린다.</span></li>
         <li><span><b>간하기</b> · 팬 <u>가장자리</u>에 간장을 둘러 살짝 눌린 뒤 섞는다. 굴소스·후추를 넣고 한 번 더 볶는다.</span></li>
         <li><span><b>마무리</b> · 불을 끄고 참기름을 둘러 섞은 뒤 접시에 담는다.</span></li>
       </ol>
@@ -1031,9 +1031,9 @@ function freshState() {
   return {
     temp: 0, oil: 0, leekCut: 0, boardIdx: [], carton: 4,
     bowl: { eggs: 0, shells: 0, whisk: 0, salt: 0, pepper: 0, sugar: 0 },
-    pa: { inPan: false, pieces: 0, whole: false, cook: 0, max: 0, cookAtEgg: null },
+    pa: { inPan: false, pieces: 0, whole: false, cook: 0, max: 0, cookAtEgg: null, lastStir: 0, idle: 0 },
     egg: { inPan: false, beaten: 0, direct: 0, shells: 0, whiskAtPour: 1, saltAtPour: 0, cook: 0, curd: 0, cookAtRice: null, curdAtRice: null },
-    rice: { inPan: false, bowls: [], moisture: 1, scorch: 0, tosses: 0, spills: 0, lastMove: 0, lastToss: -9 },
+    rice: { inPan: false, bowls: [], moisture: 1, warm: 0, scorch: 0, tosses: 0, spills: 0, lastMove: 0, lastToss: -9 },
     soy: 0, soyEdge: 0, soyHot: 0, mix: 0, oyster: 0, sesame: 0, sesameHot: 0, pepper: 0, panSalt: 0, sugar: 0, vinegar: 0,
     bookOpens: 0, emptyTosses: 0, first: {}, firstTemp: {}, pepperEarly: false, oysterEarly: false, heatAtEnd: 0, endT: 0, heatOffAfterRice: false, smoke: false, smokeT: 0, toastK: 0,
     paHeat: { s: 0, t: 0 }, riceHeat: { s: 0, t: 0 }, start: T, warned: {}
@@ -1214,7 +1214,7 @@ function chop() {
     }).then(() => { busy.knife = false; if (hand && hand.id === 'knife') hand.lock = false; });
 }
 function dropLeekInPan() {
-  S.pa.whole = true; S.pa.inPan = true; mark('pa');
+  S.pa.whole = true; S.pa.inPan = true; S.pa.lastStir = T; mark('pa');
   const c = hand.c; leek.position.set(PAN.x - c.x, PAN.y + 0.04, PAN.z - c.z + 0.35);
   hand = null; updateHandBar(); toast('통째로…?', true);
 }
@@ -1225,7 +1225,7 @@ function addPa() {
     pa.launchTo(i, handPa.position.x + (rand() - .5) * 0.2, handPa.position.y, handPa.position.z + (rand() - .5) * 0.2, Math.cos(a) * r, Math.sin(a) * r, 0.35 + rand() * 0.1, j * 0.006);
     pa.setColor(i, ...boardCol[i]);
   });
-  S.pa.inPan = true; S.pa.pieces += list.length; mark('pa'); W.burst = Math.max(W.burst, S.temp > 0.4 ? 1 : 0.2);
+  S.pa.inPan = true; S.pa.pieces += list.length; S.pa.lastStir = T; mark('pa'); W.burst = Math.max(W.burst, S.temp > 0.4 ? 1 : 0.2);
   handPa.visible = false; hand = null; updateHandBar();
 }
 function startCrack(where, hit) {
@@ -1268,7 +1268,7 @@ function startWhisk() {
   showGauge('풀린 정도', 'fill');
   act = {
     tick(dt) {
-      const b = S.bowl; b.whisk = Math.min(1, b.whisk + dt / (1.1 * b.eggs)); ang += dt * 13;
+      const b = S.bowl; b.whisk = Math.min(1, b.whisk + dt / (4 * b.eggs)); ang += dt * 13;
       if (Math.floor(ang / 3) !== Math.floor((ang - dt * 13) / 3)) audio.burst(1800, 1, 0.04, 0.12);
       chopsticks.position.set(BOWL.x + Math.cos(ang) * 0.16, 0.62, BOWL.z + Math.sin(ang) * 0.16); chopsticks.rotation.set(0, -ang * 0.5, 0.45);
       const k = b.whisk;
@@ -1399,16 +1399,16 @@ function startStir() {
   hand.lock = true; let a = 0, hopT = 0;
   act = {
     tick(dt) {
-      a += dt * 7;
+      a += dt * 7; S.pa.lastStir = T;
       spatula.position.set(PAN.x - (S.egg.inPan && !S.rice.inPan ? 0.38 : 0) + Math.cos(a) * 0.35, PAN.y + 0.2, PAN.z + Math.sin(a) * 0.28);
       spatula.rotation.set(0, -a, 0);
       hopT -= dt; if (hopT <= 0) { hopT = 0.18; pa.hop(0.25, 1.0); curd.hop(0.25, 0.9); rice.hop(0.12, 1.0); speck.hop(0.2, 1); }
       if (S.egg.inPan && !S.rice.inPan && S.egg.cook > 0.12) {
-        S.egg.curd = Math.min(1, S.egg.curd + dt * 0.42); revealCurds(S.egg.curd);
+        S.egg.curd = Math.min(1, S.egg.curd + dt * 0.085); revealCurds(S.egg.curd);
         const s = 0.58 * (1 - S.egg.curd * 0.92); eggDisc.scale.set(s, 1, s); if (S.egg.curd > 0.3) panYolks.forEach(y => y.visible = false);
       }
       if (S.rice.inPan) {
-        S.rice.lastMove = T; S.rice.moisture = Math.max(0.1, S.rice.moisture - dt * 0.025 * S.temp);
+        S.rice.lastMove = T; S.rice.moisture = Math.max(0.1, S.rice.moisture - dt * 0.012 * S.temp * (0.3 + 0.7 * S.rice.warm));
         if (S.soy > 0) S.mix = Math.min(1, S.mix + dt * 0.12);
       }
     },
@@ -1421,10 +1421,10 @@ function doToss() {
     const n = rice.spill(26); curd.spill(3);
     if (n) { S.rice.spills++; toast('밥이 넘쳤어요!', true); }
   }
-  audio.whoosh(); SETS.forEach(s => s.tossAll(1));
+  audio.whoosh(); SETS.forEach(s => s.tossAll(1)); S.pa.lastStir = T;
   if (S.rice.inPan) {
     S.rice.lastToss = T; S.rice.lastMove = T; S.rice.tosses++;
-    if (S.temp > 0.3) S.rice.moisture = Math.max(0.1, S.rice.moisture - 0.095 * S.temp);
+    if (S.temp > 0.3) S.rice.moisture = Math.max(0.1, S.rice.moisture - 0.042 * S.temp * (0.3 + 0.7 * S.rice.warm));
     S.toastK += 0.035 * S.temp;
     if (S.soy > 0) S.mix = Math.min(1, S.mix + 0.3);
     recolorRice();
@@ -1511,10 +1511,14 @@ function recolorRice() {
 let recolAcc = 0, panelAcc = 0;
 function simulate(dt) {
   const tgt = [0, 0.4, 0.7, 1][heat];
-  S.temp += (tgt - S.temp) * (1 - Math.exp(-dt * 1.3));
+  S.temp += (tgt - S.temp) * (1 - Math.exp(-dt * 0.2));
   const tp = S.temp;
-  if (S.pa.inPan) { S.pa.cook += 0.17 * tp * dt * (S.oil > 0.2 ? 1 : 1.7) * (S.rice.inPan ? 0 : S.egg.inPan ? 0.3 : 1); S.pa.max = Math.max(S.pa.max, S.pa.cook); }
-  if (S.egg.inPan) S.egg.cook += 0.17 * tp * dt * (S.rice.inPan ? 0.3 : 1);
+  const paOnly = S.pa.inPan && !S.egg.inPan && !S.rice.inPan;
+  const paIdle = paOnly && tp > 0.3 && T - S.pa.lastStir > 6;
+  if (paIdle) S.pa.idle += dt;
+  if (S.pa.inPan) { S.pa.cook += 0.022 * tp * dt * (S.oil > 0.2 ? 1 : 1.7) * (paIdle ? 1.5 : 1) * (S.rice.inPan ? 0 : S.egg.inPan ? 0.3 : 1); S.pa.max = Math.max(S.pa.max, S.pa.cook); }
+  if (S.egg.inPan) S.egg.cook += 0.035 * tp * dt * (S.rice.inPan ? 0.3 : 1);
+  if (S.rice.inPan) S.rice.warm = Math.min(1, S.rice.warm + dt * 0.035 * tp);
   if (S.rice.inPan && tp > 0.5 && T - S.rice.lastMove > 2.5) S.rice.scorch = Math.min(1, S.rice.scorch + (tp - 0.4) * dt * 0.05);
   if (S.oil > 0.2 && !S.pa.inPan && !S.egg.inPan && !S.rice.inPan && tp > 0.9) {
     S.smokeT += dt; if (S.smokeT > 4 && !S.smoke) { S.smoke = true; toast('기름에서 연기가 나요!', true); }
@@ -1540,6 +1544,7 @@ const panFloat = $('#panFloat');
 const GAUGES = {
   pa: { name: '대파', cuts: [0.3, 0.6, 0.82, 1.0], max: 1.2, words: ['하얌', '숨 죽음', '노릇노릇', '갈색', '탔음'], cols: ['#e9eed6', '#c8d68a', '#f5bf2a', '#a8642a', '#2a1a12'], target: 2 },
   egg: { name: '계란', cuts: [0.2, 0.45, 0.72, 1.0], max: 1.2, words: ['생계란', '묽음', '반숙', '완숙', '퍽퍽'], cols: ['#fbe3a0', '#f7cf52', '#f2b723', '#d99a2b', '#9a6a2a'], target: 2 },
+  temp: { name: '팬 온도', cuts: [0.3, 0.55, 0.9], max: 1.05, words: ['차가움', '미지근', '달궈짐', '연기 직전'], cols: ['#8fa6c2', '#e9cf9a', '#f5bf2a', '#e3120b'], target: 2 },
   rice: { name: '밥 수분', cuts: [0.3, 0.7], max: 1.35, words: ['고슬고슬', '촉촉', '질척'], cols: ['#f5bf2a', '#e9e4d8', '#b9c6d8'], target: 0 },
 };
 const floatSeen = {};
@@ -1561,10 +1566,12 @@ function gaugeRow(key, v, extraBad, quiet) {
 function updateFloat() {
   if (!playing || modalOpen) { panFloat.hidden = true; return; }
   const rows = [];
-  if (S.pa.inPan && !S.egg.inPan && !S.rice.inPan) rows.push(gaugeRow('pa', S.pa.cook));
+  if (heat > 0 && S.oil > 0.1 && !S.pa.inPan && !S.egg.inPan && !S.rice.inPan) rows.push(gaugeRow('temp', S.temp));
+  if (S.pa.inPan && !S.egg.inPan && !S.rice.inPan) rows.push(gaugeRow('pa', S.pa.cook, T - S.pa.lastStir > 6 && S.temp > 0.3 && S.pa.cook < 1 ? '뒤적여야 함!' : ''));
   if (S.egg.inPan && !S.rice.inPan) rows.push(gaugeRow('egg', S.egg.cook));
   if (S.rice.inPan) {
     GAUGES.rice.max = Math.max(1.0, S.rice.bowls.length > 1 ? 1.7 : S.rice.bowls[0] === 'riceHot' ? 1.35 : 1.0);
+    GAUGES.rice.name = S.rice.warm < 0.7 ? '밥 수분 · 데우는 중' : '밥 수분';
     rows.push(gaugeRow('rice', S.rice.moisture, S.rice.scorch > 0.06 ? '눌어붙는 중!' : ''));
   }
   if (S.pa.inPan && S.egg.inPan && !S.rice.inPan) rows.push(gaugeRow('pa', S.pa.cook, '', true));
@@ -1657,7 +1664,8 @@ function evaluate() {
   if (ord === 100 && f.rice != null && f.egg != null && f.pa != null && f.soy != null) yes('레시피 순서를 그대로 따랐씁니다.');
 
   const parts = [], ft = S.firstTemp;
-  if (ft.pa != null && ft.pa < 0.35) { parts.push(45); no('팬을 달구지도 않고 대파를 넣었씁니다.'); }
+  if (ft.pa != null && ft.pa < 0.55) { parts.push(45); no('팬을 달구지도 않고 대파를 넣었씁니다.'); }
+  if (S.pa.idle > 12) { parts.push(55); no('파를 안 뒤적여서 한쪽만 탔씁니다.'); }
   if (S.paHeat.t > 1) {
     const a = S.paHeat.s / S.paHeat.t; parts.push(Math.max(0, 100 - Math.abs(a - 2) * 50));
     if (a > 2.4) no('파기름을 센불로 냈씁니다. 레시피는 중불이었씁니다.'); else if (a < 1.6) no('파기름 낼 때 불이 약했씁니다.');
@@ -1685,7 +1693,7 @@ function evaluate() {
   if (S.rice.inPan) {
     const m = S.rice.moisture;
     if (m > 0.3) { fry -= Math.min(70, (m - 0.3) * 140); no(m > 0.7 ? '밥이 질척했씁니다.' : '밥이 아직 촉촉했씁니다.', m > 0.7 ? 60 : null); } else yes('밥알이 고슬고슬했씁니다.');
-    if (S.rice.tosses < 6) { fry -= 15; no(`웍질을 ${S.rice.tosses}번밖에 안 했씁니다.`); }
+    if (S.rice.tosses < 15) { fry -= 15; no(`웍질을 ${S.rice.tosses}번밖에 안 했씁니다.`); }
     if (S.rice.spills) { fry -= Math.min(40, S.rice.spills * 12); no(`웍질을 너무 급하게 해서 밥을 ${S.rice.spills}번 흘렸씁니다.`); }
   } else fry = 0;
   if (S.egg.curdAtRice != null && S.egg.beaten && S.egg.curdAtRice < 0.5) { fry -= 18; no('계란을 안 휘저어서 덩어리로 굳었씁니다.'); }
@@ -1707,7 +1715,7 @@ function evaluate() {
   }
   if (S.panSalt) { sea -= 10 * S.panSalt; no(`팬에 소금을 ${S.panSalt}번 더 넣어서 짰씁니다.`); }
   if (sea >= 95 && S.soy >= 0.05) yes('간이 딱 맞았씁니다.');
-  if (S.endT - S.start > 360) no('너무 오래 걸려서 현태가 기다리다 지쳤씁니다.');
+  if (S.endT - S.start > 480) no('너무 오래 걸려서 현태가 기다리다 지쳤씁니다.');
 
   const cats = [['재료 손질', prep, 15], ['재료 선택', ing, 15], ['순서', ord, 15], ['불 조절', heatS, 25], ['볶기', fry, 15], ['간', sea, 15]]
     .map(c => [c[0], Math.round(clamp(c[1], 0, 100)), c[2]]);
@@ -2011,7 +2019,7 @@ const ACH = [
   { id: 'ye', cat: '잘함', name: '예.', desc: '현태가 처음으로 "예." 했씁니다.', test: r => r.total >= 61 },
   { id: 'abuji', cat: '잘함', name: '예 아부지', desc: '아부지 몫까지 2인분 인정받았씁니다.', test: r => r.total >= 91 },
   { id: 'perfect', cat: '잘함', name: '레시피 북 그 자체', desc: '레시피를 한 글자도 안 틀렸씁니다.', test: r => r.bad.length === 0 && S.rice.inPan },
-  { id: 'speed', cat: '잘함', name: '스피드런', desc: '현태가 기다릴 틈도 없었씁니다.', test: r => r.total >= 61 && S.endT - S.start <= 120 },
+  { id: 'speed', cat: '잘함', name: '스피드런', desc: '현태가 기다릴 틈도 없었씁니다.', test: r => r.total >= 61 && S.endT - S.start <= 180 },
   { id: 'nobook', cat: '잘함', name: '감으로 요리함', desc: '레시피 북이 필요 없었씁니다.', test: r => r.total >= 61 && S.bookOpens === 0 },
   { id: 'wokmaster', cat: '잘함', name: '웍질 장인', desc: '밥알이 하늘을 날아도 하나도 안 떨어졌씁니다.', test: () => S.rice.tosses >= 15 && S.rice.spills === 0 },
   { id: 'wholeleek', cat: '실수', name: '썰기 귀찮음', desc: '대파 한 대를 그대로 넣었씁니다.', test: () => S.pa.whole },
