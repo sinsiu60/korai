@@ -42,7 +42,7 @@ button:focus-visible{outline:3px dashed var(--red);outline-offset:3px}
 .bub.hy{background:var(--yolk)}
 .bub.fr{background:#cfe8ff}
 
-.mg{position:fixed;left:50%;transform:translateX(-50%) rotate(-1deg);top:calc(78px + env(safe-area-inset-top,0px));z-index:8;width:min(440px,calc(100% - 32px));
+.mg{pointer-events:none;position:fixed;left:50%;transform:translateX(-50%) rotate(-1deg);top:calc(78px + env(safe-area-inset-top,0px));z-index:8;width:min(440px,calc(100% - 32px));
   background:#fff;border:4px solid var(--ink);box-shadow:6px 6px 0 var(--ink);padding:10px 14px 12px;display:flex;flex-direction:column;gap:6px;font-family:var(--f-b);pointer-events:none}
 .mg h3{margin:0;font:400 24px var(--f-display);color:var(--red)}
 .mg p{margin:0;font:700 14px/1.4 var(--f-b)}
@@ -89,6 +89,9 @@ button:focus-visible{outline:3px dashed var(--red);outline-offset:3px}
 .banner span{font:400 clamp(48px,11vw,120px)/1 var(--f-display);color:var(--yolk);-webkit-text-stroke:3px var(--ink);text-shadow:0 8px 0 var(--ink);transform:rotate(-4deg);text-align:center;padding:0 16px;animation:slam 1.2s ease-out forwards}
 .banner small{display:block;font-size:.4em;color:#fff;-webkit-text-stroke:2px var(--ink);margin-top:10px}
 @keyframes slam{0%{transform:rotate(-4deg) scale(3);opacity:0}14%{transform:rotate(-4deg) scale(.95);opacity:1}20%{transform:rotate(-4deg) scale(1.05)}80%{opacity:1}100%{opacity:0;transform:rotate(-4deg) scale(1)}}
+.lb{position:fixed;inset:0;z-index:8;pointer-events:none}
+.lb::before,.lb::after{content:"";position:absolute;left:0;right:0;height:0;background:#000;transition:height .5s cubic-bezier(.2,.8,.2,1)}
+.lb::before{top:0}.lb::after{bottom:0}.lb.on::before,.lb.on::after{height:11vh}
 .fade{position:fixed;inset:0;z-index:9;background:#000;pointer-events:none;opacity:0}
 .hurt{position:fixed;inset:0;z-index:7;pointer-events:none;opacity:0;background:radial-gradient(ellipse at center,rgba(255,0,0,0) 35%,rgba(200,0,0,.85) 100%)}
 
@@ -326,6 +329,7 @@ add(box(2.4, 0.12, 0.12, 0xffffff), 0.3, 3.4, -2.92); add(box(2.4, 0.12, 0.12, 0
 add(box(0.12, 1.7, 0.12, 0xffffff), -0.85, 2.6, -2.92); add(box(0.12, 1.7, 0.12, 0xffffff), 1.45, 2.6, -2.92);
 const CURT_OPEN = [-0.6, 1.2], CURT_SHUT = [-0.05, 0.65];
 const curtL = add(box(0.7, 1.9, 0.05, 0xff9ec0), CURT_OPEN[0], 2.55, -2.84), curtR = add(box(0.7, 1.9, 0.05, 0xff9ec0), CURT_OPEN[1], 2.55, -2.84);
+const winHit = add(new THREE.Mesh(new THREE.PlaneGeometry(2.6, 2.0), new THREE.MeshBasicMaterial({ visible: false })), 0.3, 2.6, -2.8);
 const setCurt = p => { curtL.position.x = lerp(CURT_OPEN[0], CURT_SHUT[0], p); curtR.position.x = lerp(CURT_OPEN[1], CURT_SHUT[1], p); };
 const truckTex = canvasTex(256, 128, g => { g.fillStyle = '#ffd400'; g.fillRect(10, 30, 180, 70); g.fillRect(190, 50, 56, 50); g.strokeStyle = '#111'; g.lineWidth = 6; g.strokeRect(10, 30, 180, 70); g.strokeRect(190, 50, 56, 50); g.fillStyle = '#111'; [50, 150, 220].forEach(x => { g.beginPath(); g.arc(x, 104, 14, 0, PI * 2); g.fill(); }); g.font = '900 30px "Malgun Gothic",sans-serif'; g.fillText('군고구마', 34, 76); });
 const truck = add(new THREE.Mesh(new THREE.PlaneGeometry(1.0, 0.5), basic({ map: truckTex, transparent: true })), -0.5, 2.15, -2.97); truck.visible = false;
@@ -338,6 +342,7 @@ add(box(0.9, 0.6, 0.06, 0x2a2a30), -3.6, 1.45, -2.7);
 const kettle = new THREE.Group(); kettle.position.set(-2.55, 1.11, -2.3); scene.add(kettle);
 add(new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.22, 0.42, 14), lam(0xf4f4f4)), 0, 0.21, 0, kettle);
 add(new THREE.Mesh(new THREE.TorusGeometry(0.12, 0.03, 6, 12, PI), lam(0x333333)), 0.2, 0.25, 0, kettle).rotation.z = -PI / 2;
+add(new THREE.Mesh(new THREE.SphereGeometry(0.5, 8, 6), new THREE.MeshBasicMaterial({ visible: false })), 0, 0.25, 0, kettle);
 const kettleLed = add(new THREE.Mesh(new THREE.SphereGeometry(0.04, 8, 6), basic({ color: 0x333333 })), -0.12, 0.08, 0.17, kettle);
 const ramenCup = add(new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.12, 0.22, 12), lam(0xe8453a)), -3.0, 1.22, -2.0);
 add(box(1.2, 2.5, 1.0, 0xe9edf0), 3.6, 1.25, -2.35);
@@ -348,7 +353,6 @@ add(box(0.08, 2.6, 1.3, 0xa0703f), 0, 1.3, 0.65, dPivot);
 add(new THREE.Mesh(new THREE.SphereGeometry(0.06, 8, 6), lam(0xd4b04a)), 0.08, 1.25, 1.15, dPivot);
 add(box(0.05, 2.7, 1.45, 0x101010), -4.69, 1.35, 1.05);
 add(box(2.4, 0.5, 1.6, 0x8a6a4a), 3.3, 0.25, 1.8); add(box(2.3, 0.18, 1.5, 0x9ec7ff), 3.3, 0.58, 1.8); add(box(0.7, 0.18, 1.2, 0xffffff), 4.1, 0.72, 1.8);
-add(new THREE.Mesh(new THREE.CircleGeometry(1.2, 24).rotateX(-PI / 2), lam(0xffd6e4)), 0, 0.01, 0.6);
 
 const loader = new THREE.TextureLoader();
 const cut = map => new THREE.MeshBasicMaterial({ map, transparent: true, alphaTest: 0.45 });
@@ -376,11 +380,44 @@ const fistTex = canvasTex(160, 140, g => {
   g.lineWidth = 6; [52, 82, 112].forEach(x => { g.beginPath(); g.moveTo(x, 18); g.quadraticCurveTo(x + 6, 40, x - 2, 60); g.stroke(); });
 });
 const fists = [-1, 1].map(s => { const m = add(new THREE.Mesh(new THREE.PlaneGeometry(1.1, 0.96), cut(fistTex)), s * 1.4, 1.6, 0.3, hyRig); if (s > 0) m.scale.x = -1; m.visible = false; return m; });
-const foodCache = {};
-const foodTex = e => foodCache[e] || (foodCache[e] = canvasTex(128, 128, g => { g.font = '100px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(e, 64, 72); }));
+/* ===== low-poly 3D food (shared geometry + materials) ===== */
+const FM = {}; const fmat = c => FM[c] || (FM[c] = lam(c));
+const SPH = new THREE.SphereGeometry(1, 12, 8), CYL = new THREE.CylinderGeometry(1, 1, 1, 16), BOXG = new THREE.BoxGeometry(1, 1, 1), TOR = new THREE.TorusGeometry(1, 0.38, 8, 16), CONE = new THREE.ConeGeometry(1, 1, 10);
+function part(o, geo, c, x, y, z, sx, sy, sz, rx, ry, rz) { const m = new THREE.Mesh(geo, fmat(c)); m.position.set(x || 0, y || 0, z || 0); m.scale.set(sx, sy, sz); m.rotation.set(rx || 0, ry || 0, rz || 0); o.add(m); return m; }
+let pizzaGeo = null;
+const FOOD = {
+  chicken: o => { part(o, SPH, 0xb5651d, 0, 0.05, 0, 0.32, 0.22, 0.22); part(o, SPH, 0xc97a2a, -0.05, 0.13, 0.05, 0.2, 0.12, 0.14); part(o, CYL, 0xf3ead8, 0.33, 0.02, 0, 0.045, 0.3, 0.045, 0, 0, PI / 2); part(o, SPH, 0xf3ead8, 0.48, 0.06, 0, 0.06, 0.06, 0.06); part(o, SPH, 0xf3ead8, 0.48, -0.02, 0, 0.06, 0.06, 0.06); },
+  pizza: o => { if (!pizzaGeo) { const sh = new THREE.Shape(); sh.moveTo(0, 0); sh.lineTo(0.5, 0.2); sh.lineTo(0.5, -0.2); sh.closePath(); pizzaGeo = new THREE.ExtrudeGeometry(sh, { depth: 0.05, bevelEnabled: false }); } const m = new THREE.Mesh(pizzaGeo, fmat(0xf5c542)); m.rotation.x = -PI / 2; m.position.x = -0.25; o.add(m); part(o, CYL, 0xc98a3a, 0.25, 0.03, 0, 0.05, 0.42, 0.05, PI / 2); [[-0.02, 0.01], [0.12, -0.08], [0.13, 0.08]].forEach(([x, z]) => part(o, CYL, 0xc0392b, x, 0.065, z, 0.045, 0.012, 0.045)); },
+  cake: o => { part(o, BOXG, 0xf6e7c8, 0, 0.06, 0, 0.36, 0.1, 0.3); part(o, BOXG, 0xffffff, 0, 0.13, 0, 0.37, 0.04, 0.31); part(o, BOXG, 0xf6e7c8, 0, 0.19, 0, 0.36, 0.08, 0.3); part(o, BOXG, 0xffffff, 0, 0.25, 0, 0.37, 0.04, 0.31); part(o, SPH, 0xe3263c, 0, 0.31, 0, 0.06, 0.06, 0.06); },
+  cola: o => { part(o, CYL, 0xd2261f, 0, 0.18, 0, 0.11, 0.36, 0.11); part(o, CYL, 0xd0d4d8, 0, 0.37, 0, 0.1, 0.03, 0.1); part(o, CYL, 0xffffff, 0, 0.2, 0, 0.112, 0.06, 0.112); },
+  ramen: o => { part(o, CYL, 0xe8453a, 0, 0.14, 0, 0.16, 0.28, 0.16); part(o, CYL, 0xffffff, 0, 0.14, 0, 0.162, 0.08, 0.162); part(o, CYL, 0xf4d38a, 0, 0.29, 0, 0.14, 0.02, 0.14); },
+  goguma: o => { part(o, SPH, 0x6b2d4a, 0, 0.1, 0, 0.3, 0.11, 0.12, 0, 0, 0.2); part(o, SPH, 0xf2b84b, 0.27, 0.15, 0, 0.07, 0.07, 0.08); },
+  friedrice: o => { part(o, CYL, 0xf7f5f0, 0, 0.02, 0, 0.34, 0.03, 0.34); part(o, SPH, 0xe8c26a, 0, 0.05, 0, 0.26, 0.14, 0.26); for (let i = 0; i < 6; i++) part(o, SPH, 0xf5c518, Math.cos(i) * 0.13, 0.13, Math.sin(i) * 0.13, 0.05, 0.03, 0.05); part(o, SPH, 0x4f8f30, 0.05, 0.18, -0.05, 0.03, 0.02, 0.03); },
+  burger: o => { part(o, SPH, 0xd9953b, 0, 0.22, 0, 0.24, 0.1, 0.24); part(o, CYL, 0x5a2e14, 0, 0.13, 0, 0.24, 0.07, 0.24); part(o, CYL, 0xf5c518, 0, 0.17, 0, 0.25, 0.015, 0.25); part(o, CYL, 0x4f8f30, 0, 0.1, 0, 0.26, 0.015, 0.26); part(o, CYL, 0xd9953b, 0, 0.05, 0, 0.24, 0.06, 0.24); },
+  donut: o => { part(o, TOR, 0xd9953b, 0, 0.06, 0, 0.17, 0.17, 0.17, PI / 2); part(o, TOR, 0xff7fa8, 0, 0.09, 0, 0.17, 0.17, 0.1, PI / 2); },
+  riceball: o => { part(o, CONE, 0xffffff, 0, 0.15, 0, 0.2, 0.3, 0.12); part(o, BOXG, 0x1d2a1d, 0, 0.06, 0.1, 0.18, 0.12, 0.02); },
+  cookie: o => { part(o, CYL, 0xc98a3a, 0, 0.03, 0, 0.18, 0.05, 0.18); for (let i = 0; i < 5; i++) part(o, SPH, 0x3b2010, Math.cos(i * 1.3) * 0.1, 0.06, Math.sin(i * 1.3) * 0.1, 0.025, 0.015, 0.025); },
+  choco: o => { part(o, BOXG, 0x4a2410, 0, 0.03, 0, 0.36, 0.05, 0.16); part(o, BOXG, 0x2a6dd8, 0.1, 0.035, 0, 0.18, 0.06, 0.17); },
+  candy: o => { part(o, SPH, 0xff4d8d, 0, 0.1, 0, 0.1, 0.1, 0.1); part(o, CONE, 0xffd0e0, 0.16, 0.1, 0, 0.07, 0.12, 0.07, 0, 0, PI / 2); part(o, CONE, 0xffd0e0, -0.16, 0.1, 0, 0.07, 0.12, 0.07, 0, 0, -PI / 2); },
+  pretzel: o => { part(o, TOR, 0xa0582a, -0.06, 0.04, 0, 0.1, 0.1, 0.1, PI / 2); part(o, TOR, 0xa0582a, 0.06, 0.04, 0, 0.1, 0.1, 0.1, PI / 2); },
+  lolli: o => { part(o, CYL, 0xffffff, 0, 0.15, 0, 0.015, 0.3, 0.015); part(o, CYL, 0xff9a00, 0, 0.32, 0, 0.11, 0.04, 0.11, PI / 2); },
+  cracker: o => { part(o, BOXG, 0xe0b26a, 0, 0.03, 0, 0.22, 0.04, 0.22); part(o, BOXG, 0x1d2a1d, 0, 0.055, 0, 0.12, 0.01, 0.24); },
+  jelly: o => { part(o, SPH, 0x1fc21f, -0.06, 0.06, 0, 0.07, 0.09, 0.07); part(o, SPH, 0xff3b3b, 0.06, 0.06, 0.03, 0.07, 0.09, 0.07); part(o, SPH, 0xffd400, 0, 0.06, -0.07, 0.07, 0.09, 0.07); },
+  gukbapS: o => { part(o, CYL, 0xf4f1ea, 0, 0.1, 0, 0.22, 0.18, 0.22); part(o, CYL, 0xe0612a, 0, 0.19, 0, 0.2, 0.02, 0.2); },
+  phone: o => { part(o, BOXG, 0x141418, 0, 0, 0, 0.3, 0.56, 0.04); const s = new THREE.Mesh(new THREE.PlaneGeometry(0.26, 0.5), basic({ color: 0x6a8dff })); s.position.z = 0.021; o.add(s); },
+};
+const FOOD_COL = { chicken: 0xc97a2a, pizza: 0xf5c542, cake: 0xf6e7c8, cola: 0x6a2a10, ramen: 0xf4d38a, goguma: 0xf2b84b, friedrice: 0xe8c26a, burger: 0xd9953b, donut: 0xff7fa8, riceball: 0xffffff, cookie: 0xc98a3a, choco: 0x4a2410, candy: 0xff4d8d, pretzel: 0xa0582a, lolli: 0xff9a00, cracker: 0xe0b26a, jelly: 0x1fc21f, gukbapS: 0xe0612a };
 const foods = [];
-function spawnFood(e, pos, size) { const m = new THREE.Mesh(new THREE.PlaneGeometry(size || 0.8, size || 0.8), basic({ map: foodTex(e), transparent: true, depthWrite: false })); m.position.copy(pos); scene.add(m); foods.push(m); return m; }
-function dropFood(m) { if (!m || !m.parent) return; scene.remove(m); m.geometry.dispose(); m.material.dispose(); const i = foods.indexOf(m); if (i >= 0) foods.splice(i, 1); }
+function spawnFood(kind, pos, size) { const o = new THREE.Group(); (FOOD[kind] || FOOD.cookie)(o); o.userData.kind = kind; o.scale.setScalar((size || 1) * 1.5); o.position.copy(pos); o.rotation.y = rand() * PI * 2; o.userData.spin = 0.6 + rand() * 0.8; scene.add(o); foods.push(o); return o; }
+function dropFood(m) { if (!m || !m.parent) return; scene.remove(m); const i = foods.indexOf(m); if (i >= 0) foods.splice(i, 1); }
+// crumbs that pile up on the floor
+const CRUMB_N = 120;
+const crumbs = new THREE.InstancedMesh(new THREE.BoxGeometry(0.05, 0.035, 0.05), lam(0xffffff), CRUMB_N); crumbs.frustumCulled = false; scene.add(crumbs);
+const cP = [], cV = [], ZM = new THREE.Matrix4().makeScale(0, 0, 0), _m4 = new THREE.Matrix4(); let cI = 0;
+for (let i = 0; i < CRUMB_N; i++) { cP.push(V(0, -9, 0)); cV.push(V(0, 0, 0)); crumbs.setMatrixAt(i, ZM); crumbs.setColorAt(i, new THREE.Color(0xd9a65a)); }
+function crumbBurst(pos, color, n) { const c = new THREE.Color(color || 0xd9a65a); for (let k = 0; k < (n || 8); k++) { const i = cI = (cI + 1) % CRUMB_N; cP[i].copy(pos); cV[i].set((rand() - .5) * 2.4, 0.6 + rand() * 1.6, (rand() - .5) * 2.0 + 0.8); crumbs.setColorAt(i, c); } crumbs.instanceColor.needsUpdate = true; }
+function updateCrumbs(dt) { let any = false; for (let i = 0; i < CRUMB_N; i++) { const p = cP[i]; if (p.y < -5) continue; const v = cV[i]; if (v.lengthSq() > 0) { any = true; v.y -= 9 * dt; p.addScaledVector(v, dt); if (p.y < 0.02) { p.y = 0.02; v.set(0, 0, 0); } _m4.makeTranslation(p.x, p.y, p.z); crumbs.setMatrixAt(i, _m4); } } if (any) crumbs.instanceMatrix.needsUpdate = true; }
+function clearCrumbs() { for (let i = 0; i < CRUMB_N; i++) { cP[i].set(0, -9, 0); cV[i].set(0, 0, 0); crumbs.setMatrixAt(i, ZM); } crumbs.instanceMatrix.needsUpdate = true; }
 const gukbap = new THREE.Group(); gukbap.visible = false; scene.add(gukbap);
 {
   const pts = []; for (let i = 0; i <= 10; i++) { const t = i / 10; pts.push(new THREE.Vector2(0.55 + t * 0.75, t * 0.9)); } pts.push(new THREE.Vector2(1.34, 0.95));
@@ -409,7 +446,54 @@ const audio = {
 };
 $('#mute').addEventListener('click', e => { audio.unlock(); audio.set(!audio.muted); e.currentTarget.textContent = audio.muted ? '소리 끔' : '소리 켬'; });
 
-let T = 0;
+/* ===== room details ===== */
+function posterTex(paint, w, h) { return canvasTex(w || 256, h || 340, (g, W, H) => { g.fillStyle = '#fffdf4'; g.fillRect(0, 0, W, H); g.strokeStyle = '#111'; g.lineWidth = 8; g.strokeRect(4, 4, W - 8, H - 8); paint(g, W, H); }); }
+const P1 = posterTex((g, W) => { g.fillStyle = '#e3120b'; g.font = '900 56px "Malgun Gothic",sans-serif'; g.textAlign = 'center'; g.fillText('다이어트', W / 2, 90); g.font = '900 96px "Malgun Gothic",sans-serif'; g.fillText('D-3', W / 2, 200); g.strokeStyle = '#111'; g.lineWidth = 10; g.beginPath(); g.moveTo(40, 230); g.lineTo(W - 40, 130); g.stroke(); g.fillStyle = '#111'; g.font = '700 26px "Malgun Gothic",sans-serif'; g.fillText('(내일부터)', W / 2, 290); });
+const P2 = posterTex((g, W, H) => { g.fillStyle = '#ffe600'; g.fillRect(12, 12, W - 24, H - 24); g.fillStyle = '#111'; g.font = '900 44px "Malgun Gothic",sans-serif'; g.textAlign = 'center'; g.fillText('국밥은', W / 2, 80); g.fillText('사랑입니다', W / 2, 130); g.fillStyle = '#f4f1ea'; g.beginPath(); g.ellipse(W / 2, 230, 80, 40, 0, 0, PI * 2); g.fill(); g.fillStyle = '#e0612a'; g.beginPath(); g.ellipse(W / 2, 222, 66, 24, 0, 0, PI * 2); g.fill(); g.strokeStyle = '#111'; g.lineWidth = 5; g.beginPath(); g.ellipse(W / 2, 230, 80, 40, 0, 0, PI * 2); g.stroke(); });
+const P3 = posterTex((g, W, H) => { g.fillStyle = '#0a8cff'; g.font = '900 40px "Malgun Gothic",sans-serif'; g.textAlign = 'center'; g.fillText('운동하자!!', W / 2, 70); g.strokeStyle = '#111'; g.lineWidth = 9; g.lineCap = 'round'; const c = W / 2; g.beginPath(); g.arc(c, 120, 22, 0, PI * 2); g.stroke(); g.beginPath(); g.moveTo(c, 142); g.lineTo(c, 230); g.moveTo(c, 165); g.lineTo(c - 60, 140); g.lineTo(c - 70, 110); g.moveTo(c, 165); g.lineTo(c + 60, 140); g.lineTo(c + 70, 110); g.moveTo(c, 230); g.lineTo(c - 40, 300); g.moveTo(c, 230); g.lineTo(c + 40, 300); g.stroke(); g.fillStyle = '#e3120b'; g.font = '700 22px "Malgun Gothic",sans-serif'; g.fillText('(한 번도 안 함)', c, H - 18); });
+[[P1, -2.1, 2.9, 0.08], [P2, 2.3, 2.9, -0.06]].forEach(([t, x, y, r]) => { const m = add(new THREE.Mesh(new THREE.PlaneGeometry(0.75, 1.0), lam(0xffffff, { map: t })), x, y, -2.97); m.rotation.z = r; });
+{ const m = add(new THREE.Mesh(new THREE.PlaneGeometry(0.9, 1.2), lam(0xffffff, { map: P3 })), 4.67, 2.6, -0.4); m.rotation.y = -PI / 2; m.rotation.x = 0.05; }
+const calTex = canvasTex(200, 220, g => { g.fillStyle = '#fff'; g.fillRect(0, 0, 200, 220); g.fillStyle = '#e3120b'; g.fillRect(0, 0, 200, 46); g.fillStyle = '#fff'; g.font = '900 28px "Malgun Gothic",sans-serif'; g.textAlign = 'center'; g.fillText('11월', 100, 34); g.strokeStyle = '#ccc'; g.lineWidth = 2; for (let r = 0; r < 5; r++) for (let c = 0; c < 7; c++) g.strokeRect(6 + c * 27, 54 + r * 32, 27, 32); g.strokeStyle = '#e3120b'; g.lineWidth = 4; [[2, 1], [3, 1], [4, 1]].forEach(([c, r]) => { g.beginPath(); g.arc(19 + c * 27, 70 + r * 32, 12, 0, PI * 2); g.stroke(); }); });
+add(new THREE.Mesh(new THREE.PlaneGeometry(0.55, 0.6), lam(0xffffff, { map: calTex })), -4.67, 2.4, -1.8).rotation.y = PI / 2;
+// wall clock
+const clock = new THREE.Group(); clock.position.set(-0.85, 3.85, -2.95); scene.add(clock);
+add(new THREE.Mesh(new THREE.CircleGeometry(0.32, 24), lam(0xffffff)), 0, 0, 0, clock);
+add(new THREE.Mesh(new THREE.TorusGeometry(0.32, 0.03, 6, 24), lam(0x222222)), 0, 0, 0.01, clock);
+const hourH = add(new THREE.Mesh(new THREE.PlaneGeometry(0.03, 0.16).translate(0, 0.08, 0), basic({ color: 0x111111 })), 0, 0, 0.02, clock);
+const minH = add(new THREE.Mesh(new THREE.PlaneGeometry(0.02, 0.26).translate(0, 0.13, 0), basic({ color: 0x111111 })), 0, 0, 0.025, clock);
+// clutter
+[[1.6, 2.6, 0xff6a3a], [1.9, 2.75, 0x3a6aff], [1.75, 2.5, 0x2a2a2a], [2.05, 2.55, 0xf5c518]].forEach(([x, z, c]) => { const m = add(new THREE.Mesh(SPH, lam(c)), x, 0.06, z); m.scale.set(0.32, 0.07, 0.24); m.rotation.y = rand() * 3; });
+[[0xe3120b, 0.07], [0x0a8cff, 0.065], [0x1fc21f, 0.06]].forEach(([c, h], i) => add(box(0.42 - i * 0.03, h, 0.3, c), -3.95, 1.15 + i * 0.07, -2.05));
+add(box(0.3, 0.06, 0.18, 0x333333), -2.9, 1.14, -1.95);
+const bin = add(new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.18, 0.45, 14, 1, true), lam(0x8a9aa8, { side: THREE.DoubleSide })), -1.8, 0.23, -2.6);
+[0xe3120b, 0xffd400, 0xff7fa8].forEach((c, i) => add(new THREE.Mesh(SPH, lam(c)), -1.8 + (i - 1) * 0.08, 0.47, -2.6 + (i % 2) * 0.06).scale.setScalar(0.07));
+const db = new THREE.Group(); db.position.set(1.1, 0.07, -2.3); db.rotation.y = 0.4; scene.add(db);
+add(new THREE.Mesh(CYL, lam(0x666666)), 0, 0, 0, db).scale.set(0.03, 0.5, 0.03); db.children[0].rotation.z = PI / 2;
+[-0.22, 0.22].forEach(x => { const m = add(new THREE.Mesh(CYL, lam(0x333333)), x, 0, 0, db); m.scale.set(0.09, 0.08, 0.09); m.rotation.z = PI / 2; });
+add(new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.15, 0.36, 12), lam(0xb5651d)), 2.35, 0.18, -2.5);
+[0, 1, 2, 3, 4].forEach(i => { const m = add(new THREE.Mesh(SPH, lam(0x3f8f3a)), 2.35 + Math.cos(i * 1.3) * 0.12, 0.5 + (i % 2) * 0.12, -2.5 + Math.sin(i * 1.3) * 0.12); m.scale.set(0.12, 0.22, 0.06); m.rotation.z = (i - 2) * 0.4; });
+// wrinkled blanket
+{ const geo = new THREE.PlaneGeometry(2.3, 1.5, 22, 14); const pa = geo.attributes.position; for (let i = 0; i < pa.count; i++) { const x = pa.getX(i), y = pa.getY(i); pa.setZ(i, Math.sin(x * 5.1 + y * 2) * 0.03 + Math.sin(y * 7.3 - x * 3) * 0.025 + (Math.abs(x) > 1.1 || Math.abs(y) > 0.7 ? -0.08 : 0)); } geo.computeVertexNormals(); geo.rotateX(-PI / 2); add(new THREE.Mesh(geo, lam(0x9ec7ff)), 3.3, 0.7, 1.8); }
+// patterned rug + bathroom scale + desk lamp
+const rugTex = canvasTex(256, 256, (g, w) => { g.fillStyle = '#ffd6e4'; g.fillRect(0, 0, w, w); g.strokeStyle = '#ff9ec0'; g.lineWidth = 10; for (let r = 30; r < 128; r += 26) { g.beginPath(); g.arc(128, 128, r, 0, PI * 2); g.stroke(); } });
+add(new THREE.Mesh(new THREE.CircleGeometry(1.2, 32).rotateX(-PI / 2), lam(0xffffff, { map: rugTex })), 0, 0.012, 0.6);
+add(box(0.5, 0.06, 0.5, 0xe9edf0), -1.4, 0.03, 2.2); add(new THREE.Mesh(new THREE.PlaneGeometry(0.22, 0.1).rotateX(-PI / 2), basic({ color: 0x2a3b2a })), -1.4, 0.065, 2.05);
+const lampG = new THREE.Group(); lampG.position.set(-4.0, 1.11, -2.55); scene.add(lampG);
+add(new THREE.Mesh(CYL, lam(0x222222)), 0, 0.25, 0, lampG).scale.set(0.02, 0.5, 0.02);
+add(new THREE.Mesh(new THREE.ConeGeometry(0.18, 0.2, 14, 1, true), lam(0xffd400, { side: THREE.DoubleSide })), 0.05, 0.52, 0.05, lampG).rotation.x = 0.5;
+const lampLight = new THREE.PointLight(0xffc870, 0, 5, 2); lampLight.position.set(-3.9, 1.5, -2.3); scene.add(lampLight);
+// sky by time of day
+const SKIES = { morning: ['#ffcf9e', '#bfe3ff'], day: ['#7cc4ff', '#d6efff'], evening: ['#ff8a5b', '#7a5ad8'], night: ['#0b1030', '#26306a'] };
+function setSky(ph) {
+  const c = skyTex.image, g = c.getContext('2d'), [a, b] = SKIES[ph];
+  const gr = g.createLinearGradient(0, 0, 0, c.height); gr.addColorStop(0, a); gr.addColorStop(1, b); g.fillStyle = gr; g.fillRect(0, 0, c.width, c.height);
+  if (ph === 'night') { g.fillStyle = '#fff'; for (let i = 0; i < 30; i++) g.fillRect(rand() * c.width, rand() * c.height * 0.8, 2, 2); g.fillStyle = '#fffbe0'; g.beginPath(); g.arc(200, 50, 18, 0, PI * 2); g.fill(); }
+  else { g.fillStyle = ph === 'evening' ? '#ffd0b0' : '#fff'; [[60, 50], [180, 80]].forEach(([x, y]) => { g.beginPath(); g.arc(x, y, 18, 0, PI * 2); g.arc(x + 20, y - 6, 22, 0, PI * 2); g.arc(x + 42, y, 16, 0, PI * 2); g.fill(); }); if (ph === 'evening') { g.fillStyle = '#ffb347'; g.beginPath(); g.arc(128, 170, 30, 0, PI * 2); g.fill(); } }
+  skyTex.needsUpdate = true;
+  const tint = { morning: 0xffe8d0, day: 0xfff4e0, evening: 0xffc8a0, night: 0x8090ff }[ph]; hemi.color.setHex(tint);
+}
+
+let T = 0, timeScale = 1;
 const frameFns = new Set();
 const anim = (dur, fn, ez) => new Promise(res => { let t = 0; const e = ez || ease; const f = dt => { t += dt; const k = Math.min(1, t / dur); fn(e(k), k); if (k >= 1) { frameFns.delete(f); res(); } }; frameFns.add(f); });
 const sleep = s => anim(s, () => {}, x => x);
@@ -421,13 +505,14 @@ const VIEWS = {
   door: { p: [-1.2, 2.8, 4.4], l: [-3.9, 1.7, 1.0] }, window: { p: [0.3, 2.6, 3.6], l: [0.3, 2.3, -2.6] },
   desk: { p: [-0.6, 3.2, 3.2], l: [-2.4, 1.4, -1.9] },
 };
-let view = 'title', vw = 1, vh = 1, portrait = 1, camShake = 0, camOv = null, camRoll = 0;
+let view = 'title', vw = 1, vh = 1, portrait = 1, camShake = 0, camOv = null, camRoll = 0, camCut = false;
 const camP = V(...VIEWS.title.p), camL = V(...VIEWS.title.l), tP = V(0, 0, 0), tL = V(0, 0, 0);
 function resize() { vw = innerWidth; vh = innerHeight; renderer.setPixelRatio(pr); renderer.setSize(vw, vh, false); const a = vw / vh; portrait = a < 1.2 ? clamp(1.45 / a * 0.85, 1, 2.2) : 1; camera.aspect = a; camera.updateProjectionMatrix(); }
 function updateCamera(dt) {
   let k = 1 - Math.exp(-dt * 3);
   if (camOv) { tP.copy(camOv.p); tL.copy(camOv.l); k = 1 - Math.exp(-dt * (camOv.k || 6)); }
   else { const v = VIEWS[view]; tL.set(...v.l); tP.set(v.l[0] + (v.p[0] - v.l[0]) * portrait, v.l[1] + (v.p[1] - v.l[1]) * portrait, v.l[2] + (v.p[2] - v.l[2]) * portrait); if (view === 'close') { tL.x = tP.x = sw.position.x * 0.8; } }
+  if (camCut) { k = 1; camCut = false; }
   camP.lerp(tP, k); camL.lerp(tL, k); camera.position.copy(camP); camera.lookAt(camL);
   if (camRoll) camera.rotateZ(camRoll);
   camShake = Math.max(0, camShake - dt * 2);
@@ -485,10 +570,13 @@ function tapAt(pos, html, cls, onTap) {
 }
 function placeTaps() { for (const t of taps) { const [x, y] = toScreen(t.pos); t.b.style.left = x + 'px'; t.b.style.top = y + 'px'; } }
 const ray = new THREE.Raycaster(), ndc = new THREE.Vector2();
-let onSwClick = null, onCanvasTap = null, onDrag = null, dragX = null;
+let onSwClick = null, onCanvasTap = null, onDrag = null, dragX = null, onPick = null, pickables = null, dragGate = null;
 canvas.addEventListener('pointerdown', e => {
-  audio.unlock(); dragX = e.clientX;
-  if (onSwClick) { ndc.set(e.clientX / vw * 2 - 1, -(e.clientY / vh) * 2 + 1); ray.setFromCamera(ndc, camera); if (ray.intersectObjects([swBody, swHead], false).length) { onSwClick(); return; } }
+  audio.unlock();
+  ndc.set(e.clientX / vw * 2 - 1, -(e.clientY / vh) * 2 + 1); ray.setFromCamera(ndc, camera);
+  if (onSwClick && ray.intersectObjects([swBody, swHead], false).length) { onSwClick(); return; }
+  if (onPick && pickables) { const h = ray.intersectObjects(pickables, true); if (h.length) { let o = h[0].object; while (o && !o.userData.pick) o = o.parent; if (o) { onPick(o); return; } } }
+  dragX = !dragGate || dragGate(ray) ? e.clientX : null;
   if (onCanvasTap) onCanvasTap();
 });
 addEventListener('pointermove', e => { if (dragX == null || !onDrag) return; onDrag(e.clientX - dragX); dragX = e.clientX; });
@@ -522,13 +610,17 @@ function updateSw(dt) {
   sw.rotation.y = Math.atan2(camera.position.x - sw.position.x, camera.position.z - sw.position.z);
   hyPeek.rotation.y = Math.atan2(camera.position.x - hyPeek.position.x, camera.position.z - hyPeek.position.z);
   bigHy.rotation.y = Math.atan2(camera.position.x - bigHy.position.x, camera.position.z - bigHy.position.z);
-  for (const m of foods) m.quaternion.copy(camera.quaternion);
+  for (const m of foods) m.rotation.y += dt * m.userData.spin;
+  updateBody(dt); updateCrumbs(dt);
+  minH.rotation.z = -T * 0.5; hourH.rotation.z = -T * 0.04;
+  if (tread.visible) beltTex.offset.y -= dt * runHz * 0.12;
 }
-async function eat(emoji, kcal, from, line) {
-  const m = spawnFood(emoji, from || mouthW().add(V(0.6, 0.4, 0.3)), 0.9), a = m.position.clone();
-  await anim(0.5, k => { const b = mouthW(); m.position.lerpVectors(a, b, k); m.position.y += Math.sin(k * PI) * 0.8; m.scale.setScalar(1 - k * 0.5); });
+async function eat(kind, kcal, from, line) {
+  const m = spawnFood(kind, from || mouthW().add(V(0.6, 0.4, 0.3)), 0.9), a = m.position.clone(), s0 = m.scale.x;
+  await anim(0.5, k => { const b = mouthW(); m.position.lerpVectors(a, b, k); m.position.y += Math.sin(k * PI) * 0.8; m.scale.setScalar(s0 * (1 - k * 0.45)); m.rotation.x += 0.15; });
   dropFood(m); swFace(true); setMode('chew');
-  for (let i = 0; i < 3; i++) { audio.chomp(); await sleep(0.15); }
+  for (let i = 0; i < 3; i++) { audio.chomp(); crumbBurst(mouthW(), FOOD_COL[kind], 6); await sleep(0.15); }
+  wobble(0.14);
   setMode('idle'); swFace(false);
   if (kcal) { G.intakeDay += kcal; G.intake += kcal; hud(); pop('+' + fmtK(kcal), mouthW()); }
   if (line) say(line, 2000);
@@ -546,30 +638,81 @@ function openSpot(spot, on) {
   if (spot === 'door') anim(0.35, k => { dPivot.rotation.y = lerp(dPivot.rotation.y, on ? 1.2 : 0, k); });
   if (spot === 'drawer') anim(0.3, k => { drawer.position.z = lerp(drawer.position.z, on ? -1.35 : -1.8, k); });
 }
-const STAND = { fridge: V(2.6, 0, -0.9), door: V(-3.3, 0, 1.1), window: V(1.5, 0, -1.3), desk: V(-2.5, 0, -1.0), kettle: V(-0.5, 0, -1.2) };
+const STAND = { fridge: V(2.6, 0, -0.9), door: V(-3.3, 0, 1.1), window: V(2.4, 0, -1.1), desk: V(-2.5, 0, -1.0), kettle: V(-0.5, 0, -1.2) };
+/* ===== 상욱 grows as he eats ===== */
+function drawTorn(g, w) {
+  drawBody(g, w); const s = w / 240; g.save(); g.scale(s, s); g.lineJoin = 'round';
+  g.fillStyle = '#f0c9a5'; g.beginPath(); g.moveTo(62, 128);
+  [[76, 116], [88, 132], [100, 114], [114, 134], [128, 116], [142, 134], [156, 114], [170, 132], [182, 124]].forEach(p => g.lineTo(p[0], p[1]));
+  g.quadraticCurveTo(196, 160, 172, 180); g.quadraticCurveTo(120, 196, 64, 180); g.quadraticCurveTo(44, 152, 62, 128); g.fill();
+  g.lineWidth = 5; g.strokeStyle = '#111'; g.stroke();
+  g.beginPath(); g.arc(120, 162, 4, 0, PI * 2); g.fillStyle = '#8a5a3a'; g.fill();
+  g.strokeStyle = '#f0c9a5'; g.lineWidth = 5; [[58, 58, 72, 84], [176, 56, 164, 82], [100, 40, 112, 66]].forEach(([a, b, c, d]) => { g.beginPath(); g.moveTo(a, b); g.lineTo((a + c) / 2 + 5, (b + d) / 2); g.lineTo(c, d); g.stroke(); });
+  g.restore();
+}
+const bodyTexN = swBody.material.map, bodyTexT = canvasTex(480, 480, drawTorn);
+let gW = 1, jig = 0, jigT = 0, squeeze = 1, torn = false;
+function targetW() { if (!G) return 1; const vis = G.weight - G.start + Math.max(0, (G.intakeDay - G.burnDay) / 800); return 1 + clamp(vis * 0.032, 0, 0.75); }
+function wobble(a) { jig = Math.max(jig, a || 0.12); }
+function updateBody(dt) {
+  gW = lerp(gW, targetW(), 1 - Math.exp(-dt * 2.5)); jig *= Math.exp(-dt * 2.8); jigT += dt;
+  const j = Math.sin(jigT * 24) * jig, sy = 1 + (gW - 1) * 0.12;
+  swBody.scale.set(gW * (1 + j) * squeeze, sy * (1 - j * 0.5), 1); swBody.position.y = BW / 2 * swBody.scale.y; swHeadPiv.position.y = BW * 0.9 * swBody.scale.y;
+  if (G && playing && !torn && G.weight - G.start + (G.intakeDay - G.burnDay) / 800 >= 7) { torn = true; G.torn = true; swBody.material.map = bodyTexT; swBody.material.needsUpdate = true; [0, 90, 170].forEach(d => setTimeout(() => audio.burst(3500, 2, 0.12, 0.5), d)); wobble(0.3); setTimeout(() => say('티셔츠가 작아졌어요', 1800), 300); }
+}
+function resetBody() { gW = 1; jig = 0; squeeze = 1; torn = false; swBody.material.map = bodyTexN; swBody.material.needsUpdate = true; }
+async function goDoor(speed) {
+  walkTo(STAND.door, speed); let t = 0;
+  await until(dt => { t += dt; return sw.position.distanceTo(STAND.door) < 0.12 || t > 3; });
+  if (gW > 1.16 && !G.squeezed) {
+    G.squeezed = true; say('문틈에 끼었어요', 1600); audio.tone(120, 0.6, 0.3, 'sawtooth', 80);
+    await anim(1.0, (k, raw) => { squeeze = 0.72 + Math.abs(Math.sin(raw * 14)) * 0.1; }, x => x);
+    squeeze = 1; wobble(0.35); audio.slam();
+  }
+}
+// workout props
+const rope = new THREE.Mesh(new THREE.TorusGeometry(1.25, 0.03, 6, 36, PI), lam(0xe3120b)); rope.position.y = 1.4; rope.visible = false; sw.add(rope);
+const tread = new THREE.Group(); tread.visible = false; scene.add(tread);
+const beltTex = canvasTex(64, 256, (g, w, h) => { g.fillStyle = '#2a2a2e'; g.fillRect(0, 0, w, h); g.fillStyle = '#444'; for (let y = 0; y < h; y += 32) g.fillRect(0, y, w, 6); });
+beltTex.wrapS = beltTex.wrapT = THREE.RepeatWrapping;
+add(box(1.7, 0.22, 2.4, 0x55575e), 0, 0.11, 0, tread);
+add(new THREE.Mesh(new THREE.PlaneGeometry(1.3, 2.2).rotateX(-PI / 2), lam(0xffffff, { map: beltTex })), 0, 0.225, 0, tread);
+[-0.7, 0.7].forEach(x => add(box(0.08, 1.2, 0.08, 0x333333), x, 0.8, -1.05, tread));
+add(box(1.5, 0.35, 0.12, 0x333333), 0, 1.45, -1.05, tread);
+add(new THREE.Mesh(new THREE.PlaneGeometry(0.6, 0.22), basic({ color: 0x9cff8a })), 0, 1.46, -0.98, tread);
+// cinematic letterbox
+const lbEl = document.createElement('div'); lbEl.className = 'lb'; document.body.appendChild(lbEl);
+const letterbox = on => lbEl.classList.toggle('on', on);
 
 /* ===== temptations, each with its own minigame ===== */
+const SNACK_SPOTS = [V(3.0, 0.9, 1.5), V(3.8, 0.95, 2.1), V(-3.0, 0.25, -1.9), V(-3.9, 1.25, -2.1), V(0.3, 2.0, -2.75), V(-0.7, 0.15, 1.3), V(0.9, 0.15, 0.1), V(3.6, 2.65, -2.3), V(-4.2, 0.25, 2.3), V(1.9, 0.15, 2.4)];
 async function evPhone() {
-  view = 'room';
+  view = 'room'; setSky('day');
   const ph = $('#phone'), noti = $('#phNoti');
   ph.className = 'phone-ui'; ph.style.transform = ''; noti.hidden = true; ph.hidden = false; audio.beep();
   await sleep(0.7);
-  noti.innerHTML = '<b>배달의 민족</b>치킨 1+1 이벤트! 지금 주문하면 배달비 0원'; noti.hidden = false; ph.classList.add('buzz'); audio.tone(880, 0.1, 0.2, 'square'); setTimeout(() => audio.tone(880, 0.1, 0.2, 'square'), 180);
-  say('어 배달앱 알림이다', 1600);
+  noti.innerHTML = '<b>배달의 민족</b>치킨 1+1 이벤트! 지금 주문하면 배달비 0원'; noti.hidden = false; ph.classList.add('buzz');
+  audio.tone(880, 0.1, 0.2, 'square'); setTimeout(() => audio.tone(880, 0.1, 0.2, 'square'), 180);
+  // close-up on his reaction
+  const h0 = headW(); camOv = { p: h0.clone().add(V(0.3, 0.1, 2.6)), l: h0, k: 7 };
+  swFace(true); say('어? 배달앱 알림이다', 1500); wobble(0.25);
+  await sleep(1.4); camOv = null; swFace(false);
   walkTo(V(1.7, 0, 2.7), 1.25);
-  mg('배달앱 알림!', '다가오는 상욱이를 클릭(탭)해서 폰을 던지세요!');
+  mg('배달앱 알림!', '다가오는 상욱이를 클릭(탭)해서 화면 속 폰을 던지세요!');
   let hit = false, t = 0; const LIM = 4.2;
   onSwClick = () => { hit = true; };
   await until(dt => { t += dt; tm(1 - t / LIM); if (AUTO && t > 1.2 && !hit && rand() < AUTO * 0.05) hit = true; return hit || t >= LIM; });
   onSwClick = null; mgOff(); ph.classList.remove('buzz');
   if (hit) {
-    const r = ph.getBoundingClientRect(), [x, y] = toScreen(headW());
-    ph.classList.add('fly'); void ph.offsetWidth;
-    ph.style.transform = `translate(${x - (r.left + r.width / 2)}px,${y - (r.top + r.height / 2)}px) rotate(900deg) scale(.35)`;
-    audio.tone(600, 0.35, 0.2, 'sine', 1400);
-    await sleep(0.38);
-    ph.hidden = true; ph.className = 'phone-ui'; ph.style.transform = '';
-    audio.hit(); pop('퍽!', headW(), 'big'); camShake = 0.5;
+    ph.hidden = true;
+    // the phone leaves the screen as a real 3D phone and flies in slow motion
+    const fwd = V(0, 0, 0); camera.getWorldDirection(fwd); const right = V(0, 0, 0).crossVectors(fwd, camera.up).normalize(), up = V(0, 0, 0).crossVectors(right, fwd).normalize();
+    const start = camera.position.clone().addScaledVector(fwd, 1.6).addScaledVector(right, 0.75).addScaledVector(up, -0.5), tgt = headW();
+    const p3 = spawnFood('phone', start, 0.6); p3.userData.spin = 0;
+    timeScale = 0.3; audio.tone(500, 0.9, 0.2, 'sine', 1500);
+    await anim(0.5, (k, raw) => { p3.position.lerpVectors(start, tgt, k); p3.position.y += Math.sin(raw * PI) * 0.7; p3.rotation.x += 0.35; p3.rotation.z += 0.22; }, x => x);
+    timeScale = 1; dropFood(p3);
+    audio.hit(); pop('퍽!', headW(), 'big'); camShake = 0.6; crumbBurst(headW(), 0x6a8dff, 10);
     say('아야', 1800); G.ach.phone = true;
     await fallBack(1.1);
     say('폰 어디 갔어요', 1500); walkTo(HOME); await sleep(1.2);
@@ -577,56 +720,79 @@ async function evPhone() {
   }
   noti.innerHTML = '<b>주문 완료</b>치킨 1+1 · 30분 후 도착 예정'; audio.ding();
   say('주문했어요', 1400); await sleep(1.4); ph.hidden = true;
-  audio.bell(); openSpot('door', true); walkTo(STAND.door); await sleep(1.4);
-  await eat('🍗', 2100, V(-4.2, 1.5, 1.1), '1+1은 못 참죠'); await eat('🍗', 0, V(-4.2, 1.5, 1.1));
+  audio.bell(); openSpot('door', true); await goDoor();
+  await eat('chicken', 2100, V(-4.2, 1.5, 1.1), '1+1은 못 참죠'); await eat('chicken', 0, V(-4.2, 1.5, 1.1));
   openSpot('door', false); walkTo(HOME); await sleep(1.0);
   return false;
 }
 async function evFridge() {
-  view = 'fridge'; say('냉장고가 저를 불러요', 1600); walkTo(STAND.fridge); await sleep(1.4);
-  setMode('pull'); audio.tone(200, 0.6, 0.15, 'sawtooth', 120);
-  mg('냉장고 줄다리기!', '연타해서 냉장고 문을 닫으세요! (버튼 · 스페이스 · 화면 탭)');
-  let v = 0.4, t = 0; const LIM = 8;
+  view = 'fridge'; walkTo(V(3.5, 0, 0.0)); await sleep(1.5);
+  openSpot('fridge', true); audio.tone(200, 0.6, 0.15, 'sawtooth', 120);
+  // seen from inside the fridge, lit by the fridge light, food in the foreground
+  const inF = [spawnFood('cake', V(3.25, 1.05, -2.2), 0.8), spawnFood('cola', V(3.95, 1.05, -2.1), 0.8)]; inF.forEach(o => { o.userData.spin = 0; });
+  await sleep(0.3); camOv = { p: V(3.6, 1.5, -2.75), l: V(3.5, 2.05, 0.0), k: 9 }; camCut = true;
+  swFace(true); say('냉장고가 저를 불러요', 1600); await sleep(1.9); swFace(false); camOv = null; camCut = true; inF.forEach(dropFood);
+  setMode('pull');
+  mg('냉장고 줄다리기!', '화면을 오른쪽으로 쭉쭉 끌어서 문을 밀어 닫으세요! (스페이스·버튼 연타도 OK)');
+  let v = 0.3, t = 0; const LIM = 8;
   const press = () => { v += 0.07; audio.beep(); };
+  onDrag = dx => { if (dx > 0) v += dx / (vw * 0.5); };
   ctl([{ label: '닫아!', key: 'Space', kname: 'Space', down: press }]); onCanvasTap = press;
   await until(dt => { t += dt; v -= dt * (0.18 + t * 0.03); if (AUTO && rand() < AUTO * 0.4) press(); fPivot.rotation.y = lerp(-1.5, 0, clamp(v, 0, 1)); fridgeLight.intensity = 2.5 * (1 - clamp(v, 0, 1)); bar(v); tm(1 - t / LIM); return v >= 1 || v <= 0 || t >= LIM; });
-  onCanvasTap = null; mgOff(); setMode('idle');
+  onCanvasTap = null; onDrag = null; mgOff(); setMode('idle');
   if (v >= 1) {
-    fPivot.rotation.y = 0; fridgeLight.intensity = 0; audio.slam(); camShake = 0.8; pop('쾅!', V(3.2, 1.8, -1.6), 'big');
+    fPivot.rotation.y = 0; fridgeLight.intensity = 0;
+    timeScale = 0.25; camShake = 0.3; await sleep(0.12); timeScale = 1;
+    audio.slam(); camShake = 0.9; pop('쾅!', V(3.2, 1.8, -1.6), 'big');
     say('손 끼었어요', 1800); G.ach.fridge = true;
     await anim(0.6, (k, raw) => { swRig.rotation.z = Math.sin(raw * 30) * 0.15; }, x => x); swRig.rotation.z = 0;
     walkTo(HOME); view = 'room'; await sleep(1.2); return true;
   }
   openSpot('fridge', true);
-  await eat('🍰', 950, V(3.2, 1.6, -1.6), '냉장고 정리한 거예요'); await eat('🥤', 420, V(3.2, 1.4, -1.6));
+  await eat('cake', 950, V(3.2, 1.6, -1.6), '냉장고 정리한 거예요'); await eat('cola', 420, V(3.2, 1.4, -1.6));
   openSpot('fridge', false); walkTo(HOME); view = 'room'; await sleep(1.0); return false;
 }
-const SNACK_SPOTS = [V(3.0, 0.9, 1.5), V(3.8, 0.95, 2.1), V(-3.0, 0.25, -1.9), V(-3.9, 1.25, -2.1), V(0.3, 2.0, -2.75), V(-0.7, 0.15, 1.3), V(0.9, 0.15, 0.1), V(3.6, 2.65, -2.3), V(-4.2, 0.25, 2.3), V(1.9, 0.15, 2.4)];
+const SNACK_KINDS = ['cookie', 'choco', 'candy', 'pretzel', 'donut', 'lolli', 'jelly', 'cracker'];
+const hitGeo = new THREE.SphereGeometry(0.32, 8, 6), hitMat = new THREE.MeshBasicMaterial({ visible: false });
 async function evSnack() {
   view = 'room'; say('서랍에 뭐가 있더라', 1500); walkTo(STAND.desk); await sleep(1.2);
-  openSpot('drawer', true); audio.burst(500, 1, 0.3, 0.5); say('방 곳곳에 비상식량 숨겨 놨어요', 1800); await sleep(1.0);
-  mg('숨긴 과자 찾기!', '여기저기 튀어나오는 과자를 눌러서 뺏으세요! 8개 중 6개 이상');
-  const EM = shuffle(['🍪', '🍫', '🍬', '🥨', '🍩', '🍭', '🥠', '🍘']), spots = shuffle(SNACK_SPOTS.slice());
+  openSpot('drawer', true); audio.burst(500, 1, 0.3, 0.5); swFace(true); say('방 곳곳에 비상식량 숨겨 놨어요', 1800); await sleep(1.0); swFace(false);
+  mg('숨긴 과자 찾기!', '방 곳곳에서 튀어나오는 과자를 클릭(탭)해서 뺏으세요! 8개 중 6개 이상');
+  const kinds = shuffle(SNACK_KINDS.slice()), spots = shuffle(SNACK_SPOTS.slice());
   let got = 0, done = 0; const N = 8;
+  pickables = [];
+  onPick = o => {
+    if (o.userData.taken) return; o.userData.taken = true; got++; audio.block(); pop('뺏음!', o.position, 'good');
+    const i = pickables.indexOf(o); if (i >= 0) pickables.splice(i, 1);
+    const a = o.position.clone(), b = camera.position.clone().add(V(0, -1.2, 0)); anim(0.35, k => { o.position.lerpVectors(a, b, k); }).then(() => dropFood(o));
+  };
   for (let i = 0; i < N; i++) {
     (async () => {
-      await sleep(i * 0.62);
-      let taken = false;
-      const t = tapAt(spots[i], EM[i], '', () => { if (taken) return; taken = true; got++; audio.block(); pop('뺏음!', spots[i], 'good'); t.remove(); });
-      await sleep(1.15);
-      if (AUTO && !taken && rand() < AUTO) { taken = true; got++; }
-      if (!taken) { t.remove(); pop('냠', spots[i]); } else t.remove();
+      await sleep(i * 0.66);
+      const sp = spots[i], o = spawnFood(kinds[i], sp.clone().add(V(0, -0.35, 0)), 0.9);
+      o.userData.pick = true; const hs = new THREE.Mesh(hitGeo, hitMat); hs.position.y = 0.1; o.add(hs); pickables.push(o);
+      audio.tone(900 + i * 60, 0.08, 0.12, 'triangle');
+      anim(0.18, k => { o.position.y = sp.y - 0.35 + k * 0.35; }, x => 1 - (1 - x) * (1 - x));
+      walkTo(V(clamp(sp.x, -3.6, 3.4), 0, clamp(sp.z + 0.9, -1.2, 2.6)), 3.4);
+      await sleep(1.2);
+      if (AUTO && !o.userData.taken && rand() < AUTO) onPick(o);
+      if (!o.userData.taken) {
+        o.userData.taken = true; const j = pickables.indexOf(o); if (j >= 0) pickables.splice(j, 1);
+        const a = o.position.clone(); await anim(0.3, k => { o.position.lerpVectors(a, mouthW(), k); }); dropFood(o); audio.chomp(); crumbBurst(mouthW(), FOOD_COL[kinds[i]], 5); wobble(0.1);
+      }
       done++;
     })();
   }
   let t = 0;
-  await until(dt => { t += dt; tm(1 - t / (N * 0.62 + 1.2)); bar(got / N, [6 / N, 1]); return done >= N; });
-  mgOff(); openSpot('drawer', false);
+  await until(dt => { t += dt; tm(1 - t / (N * 0.66 + 1.3)); bar(got / N, [6 / N, 1]); return done >= N; });
+  onPick = null; pickables = null; mgOff(); openSpot('drawer', false);
   const miss = N - got;
-  if (miss) await eat('🍪', 180 * miss, null, miss >= 3 ? '비상식량이에요' : '몇 개 남았네요');
-  if (got >= 6) { say('제 비상식량…', 1600); walkTo(HOME); await sleep(1.2); return true; }
-  walkTo(HOME); await sleep(1.0); return false;
+  if (miss) { G.intakeDay += 180 * miss; G.intake += 180 * miss; hud(); pop('+' + fmtK(180 * miss), mouthW()); say(miss >= 3 ? '비상식량이에요' : '몇 개는 먹었어요', 1800); }
+  walkTo(HOME);
+  if (got >= 6) { await sleep(0.4); say('제 비상식량…', 1600); await sleep(1.2); return true; }
+  await sleep(1.0); return false;
 }
+
 const PIZZA_ROUNDS = [
   { fr: '피자 시켰는데 같이 먹자!', ok: '상욱이 다이어트 중이야', no: ['몇 판 시켰는데?', '콜라도 있어?'] },
   { fr: '한 조각만 줄게~ 한 조각은 0칼로리래', ok: '그런 게 어딨어', no: ['오 진짜?', '치즈 크러스트야?'] },
@@ -634,9 +800,13 @@ const PIZZA_ROUNDS = [
 ];
 async function evPizza() {
   view = 'door'; audio.bell(); pop('띵동~', V(-4.3, 2.4, 1.2), 'big');
+  camOv = { p: V(-2.4, 1.9, 2.6), l: V(-4.5, 1.7, 1.0), k: 6 };
   await sleep(0.6); anim(0.4, k => { dPivot.rotation.y = 0.45 * k; });
-  const pz = spawnFood('🍕', V(-4.25, 1.4, 1.35), 1.0);
-  frSay('상욱아~ 나 왔다!', 1500); await sleep(1.4);
+  const pz = spawnFood('pizza', V(-4.25, 1.4, 1.35), 1.0);
+  frSay('상욱아~ 나 왔다!', 1500); await sleep(0.7);
+  // smell drifts in, he turns around slowly
+  const h0 = headW(); camOv = { p: h0.clone().add(V(0.4, 0.1, 2.4)), l: h0, k: 6 };
+  swFace(true); crumbBurst(V(-4.0, 1.5, 1.4), 0xffd08a, 6); say('피자 냄새', 1200); await sleep(1.1); swFace(false); camOv = null;
   mg('피자 친구 쫓아내기!', '친구 말에 맞는 거절을 빨리 고르세요! 3번 다 맞혀야 해요');
   let win = true;
   for (const r of PIZZA_ROUNDS) {
@@ -657,14 +827,14 @@ async function evPizza() {
     frSay('치사하다~ 나 혼자 먹는다!', 1800); dropFood(pz); G.ach.pizza = true;
     await sleep(0.8); say('제 피자…', 1600); walkTo(HOME); await sleep(1.4); view = 'room'; return true;
   }
-  frSay('에이~ 그냥 들어간다!', 1600); openSpot('door', true); walkTo(STAND.door, 4); await sleep(1.0);
-  dropFood(pz); await eat('🍕', 2400, V(-4.2, 1.5, 1.2), '친구가 사 왔는데 어떡해요');
+  frSay('에이~ 그냥 들어간다!', 1600); openSpot('door', true); await goDoor(4);
+  dropFood(pz); await eat('pizza', 2400, V(-4.2, 1.5, 1.2), '친구가 사 왔는데 어떡해요');
   openSpot('door', false); walkTo(HOME); await sleep(1.0); view = 'room'; return false;
 }
 const hurtEl = $('#hurt'), fadeEl = $('#fade');
 async function evHyuntae() {
-  view = 'door'; audio.bell(); await sleep(0.4); openSpot('door', true);
-  hyPeek.visible = true; const fr = spawnFood('🍳', V(-4.0, 1.3, 1.5), 0.9);
+  view = 'door'; audio.bell(); camOv = { p: V(-2.4, 1.9, 2.6), l: V(-4.5, 1.7, 1.0), k: 6 }; await sleep(0.4); openSpot('door', true);
+  hyPeek.visible = true; setTimeout(() => { camOv = null; }, 900 / SPEED); const fr = spawnFood('friedrice', V(-4.0, 1.3, 1.5), 0.9);
   hySay('볶음밥 2인분 가져왔씁니다.', 4000); await sleep(1.0);
   mg('무현태 등장', '현태의 볶음밥… 막을까요?');
   let c = null, t = 0; const LIM = 4;
@@ -672,18 +842,18 @@ async function evHyuntae() {
   await until(dt => { t += dt; tm(1 - t / LIM); if (AUTO && t > 1) c = rand() < AUTO ? 'block' : 'take'; return c || t >= LIM; });
   mgOff();
   if (c !== 'block') {
-    walkTo(STAND.door, 4); await sleep(0.8); dropFood(fr);
-    await eat('🍳', 1800, V(-4.0, 1.4, 1.4), '2인분은 기본이죠'); hySay('예.', 1500); await sleep(1.4);
+    await goDoor(4); dropFood(fr);
+    await eat('friedrice', 1800, V(-4.0, 1.4, 1.4), '2인분은 기본이죠'); hySay('예.', 1500); await sleep(1.4);
     hyPeek.visible = false; openSpot('door', false); walkTo(HOME); view = 'room'; return false;
   }
-  hySay('지금 제 볶음밥을 막앗씁니까?', 2400); await sleep(1.4);
+  letterbox(true); hySay('지금 제 볶음밥을 막앗씁니까?', 2400); await sleep(1.4);
   // BOING: the whole muscle body springs out of the door
   hyPeek.visible = false; bigHy.visible = true; audio.boing();
   const from = V(-4.3, 0, 1.2), to = V(-1.0, 0, 2.2);
   bigHy.scale.setScalar(1.25); hyRig.scale.set(1, 1, 1);
   camOv = { p: V(-0.6, 3.8, 12.8), l: V(-1.4, 3.4, 1.6), k: 7 };
-  await anim(0.55, (k, raw) => { bigHy.position.lerpVectors(from, to, k); bigHy.position.y = Math.sin(raw * PI) * 2.2; hyRig.scale.set(1 - Math.sin(raw * PI) * 0.2, 1 + Math.sin(raw * PI) * 0.3, 1); }, x => x);
-  audio.slam(); camShake = 1.2;
+  await anim(0.55, (k, raw) => { timeScale = raw > 0.35 && raw < 0.65 ? 0.3 : 1; bigHy.position.lerpVectors(from, to, k); bigHy.position.y = Math.sin(raw * PI) * 2.2; hyRig.scale.set(1 - Math.sin(raw * PI) * 0.2, 1 + Math.sin(raw * PI) * 0.3, 1); }, x => x);
+  timeScale = 1; audio.slam(); camShake = 1.2;
   await anim(0.35, (k, raw) => { hyRig.scale.set(1 + Math.sin(raw * PI * 2) * 0.15 * (1 - raw), 1 - Math.sin(raw * PI * 2) * 0.2 * (1 - raw), 1); }, x => x);
   hyRig.scale.set(1, 1, 1);
   audio.tone(55, 0.8, 0.5, 'sawtooth'); await sleep(1.1);
@@ -707,53 +877,62 @@ async function evHyuntae() {
   await anim(0.8, k => { camRoll = 1.4 * (1 - k); eye.y = lerp(0.25, 1.4, k); fadeEl.style.opacity = 1 - k; hurtEl.style.opacity = 0.85 * (1 - k); }, x => x);
   camRoll = 0; hySay('예.', 1500); await sleep(1.0);
   await anim(0.5, (k, raw) => { bigHy.position.lerpVectors(to, from, k); bigHy.position.y = Math.sin(raw * PI) * 1.5; }, x => x);
-  bigHy.visible = false; camOv = null; G.hyPunched = true; dropFood(fr);
-  walkTo(STAND.door, 4); await sleep(0.8);
-  await eat('🍳', 1800, V(-4.0, 1.4, 1.4), '현태형 볶음밥은 예의상 먹어야죠');
+  bigHy.visible = false; camOv = null; letterbox(false); G.hyPunched = true; dropFood(fr);
+  await goDoor(4);
+  await eat('friedrice', 1800, V(-4.0, 1.4, 1.4), '현태형 볶음밥은 예의상 먹어야죠');
   openSpot('door', false); walkTo(HOME); await sleep(1.0);
   return true;
 }
 async function evGoguma() {
-  view = 'window'; truck.visible = true; setCurt(0);
+  setSky('evening'); truck.visible = true; setCurt(0);
   [523, 587, 659, 523].forEach((f, i) => setTimeout(() => audio.tone(f, 0.25, 0.15, 'triangle'), i * 260 / SPEED));
-  pop('♪ 군고구마~ 따끈따끈 ♪', V(0.3, 3.2, -2.7));
   let tx = 0;
   const truckMove = dt => { tx += dt * 0.25; truck.position.x = -0.5 + (tx % 1.6); };
   frameFns.add(truckMove);
-  say('군고구마 트럭 소리다', 1600); walkTo(STAND.window, 4); await sleep(1.2);
-  mg('커튼 치기!', '좌우로 드래그(또는 ← → 번갈아)해서 커튼을 끝까지 치세요!');
+  // look out of the window at the truck first
+  camOv = { p: V(0.3, 2.45, -1.0), l: V(0.3, 2.25, -3.0), k: 6 };
+  pop('♪ 군고구마~ 따끈따끈 ♪', V(0.3, 3.1, -2.7));
+  await sleep(1.5); camOv = null; view = 'window';
+  say('군고구마 트럭 소리다', 1600); walkTo(STAND.window, 4); await sleep(1.0);
+  mg('커튼 치기!', '커튼을 눌러 잡고 좌우로 끌어서 끝까지 치세요! (← → 번갈아도 OK)');
   let p = 0.15, t = 0, lastKey = null; const LIM = 7;
-  onDrag = dx => { p += Math.abs(dx) / (vw * 1.4); };
+  dragGate = r => r.intersectObjects([curtL, curtR, winHit], false).length > 0;
+  onDrag = dx => { p += Math.abs(dx) / (vw * 0.9); };
   const lr = k => () => { if (k !== lastKey) { p += 0.075; lastKey = k; audio.beep(); } };
   ctl([{ label: '←', key: 'ArrowLeft', down: lr('L') }, { label: '→', key: 'ArrowRight', down: lr('R') }]);
   await until(dt => { t += dt; p -= dt * 0.26; if (AUTO && rand() < AUTO * 0.3) p += 0.06; p = clamp(p, 0, 1); setCurt(p); bar(p); tm(1 - t / LIM); return p >= 1 || t >= LIM; });
-  onDrag = null; mgOff();
+  onDrag = null; dragGate = null; mgOff();
   if (p >= 1) { audio.block(); pop('촥!', V(0.3, 2.6, -2.7), 'good'); say('트럭 소리만 들려요', 1800); await sleep(1.6); frameFns.delete(truckMove); truck.visible = false; setCurt(0); walkTo(HOME); view = 'room'; await sleep(0.6); return true; }
   setCurt(0); say('아저씨 하나요!', 1500); await sleep(1.2);
-  await eat('🍠', 650, V(0.3, 2.4, -2.6), '고구마는 다이어트 음식이에요');
+  await eat('goguma', 650, V(0.3, 2.4, -2.6), '고구마는 다이어트 음식이에요');
   frameFns.delete(truckMove); truck.visible = false; walkTo(HOME); view = 'room'; await sleep(0.8); return false;
 }
 async function evRamen() {
-  view = 'desk'; setMode('idle'); swFace(false); sw.position.set(2.4, 0, 1.6); say('(배고파서 깸)', 1500); walkTo(STAND.kettle); await sleep(1.6);
+  setMode('idle'); swFace(false); sw.position.set(2.4, 0, 1.6); lampLight.intensity = 1.6;
+  // low, sneaky angle across the dark floor
+  camOv = { p: V(0.6, 0.55, 1.6), l: V(-2.2, 1.4, -2.2), k: 5 };
+  say('(배고파서 깸)', 1500); walkTo(STAND.kettle, 2.2); await sleep(1.8); camOv = null; view = 'desk';
   say('라면은 국물만 먹을게요', 1600);
-  mg('전기포트 끄기!', '상욱이가 포트를 켜면, 물이 끓기 전에 포트 버튼을 눌러 끄세요! 5번');
+  mg('전기포트 끄기!', '상욱이가 포트를 켜면, 물이 끓기 전에 포트를 클릭(탭)해서 끄세요! 5번');
   let on = false, boil = 0, offPressed = false;
-  const kp = V(-2.55, 1.75, -2.3);
-  const btn = tapAt(kp, '포트', 'k', () => { if (on) offPressed = true; });
+  const kp = V(-2.55, 1.85, -2.3);
+  const btn = tapAt(kp, '끄기!', 'k', () => { if (on) offPressed = true; });
+  btn.b.style.visibility = 'hidden';
+  kettle.userData.pick = true; pickables = [kettle]; onPick = () => { if (on) offPressed = true; };
   let fail = false;
   for (let r = 0; r < 5 && !fail; r++) {
     await sleep(0.5 + rand() * 0.7);
-    on = true; offPressed = false; boil = 0; btn.b.classList.add('on'); kettleLed.material.color.setHex(0xff3020); kettleLight.intensity = 1.5; audio.beep();
+    on = true; offPressed = false; boil = 0; btn.b.style.visibility = ''; btn.b.classList.add('on'); kettleLed.material.color.setHex(0xff3020); kettleLight.intensity = 1.5; audio.beep();
     if (r) say(pick(['한 번만요', '물만 끓여요', '진짜 국물만', '포트가 켜져 있었어요']), 1200);
     const dur = 2.4 - r * 0.28;
-    await until(dt => { boil += dt / dur; bar(boil); tm(1 - boil); if (AUTO && boil > 0.35 && rand() < AUTO * 0.1) offPressed = true; return offPressed || boil >= 1; });
-    on = false; btn.b.classList.remove('on'); kettleLed.material.color.setHex(0x333333); kettleLight.intensity = 0;
+    await until(dt => { boil += dt / dur; kettle.position.x = -2.55 + (boil > 0.6 ? (rand() - .5) * 0.03 * boil : 0); bar(boil); tm(1 - boil); if (AUTO && boil > 0.35 && rand() < AUTO * 0.1) offPressed = true; return offPressed || boil >= 1; });
+    on = false; btn.b.style.visibility = 'hidden'; btn.b.classList.remove('on'); kettleLed.material.color.setHex(0x333333); kettleLight.intensity = 0; kettle.position.x = -2.55;
     if (boil >= 1) fail = true; else { audio.block(); pop('딸깍', kp, 'good'); }
   }
-  btn.remove(); mgOff();
+  btn.remove(); onPick = null; pickables = null; mgOff();
   if (!fail) { say('물이 안 끓어요', 1600); await sleep(1.4); return true; }
   pop('부글부글!', kp, 'big'); audio.burst(600, 0.5, 1, 0.4);
-  await eat('🍜', 560, ramenCup.position.clone().add(V(0, 0.3, 0)), '국물만 먹었어요 면이랑'); await sleep(0.8);
+  await eat('ramen', 560, ramenCup.position.clone().add(V(0, 0.3, 0)), '국물만 먹었어요 면이랑'); await sleep(0.8);
   return false;
 }
 
@@ -762,14 +941,15 @@ async function workJump() {
   mg('운동 1: 줄넘기', '빨간 표시가 노란 구간에 올 때 누르세요! 6번 중 4번 이상');
   let ok = 0, phase = 0, pressed = false; const N = 6, ZONE = [0.62, 0.78];
   ctl([{ label: '점프!', key: 'Space', kname: 'Space', down: () => { pressed = true; } }]); onCanvasTap = () => { pressed = true; };
+  rope.visible = true;
   for (let i = 0; i < N; i++) {
     phase = 0; pressed = false;
-    await until(dt => { phase += dt / 1.1; bar(phase, ZONE, true); tm(1 - (i + phase) / N); if (AUTO && phase >= 0.66 && rand() < AUTO + 0.2) pressed = true; return pressed || phase >= 1; });
+    await until(dt => { phase += dt / 1.1; rope.rotation.x = PI + (phase - 0.7) * PI * 2; bar(phase, ZONE, true); tm(1 - (i + phase) / N); if (AUTO && phase >= 0.66 && rand() < AUTO + 0.2) pressed = true; return pressed || phase >= 1; });
     setMode('jump');
-    if (pressed && phase >= ZONE[0] && phase <= ZONE[1]) { ok++; G.burnDay += 15; pop('-15kcal', headW(), 'good'); audio.block(); } else pop('헥헥', headW());
-    await sleep(0.3); setMode('idle');
+    if (pressed && phase >= ZONE[0] && phase <= ZONE[1]) { ok++; G.burnDay += 15; pop('-15kcal', headW(), 'good'); audio.block(); } else { pop('헥헥', headW()); if (!pressed || phase < ZONE[0]) { swRig.rotation.z = 0.5; audio.hit(); } }
+    await anim(0.3, k => { rope.rotation.x = PI + (0.3 + k * 0.7) * PI * 2 * 0.3; }); setMode('idle');
   }
-  onCanvasTap = null; mgOff(); return ok >= 4;
+  onCanvasTap = null; mgOff(); rope.visible = false; return ok >= 4;
 }
 async function workSquat() {
   mg('운동 2: 스쿼트', '꾹 눌러서 앉고, 노란 구간에서 떼세요! 5번 중 3번 이상');
@@ -799,21 +979,23 @@ async function workRun() {
   let speed = 0.2, inZone = 0, t = 0, last = null; const LIM = 8;
   const step = k => () => { if (k !== last) { speed += 0.08; last = k; audio.beep(); } };
   ctl([{ label: '왼발', key: 'ArrowLeft', down: step('L') }, { label: '오른발', key: 'ArrowRight', down: step('R') }]);
-  setMode('run');
+  tread.position.set(sw.position.x, 0, sw.position.z); tread.visible = true; sw.position.y = 0.23; setMode('run');
   await until(dt => {
-    t += dt; speed -= dt * 0.28; if (AUTO && speed < 0.55 && rand() < AUTO * 0.5) speed += 0.08; speed = clamp(speed, 0, 1);
+    t += dt; speed -= dt * 0.28; if (speed < 0.2) sw.position.z = tread.position.z + 0.9 * (0.2 - speed); if (AUTO && speed < 0.55 && rand() < AUTO * 0.5) speed += 0.08; speed = clamp(speed, 0, 1);
     if (speed >= 0.45 && speed <= 0.75) inZone += dt;
     runHz = 3 + speed * 14; bar(speed, [0.45, 0.75], true); tm(1 - t / LIM);
     $('#mgD').textContent = `← → 번갈아! 구간 유지 ${inZone.toFixed(1)} / 4.0초`;
     return t >= LIM;
   });
   setMode('idle'); mgOff();
+  if (speed < 0.2) { swRig.rotation.x = -0.6; audio.slam(); camShake = 0.4; pop('미끄러짐', headW()); await sleep(0.7); swRig.rotation.x = 0; }
+  sw.position.y = 0; sw.position.z = tread.position.z; tread.visible = false;
   const burn = Math.round(inZone * 12); G.burnDay += burn; pop('-' + burn + 'kcal', headW(), 'good');
   return inZone >= 4;
 }
 const WORKS = [workJump, workSquat, workRun];
 async function workout() {
-  view = 'room'; walkTo(vw / vh > 1.2 ? V(-1.2, 0, 1.2) : HOME); await sleep(0.8);
+  setSky('day'); view = 'room'; walkTo(vw / vh > 1.2 ? V(-1.2, 0, 1.2) : HOME); await sleep(0.8);
   const ok = await WORKS[G.day - 1]();
   G.burn += G.burnDay; if (ok) { G.workOk++; G.gauge = clamp(G.gauge - 10, 0, 100); hud(); }
   await sleep(0.6);
@@ -823,6 +1005,7 @@ async function workout() {
 
 /* ===== weigh-in, night, boss ===== */
 async function weighIn(final) {
+  setSky('morning'); lampLight.intensity = 0;
   const scr = $('#scaleScr'), lcd = $('#lcd'), dl = $('#delta');
   dl.textContent = ''; lcd.classList.remove('err');
   const prev = G.weight;
@@ -840,26 +1023,30 @@ async function nightFall(on) { await anim(0.9, k => { const a = on ? k : 1 - k; 
 async function nightCheck() {
   if (G.gauge >= 100) {
     G.booms++; say('보상 심리가 터졌어요', 1600); camShake = 0.6; audio.boom(); $('#gauge').classList.add('hot'); await sleep(1.0); view = 'close';
-    for (const f of ['🍗', '🍕', '🍔', '🍩', '🍜']) await eat(f, 1000, null);
+    for (const f of ['chicken', 'pizza', 'burger', 'donut', 'ramen']) await eat(f, 1000, null);
     view = 'room'; G.gauge = 30; hud(); await sleep(0.6);
   } else if (G.gauge >= 50) {
     say('(자는 중) 냠냠', 1600); walkTo(STAND.fridge); openSpot('fridge', true); await sleep(1.4);
-    await eat('🍗', 1500, V(3.2, 1.6, -1.6)); openSpot('fridge', false); G.gauge = clamp(G.gauge - 40, 0, 100); hud();
-  } else { say('칭찬 야식 하나만', 1500); await eat('🍙', 350, null); G.gauge = clamp(G.gauge - 15, 0, 100); hud(); }
+    await eat('chicken', 1500, V(3.2, 1.6, -1.6)); openSpot('fridge', false); G.gauge = clamp(G.gauge - 40, 0, 100); hud();
+  } else { say('칭찬 야식 하나만', 1500); await eat('riceball', 350, null); G.gauge = clamp(G.gauge - 15, 0, 100); hud(); }
 }
 async function night(withRamen) {
-  await banner('밤', `DAY ${G.day}`); await nightFall(true);
+  await banner('밤', `DAY ${G.day}`); setSky('night'); await nightFall(true); lampLight.intensity = 1.4;
   if (withRamen) { const b = await evRamen(); record('ramen', b); }
   await nightCheck();
   walkTo(V(2.4, 0, 1.6)); await sleep(1.2); setMode('sleep'); await sleep(1.0);
-  await nightFall(false); setMode('idle'); sw.position.copy(HOME); walkTo(HOME); view = 'room';
+  lampLight.intensity = 0; await nightFall(false); setMode('idle'); sw.position.copy(HOME); walkTo(HOME); view = 'room';
 }
 async function boss() {
   await banner('최종 보스', '순대국밥');
   view = 'room'; walkTo(HOME);
+  setSky('night'); letterbox(true);
   gukbap.visible = true; gukbap.scale.setScalar(1); gukbap.position.set(0, 7, 1.8);
-  await anim(0.8, k => { gukbap.position.y = lerp(7, 0.2, k); }, x => x * x); camShake = 1.2; audio.boom();
-  say('국밥 냄새가 나요', 1600); await sleep(0.8);
+  camOv = { p: V(0.4, 0.4, 5.6), l: V(0, 2.6, 1.8), k: 5 };
+  await anim(0.8, k => { gukbap.position.y = lerp(7, 0.2, k); }, x => x * x); camShake = 1.2; audio.boom(); crumbBurst(V(0, 0.4, 1.8), 0xd8c8a8, 24);
+  await sleep(0.9);
+  const h0 = headW(); camOv = { p: h0.clone().add(V(0.3, 0.1, 2.4)), l: h0, k: 6 }; swFace(true);
+  say('국밥 냄새가 나요', 1600); await sleep(1.4); swFace(false); camOv = null; letterbox(false);
   mg('최종 보스: 순대국밥', '연타로 국밥을 밀어내세요! 8초 안에 30번');
   let n = 0, t = 0; const NEED = 30, LIM = 8;
   const press = () => { n++; gukbap.position.z = 1.8 - n * 0.06; audio.beep(); camShake = 0.12; };
@@ -872,10 +1059,12 @@ async function boss() {
     say('아…', 1000); await sleep(1.2);
     await banner('곱빼기로', '돌아왔다'); G.gop = true;
     gukbap.position.set(0, 7, 1.8); gukbap.scale.setScalar(1.6);
-    await anim(0.7, k => { gukbap.position.y = lerp(7, 0.2, k); }, x => x * x); camShake = 1.6; audio.boom();
+    camOv = { p: V(0.4, 0.4, 5.6), l: V(0, 2.8, 1.8), k: 5 }; letterbox(true);
+    await anim(0.7, k => { gukbap.position.y = lerp(7, 0.2, k); }, x => x * x); camShake = 1.6; audio.boom(); crumbBurst(V(0, 0.4, 1.8), 0xd8c8a8, 30);
+    await sleep(1.0); camOv = null; letterbox(false);
   }
   say('국밥은 다이어트 음식입니다', 2400); await sleep(1.4); view = 'close';
-  for (let i = 0; i < 3; i++) await eat('🍲', G.gop ? 700 : 400, gukbap.position.clone().add(V(0, 1, 0)));
+  for (let i = 0; i < 3; i++) await eat('gukbapS', G.gop ? 700 : 400, gukbap.position.clone().add(V(0, 1, 0)));
   gukbap.visible = false; view = 'room'; await sleep(0.8);
 }
 
@@ -931,9 +1120,9 @@ async function finale() {
   if (endId === 'dream') {
     await anim(0.8, k => { swRig.scale.set(1 - k * 0.35, 1, 1); }); say('저 빠졌어요', 1600); await sleep(1.8);
     await anim(0.4, k => { canvas.style.filter = `blur(${k * 8}px) brightness(${1 + k})`; }); swRig.scale.set(1, 1, 1); canvas.style.filter = '';
-    await eat('🍲', 1100, null, '꿈이었네요'); await sleep(1.2);
+    await eat('gukbapS', 1100, null, '꿈이었네요'); await sleep(1.2);
   }
-  if (endId === 'muscle') { for (let i = 0; i < 3; i++) await eat('🍗', 600, null); say('단백질이에요', 1500); await sleep(1.2); }
+  if (endId === 'muscle') { for (let i = 0; i < 3; i++) await eat('chicken', 600, null); say('단백질이에요', 1500); await sleep(1.2); }
   $('#endNo').textContent = `${ENDINGS.indexOf(E) + 1} / ${ENDINGS.length}`; $('#endT').textContent = E.name; $('#endD').textContent = E.d; $('#endQ').textContent = swFmt(E.q);
   $('#endScr').hidden = false; audio.ding();
   await new Promise(res => { $('#endNext').onclick = res; if (AUTO) setTimeout(res, 500); });
@@ -957,7 +1146,7 @@ async function finale() {
 const PLAN = [['phone', evPhone], ['fridge', evFridge], ['snack', evSnack], ['pizza', evPizza], ['hyuntae', evHyuntae], ['goguma', evGoguma]];
 let running = false;
 function resetWorld() {
-  foods.slice().forEach(dropFood); for (const t of [...taps]) t.remove(); mgOff();
+  foods.slice().forEach(dropFood); for (const t of [...taps]) t.remove(); mgOff(); clearCrumbs(); resetBody(); rope.visible = false; tread.visible = false; letterbox(false); timeScale = 1; setSky('morning'); lampLight.intensity = 0; onPick = null; pickables = null; dragGate = null; sw.position.y = 0;
   sw.position.copy(HOME); walkTo(HOME); setMode('idle'); swFace(false); swRig.rotation.set(0, 0, 0);
   hyPeek.visible = false; bigHy.visible = false; gukbap.visible = false; truck.visible = false; setCurt(0);
   scene.background.copy(BG_DAY); hemi.intensity = 1; sun.intensity = 0.6; camOv = null; camRoll = 0; hurtEl.style.opacity = 0; fadeEl.style.opacity = 0;
@@ -973,7 +1162,7 @@ async function startGame() {
       hud(); await banner(`DAY ${G.day}`, G.day === DAYS ? '마지막 날' : `다이어트 ${G.day}일차`);
       await weighIn(false); await workout();
       if (G.day < DAYS) {
-        for (const [key, fn] of PLAN.slice((G.day - 1) * 3, G.day * 3)) { const b = await fn(); record(key, b); await sleep(0.4); }
+        let ei = 0; for (const [key, fn] of PLAN.slice((G.day - 1) * 3, G.day * 3)) { setSky(ei < 1 ? 'day' : 'evening'); const b = await fn(); record(key, b); ei++; await sleep(0.4); }
         await night(G.day === 2);
       }
     }
@@ -987,7 +1176,7 @@ let last = performance.now(), perfAcc = 0, perfN = 0;
 function loop(ts) {
   requestAnimationFrame(loop);
   const raw = ts - last; last = ts;
-  const dt = Math.min(0.05, raw / 1000) * SPEED; T += dt;
+  const dt = Math.min(0.05, raw / 1000) * SPEED * timeScale; T += dt;
   frameFns.forEach(f => f(dt));
   updateSw(dt); updateCamera(dt); placeBubbles(); placeTaps();
   if (titleScr.hidden && splash.hidden) renderer.render(scene, camera);
