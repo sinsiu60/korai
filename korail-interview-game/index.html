@@ -645,7 +645,7 @@ const _p = V(0, 0, 0);
 function toScreen(v) { _p.copy(v).project(camera); return [(_p.x + 1) / 2 * vw, (1 - _p.y) / 2 * vh, _p.z < 1]; }
 const bubEls = {}, bubT = {};
 const ANCH = {
-  hy: () => { if (bigHy.visible) { bigHead.updateMatrixWorld(); return bigHead.localToWorld(V(0, MHH * 0.5, 0)); } hyHead.updateMatrixWorld(); return hyHead.localToWorld(V(0, HH * 0.52, 0)); },
+  hy: () => { if (bigHy.visible) { bigHead.updateMatrixWorld(); return bigHead.localToWorld(V(0, MHH * 0.5, 0)); } return hy.position.clone().add(V(0, HB * 0.88 + HH * 1.02 - 0.1, 0)); },
   sw: () => { swHead.updateMatrixWorld(); return swHead.localToWorld(V(0, SHH * 0.55, 0)); },
   iv0: () => ivHeadW(0).add(V(0, 0.75, 0)), iv1: () => ivHeadW(1).add(V(0, 0.75, 0)), iv2: () => ivHeadW(2).add(V(0, 0.75, 0)),
   st: () => V(WX + 4.9, 2.6, 1.6),
@@ -666,7 +666,8 @@ function placeBubbles() {
     const b = bubEls[k]; if (b.hidden) continue;
     const [x, y, ok] = toScreen(ANCH[k]()); b.style.visibility = ok ? '' : 'hidden';
     const minY = lbOn ? vh * 0.11 + b.offsetHeight + 24 : 120;
-    b.style.left = clamp(x, 140, vw - 140) + 'px'; b.style.top = clamp(lbOn ? Math.max(y, minY + vh * 0.04) : y, minY, vh - 60) + 'px';
+    const j = k === 'hy' && tremble > 0 && !bigHy.visible ? Math.min(tremble, 1.5) * 1.6 : 0;
+    b.style.left = clamp(x, 140, vw - 140) + (j ? (rand() - .5) * j * 2 : 0) + 'px'; b.style.top = clamp(lbOn ? Math.max(y, minY + vh * 0.04) : y, minY, vh - 60) + (j ? (rand() - .5) * j : 0) + 'px';
   }
 }
 let coachTimer = 0;
