@@ -269,6 +269,23 @@ button:focus-visible{outline:3px solid var(--yolk);outline-offset:2px}
   text-shadow:4px 4px 0 #111,-4px 4px 0 #111,4px -4px 0 #111,-4px -4px 0 #111,0 7px 0 #e3120b;animation:powpop .7s steps(4,end) forwards;white-space:nowrap}
 @keyframes powpop{0%{transform:translate(-50%,-50%) rotate(var(--r)) scale(.4)}25%{transform:translate(-50%,-50%) rotate(var(--r)) scale(1.25)}100%{transform:translate(-50%,-50%) rotate(var(--r)) scale(1);opacity:0}}
 .lb{position:fixed;inset:0;z-index:8;pointer-events:none}
+.order{display:flex;flex-direction:column;gap:2px;margin:-2px -4px 8px;padding:6px 8px;background:#ffe600;color:#111;border-radius:4px;transform:rotate(-1.5deg);box-shadow:2px 2px 0 rgba(0,0,0,.35)}
+.order b{font:400 12px var(--f-display);color:#c8371f}.order span{font:700 13px 'Malgun Gothic','Apple SD Gothic Neo',sans-serif;line-height:1.3}
+.order-note{margin:0;padding:8px 10px;background:#ffe600;transform:rotate(-1deg);font-size:14px;line-height:1.45;box-shadow:3px 3px 0 rgba(0,0,0,.2)}
+.order-note b{font-family:var(--f-display);font-weight:400;color:#c8371f;margin-right:6px}.order-note em{font-style:normal;color:#5a4a00}
+.qte{position:fixed;left:50%;top:40%;width:150px;height:150px;margin:-75px 0 0 -75px;z-index:10;pointer-events:none;display:grid;place-items:center}
+.qte-ring{position:absolute;inset:0;border-radius:50%;border:8px solid #ffe600;box-shadow:0 0 20px rgba(255,230,0,.7)}
+.qte.go .qte-ring{animation:qtering .9s linear forwards}
+@keyframes qtering{from{transform:scale(1.9);opacity:.4}to{transform:scale(.55);opacity:1}}
+.qte-key{font:900 52px 'Malgun Gothic','Apple SD Gothic Neo',sans-serif;color:#fff;text-shadow:0 0 12px #000,3px 3px 0 #000;background:#111;border:4px solid #fff;border-radius:14px;padding:4px 16px;min-width:80px;text-align:center}
+.qte-label{position:absolute;bottom:-34px;font:900 22px 'Malgun Gothic',sans-serif;color:#ffe600;text-shadow:2px 2px 0 #000;letter-spacing:.1em}
+.qte.ok .qte-key{background:#1fc21f;transform:scale(1.2)}.qte.bad .qte-key{background:#e3120b}
+.qte-btns{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(13vh + 14px + env(safe-area-inset-bottom,0px));z-index:10;display:flex;gap:8px}
+.qte-btns button{width:64px;height:64px;font:900 24px 'Malgun Gothic',sans-serif;color:#111;background:#ffe600;border:4px solid #111;border-radius:12px;box-shadow:4px 4px 0 #111;touch-action:none}
+.qte-btns button[data-k="Space"]{width:110px;font-size:18px}
+.qte-btns button:active{transform:translate(3px,3px);box-shadow:1px 1px 0 #111}
+@media (hover:hover){.qte-btns{opacity:.75}}
+.pow.block{color:#9ff;text-shadow:4px 4px 0 #111,-4px 4px 0 #111,4px -4px 0 #111,-4px -4px 0 #111,0 7px 0 #0a8cff}
 .lb::before,.lb::after{content:"";position:absolute;left:0;right:0;height:0;background:#000;transition:height .6s cubic-bezier(.2,.8,.2,1)}
 .lb::before{top:0}.lb::after{bottom:0}
 .lb.on::before,.lb.on::after{height:13vh}
@@ -319,6 +336,7 @@ button:focus-visible{outline:3px solid var(--yolk);outline-offset:2px}
 </header>
 
 <aside class="panstat" id="panStat" hidden>
+  <div class="order" id="orderNote"></div>
   <h3><span>팬</span><span class="mono" id="panTemp">차가움</span></h3>
   <ul id="panList"></ul>
 </aside>
@@ -350,6 +368,8 @@ button:focus-visible{outline:3px solid var(--yolk);outline-offset:2px}
 <div class="pows" id="pows" aria-hidden="true"></div>
 <div class="ko" id="ko" hidden>K.O.</div>
 <div class="lb" id="lb" hidden></div>
+<div class="qte" id="qte" hidden><div class="qte-ring"></div><div class="qte-key" id="qteKey">←</div><div class="qte-label">막기!</div></div>
+<div class="qte-btns" id="qteBtns" hidden><button type="button" data-k="ArrowLeft">←</button><button type="button" data-k="ArrowUp">↑</button><button type="button" data-k="ArrowRight">→</button><button type="button" data-k="Space">SPACE</button></div>
 <div class="whiteout" id="whiteout" hidden></div>
 <div class="cine-sub" id="cineSub"></div>
 <div class="speedlines" id="speedLines" hidden></div>
@@ -360,6 +380,7 @@ button:focus-visible{outline:3px solid var(--yolk);outline-offset:2px}
   <div class="spread" role="dialog" aria-label="레시피 북">
     <button class="close-x" id="bookClose" type="button" aria-label="레시피 북 닫기">×</button>
     <div class="page">
+      <p class="order-note" id="bookOrder"></p>
       <span class="serv">현태네 레시피 · 1인분</span>
       <h2>계란 볶음밥</h2>
       <ul class="ing">
@@ -1096,7 +1117,7 @@ function freshState() {
     egg: { inPan: false, beaten: 0, direct: 0, shells: 0, whiskAtPour: 1, saltAtPour: 0, cook: 0, curd: 0, cookAtRice: null, curdAtRice: null },
     rice: { inPan: false, bowls: [], moisture: 1, warm: 0, scorch: 0, tosses: 0, spills: 0, lastMove: 0, lastToss: -9 },
     soy: 0, soyEdge: 0, soyHot: 0, mix: 0, oyster: 0, sesame: 0, sesameHot: 0, pepper: 0, panSalt: 0, sugar: 0, vinegar: 0,
-    bookOpens: 0, emptyTosses: 0, knifePokes: 0, stareLvl: 0, strikes: 0, prankHit: {}, first: {}, firstTemp: {}, pepperEarly: false, oysterEarly: false, heatAtEnd: 0, endT: 0, heatOffAfterRice: false, smoke: false, smokeT: 0, toastK: 0,
+    bookOpens: 0, emptyTosses: 0, knifePokes: 0, fed: 0, fedKinds: {}, paEaten: 0, riceGone: {}, order: ORDERS[0], stareLvl: 0, strikes: 0, prankHit: {}, first: {}, firstTemp: {}, pepperEarly: false, oysterEarly: false, heatAtEnd: 0, endT: 0, heatOffAfterRice: false, smoke: false, smokeT: 0, toastK: 0,
     paHeat: { s: 0, t: 0 }, riceHeat: { s: 0, t: 0 }, start: T, warned: {}
   };
 }
@@ -1237,7 +1258,7 @@ function onDown(hit) {
   if (!hit) return;
   const t = hit.id;
   if (t === 'book') { openBook(); return; }
-  if (t === 'hyuntae') { if (hand && hand.id === 'knife') pokeHyuntae(); else say(['?', '뭡니따.', '요리합니따.'][(S.bookOpens + S.knifePokes + (T | 0)) % 3], 1200); return; }
+  if (t === 'hyuntae') { if (hand && hand.id === 'knife') pokeHyuntae(); else if (hand) feedHyuntae(); else say(['?', '뭡니따.', '요리합니따.'][(S.bookOpens + S.knifePokes + (T | 0)) % 3], 1200); return; }
   if (t === 'knob') { cycleHeat(); return; }
   if (!hand) {
     if (t === 'pan') { doToss(); return; }
@@ -1501,6 +1522,7 @@ function revealCurds(p, big) {
   }
 }
 function pourRice(id) {
+  if (S.riceGone[id]) { nope('밥이 없어요. 현태가 먹었어요'); return; }
   const o = OBJ[id], first = !S.rice.inPan;
   busy[id] = true; consumeHand(); proxyOn(id, false);
   S.rice.bowls.push(id); mark('rice');
@@ -1599,7 +1621,7 @@ const USE = {
 };
 function verbFor(target) {
   if (target === 'book') return '열어 보기';
-  if (target === 'hyuntae') return hand && hand.id === 'knife' ? '찌르기…?' : '';
+  if (target === 'hyuntae') return hand ? (hand.id === 'knife' ? '찌르기…?' : FEED[hand.id] ? '먹이기' : '보여 주기') : '';
   if (target === 'knob') return '불 세기 바꾸기';
   if (!hand) {
     if (target === 'pan') return '웍질';
@@ -1772,8 +1794,9 @@ function evaluate() {
   const eggs = S.egg.beaten + S.egg.direct;
 
   let prep = 100;
+  const O = S.order || {}, EGG_T = O.eggs || 2;
   if (!eggs) { prep -= 60; no('계란을 안 넣었씁니다.', 40); }
-  else if (eggs !== 2) { prep -= 25 * Math.abs(eggs - 2); no(`계란을 ${eggs}개 넣었씁니다. 레시피는 2개였씁니다.`, 75); }
+  else if (eggs !== EGG_T) { prep -= 25 * Math.abs(eggs - EGG_T); no(`계란을 ${eggs}개 넣었씁니다. ${O.eggs ? '오늘의 주문은' : '레시피는'} ${EGG_T}개였씁니다.`, 75); }
   if (S.egg.direct) { prep -= 35; no('계란을 그릇에 안 풀고 팬에 바로 깼씁니다.', 65); }
   if (S.egg.beaten) {
     const w = S.egg.whiskAtPour;
@@ -1783,11 +1806,12 @@ function evaluate() {
   }
   if (S.egg.shells) { prep -= 15 * S.egg.shells; no(`계란 껍질이 ${S.egg.shells}조각 들어갔씁니다.`, S.egg.shells > 1 ? 70 : null); }
   if (S.pa.whole) { prep -= 50; no('대파를 안 썰고 통째로 넣었씁니다.', 50); }
-  else if (!S.pa.inPan) { prep -= 45; no('대파를 안 넣었씁니다.', 60); }
+  else if (O.noPa) { if (S.pa.inPan) { prep -= 30; no('파 빼라고 했는데 넣었씁니다.'); } }
+  else if (!S.pa.inPan) { prep -= 45; no(S.paEaten ? '대파를 현태한테 다 먹여 버렸씁니다.' : '대파를 안 넣었씁니다.', 60); }
   else if (S.pa.pieces < PA_N * 0.95) { prep -= 25; no('대파를 덜 썰었씁니다.'); }
   if (S.ck.whole) { prep -= 45; no('닭가슴살을 안 썰고 통째로 넣었씁니다.', 55); }
   else if (S.ck.inPan && S.ck.pieces < CK_N * 0.95) { prep -= 20; no('닭가슴살을 덜 썰었씁니다.'); }
-  if (prep >= 100 && eggs === 2) yes('재료 손질이 깔끔했씁니다.');
+  if (prep >= 100 && eggs === EGG_T) yes('재료 손질이 깔끔했씁니다.');
 
   let ing = 100;
   if (!S.rice.inPan) { ing = 0; no('밥을 안 넣었씁니다. 볶음밥이 아니었씁니다.', 10); }
@@ -1813,7 +1837,7 @@ function evaluate() {
   if (S.pepperEarly) { ord -= 15; no('후추를 밥 넣기 전에 뿌렸씁니다.'); }
   if (S.oysterEarly) { ord -= 10; no('굴소스를 간장보다 먼저 넣었씁니다.'); }
   ord = Math.max(0, ord);
-  if (ord === 100 && f.rice != null && f.egg != null && f.pa != null && f.soy != null && f.chicken != null) yes('레시피 순서를 그대로 따랐씁니다.');
+  if (ord === 100 && f.rice != null && f.egg != null && (f.pa != null || O.noPa) && f.soy != null && f.chicken != null) yes('레시피 순서를 그대로 따랐씁니다.');
 
   const parts = [], ft = S.firstTemp;
   if (ft.pa != null && ft.pa < 0.55) { parts.push(45); no('팬을 달구지도 않고 대파를 넣었씁니다.'); }
@@ -1861,13 +1885,17 @@ function evaluate() {
   if (S.oil >= 0.2 && (S.oil < 1.2 || S.oil > 1.8)) { sea -= Math.min(30, Math.abs(S.oil - 1.5) * 40 + 8); no(`식용유를 ${S.oil.toFixed(1)}큰술 넣었씁니다. 레시피는 1.5큰술이었씁니다.`); }
   if (S.soy < 0.05) { sea -= 40; no('간장을 안 넣었씁니다.', 60); }
   else {
-    if (S.soy < 0.4 || S.soy > 0.6) { sea -= Math.min(45, Math.abs(S.soy - 0.5) * 120 + 8); no(`간장을 ${S.soy.toFixed(1)}큰술 넣었씁니다. 레시피는 ½큰술이었씁니다.`, S.soy > 1.2 ? 60 : null); }
+    const SOY = O.soy || [0.4, 0.6], SM = (SOY[0] + SOY[1]) / 2;
+    if (S.soy < SOY[0] || S.soy > SOY[1]) { sea -= Math.min(45, Math.abs(S.soy - SM) * 120 + 8); no(`간장을 ${S.soy.toFixed(1)}큰술 넣었씁니다. ${O.soy ? `오늘의 주문은 ${SOY[0]}~${SOY[1]}큰술` : '레시피는 ½큰술'}이었씁니다.`, S.soy > SOY[1] + 0.7 ? 60 : null); }
     if (S.soyEdge / S.soy < 0.6 || S.soyHot / S.soy < 0.5) { sea -= 18; no('간장을 뜨거운 팬 가장자리에 안 둘러서 불향이 없었씁니다.'); } else yes('간장을 가장자리에 눌려서 불향이 살았씁니다.');
     if (S.mix < 0.7) { sea -= 18; no('간장을 넣고 제대로 안 섞었씁니다.'); }
   }
   if (S.oyster > 1.0) { sea -= 15; no(`굴소스를 ${S.oyster.toFixed(1)}작은술이나 넣었씁니다.`); }
-  if (!S.pepper) { sea -= 10; no('후추를 안 넣었씁니다.'); } else if (S.pepper > 3) { sea -= Math.min(30, (S.pepper - 3) * 10); no(`후추를 ${S.pepper}번이나 뿌렸씁니다.`); }
-  if (S.sesame < 0.05) { sea -= 12; no('참기름을 안 넣었씁니다.'); }
+  else if (O.oyster && S.oyster < 0.3) { sea -= 20; no('굴소스 꼭 넣으라고 했씁니다.'); }
+  const PEP = O.pepper || [1, 3];
+  if (!S.pepper) { sea -= 10; no('후추를 안 넣었씁니다.'); } else if (S.pepper > PEP[1]) { sea -= Math.min(30, (S.pepper - PEP[1]) * 10); no(`후추를 ${S.pepper}번이나 뿌렸씁니다.`); } else if (S.pepper < PEP[0]) { sea -= 15; no(`후추를 ${S.pepper}번밖에 안 뿌렸씁니다. 오늘은 팍팍이었씁니다.`); }
+  if (O.noSesame) { if (S.sesame >= 0.05) { sea -= 25; no('참기름 빼라고 했는데 넣었씁니다.'); } }
+  else if (S.sesame < 0.05) { sea -= 12; no('참기름을 안 넣었씁니다.'); }
   else {
     if (S.sesame < 0.3 || S.sesame > 0.8) { sea -= Math.min(25, Math.abs(S.sesame - 0.5) * 40 + 6); no(`참기름을 ${S.sesame.toFixed(1)}작은술 넣었씁니다. 레시피는 ½작은술이었씁니다.`); }
     if (S.sesameHot > S.sesame * 0.5) { sea -= 18; no('불을 끄기 전에 참기름을 넣어서 향이 날아갔씁니다.'); }
@@ -1878,11 +1906,14 @@ function evaluate() {
 
   const cats = [['재료 손질', prep, 15], ['재료 선택', ing, 15], ['순서', ord, 15], ['불 조절', heatS, 25], ['볶기', fry, 15], ['간', sea, 15]]
     .map(c => [c[0], Math.round(clamp(c[1], 0, 100)), c[2]]);
+  if (S.fed) no(`요리 재료를 현태한테 ${S.fed}번 먹였씁니다.`);
   let total = cats.reduce((s, c) => s + c[1] * c[2], 0) / 100;
+  let orderOk = false;
+  if (O.check) { if (O.check()) { orderOk = true; total += 6; good.unshift('예. 오늘의 주문을 맞췄씁니다.'); } else { total -= 8; no(`오늘의 주문(${O.note})을 무시했씁니다.`); } }
   total -= 4 * Math.max(0, bad.length - 1);   // every extra slip costs on top of its category
   caps.forEach(c => { total = Math.min(total, c); });
   total = Math.round(clamp(total, 0, 100));
-  return { cats, total, bad, good };
+  return { cats, total, bad, good, orderOk };
 }
 
 /* ===== Hyuntae taster: flat cut-outs, deliberately crude ===== */
@@ -2283,6 +2314,133 @@ async function cineSub(text, hold, gold) {
   if (hold) await sleep(hold);
 }
 
+
+/* ===== feeding Hyuntae ===== */
+const FEED = {
+  leek: ['맵읍니따.', 'red'], paPieces: ['맵읍니따. 눈물 납니따.', 'red'],
+  egg: ['꿀꺽. 날계란은 단백질입니따.', 'pump'], bowl: ['계란물 원샷입니따.', 'pump'],
+  chicken: ['날닭은 안 됩니따!!', 'green'], ckPieces: ['날닭은 안 됩니따!!', 'green'],
+  riceCold: ['찬밥… 씹을수록 답니따.', 'none'], riceHot: ['앗 뜨겁읍니따!!', 'red'],
+  oil: ['느끼합니따…', 'green'], vinegar: ['시큼합니따!!!', 'squish'], soy: ['짭니따.', 'red'],
+  oyster: ['…굴입니따.', 'none'], sesame: ['고소합니따.', 'pink'], salt: ['짜다 못해 씁니따.', 'squish'],
+  sugar: ['달달합니따.', 'pink'], pepper: ['에… 에… 에취!!', 'sneeze'],
+};
+function glanceAt(dur) { if (camName !== 'face') glanceBack = camName; lookByMouse = false; camGo('face'); glanceUntil = T + dur; }
+function consumeFed(id) {
+  const b = S.bowl;
+  if (id === 'egg') { handEgg.visible = false; hand = null; }
+  else if (id === 'paPieces') { handPa.visible = false; S.paEaten += hand.list.length; hand = null; }
+  else if (id === 'ckPieces') { handCk.visible = false; hand = null; }
+  else if (id === 'leek') { S.leekCut = CHOPS; setLeek(CHOPS * CUT); leek.position.set(0, 0, 0); proxyOn('leek', false); hand = null; }
+  else if (id === 'chicken') { S.ck.cut = CK_CUTS; setSlab(CK_CUTS * CK_STEP); chickenGrp.position.set(0, 0, 0); proxyOn('chicken', false); hand = null; }
+  else if (id === 'riceCold' || id === 'riceHot') { S.riceGone[id] = true; OBJ[id].userData.dome.visible = false; putBack(); }
+  else if (id === 'bowl') {
+    S.bowl = { eggs: 0, shells: 0, whisk: 0, salt: 0, pepper: 0, sugar: 0 };
+    bowlLiquid.visible = false; bowlYolks.forEach(y => y.visible = false); bowlShells.forEach(sh => sh.visible = false); bowlLiquidMat.color.setHex(0xf3ead2);
+    putBack();
+  } else putBack();
+  updateHandBar();
+}
+function feedFx(kind) {
+  const c = headMesh.material.color;
+  const tint = { red: [1, 0.45, 0.4], green: [0.62, 1, 0.55], pink: [1, 0.72, 0.85] }[kind];
+  if (tint) anim(2.2, k => { const t = Math.sin(Math.min(1, k * 3) * PI / 2) * (k > 0.7 ? (1 - k) / 0.3 : 1); c.setRGB(lerp(1, tint[0], t), lerp(1, tint[1], t), lerp(1, tint[2], t)); }, x => x).then(() => showAnger(angerLevel()));
+  if (kind === 'squish') anim(1.3, (k, raw) => { const f = Math.floor(raw * 14) % 2; headMesh.scale.set(f ? 1.35 : 1.15, f ? 0.7 : 0.85, 1); }, x => x).then(() => headMesh.scale.set(1, 1, 1));
+  if (kind === 'pump') { audio.tone(110, 0.3, 0.3, 'triangle'); anim(1.4, (k, raw) => { const s = 1 + Math.sin(raw * PI) * 0.18; rig.scale.set(s, 1 + Math.sin(raw * PI) * 0.06, 1); }, x => x).then(() => rig.scale.set(1, 1, 1)); }
+  if (kind === 'sneeze') setTimeout(() => { audio.burst(2200, 0.6, 0.35, 0.9); camShake = 0.8; anim(0.4, k => { headPivot.rotation.x = Math.sin(k * PI) * 0.5; }, x => x).then(() => headPivot.rotation.x = 0); }, 700);
+}
+function feedHyuntae() {
+  const id = hand.id, F = FEED[id];
+  if (!F) { say('이건 못 먹읍니따.', 1500); glanceAt(1.6); return; }
+  if (busy.feed) return;
+  if (id === 'bowl' && !S.bowl.eggs) { say('빈 그릇입니따.', 1500); glanceAt(1.6); return; }
+  if ((id === 'riceCold' || id === 'riceHot') && S.riceGone[id]) { say('이미 먹었읍니따.', 1500); glanceAt(1.6); return; }
+  busy.feed = true; S.fed++; S.fedKinds[id] = 1;
+  consumeFed(id);
+  glanceAt(2.8);
+  if (S.fed > 5) {
+    setTimeout(() => { busy.feed = false; if (!raging) { say('그만 먹이십니따. 요리합니따.', 2000); strike(); } }, 500);
+    return;
+  }
+  say('냠…', 900); headMode = 'chew';
+  [0, 170, 340].forEach(d => setTimeout(() => chomp(), 200 + d));
+  setTimeout(() => {
+    busy.feed = false; if (raging) return;
+    headMode = 'idle'; say(F[0], 2400); feedFx(F[1]);
+  }, 800);
+}
+
+/* ===== today's order ===== */
+const ORDERS = [
+  { id: 'normal', line: '오늘은 레시피대로 합니따.', note: '레시피대로' },
+  { id: 'salty', line: '오늘은 짜게 먹고 싶읍니따.', note: '간장 0.7~0.9큰술', soy: [0.7, 0.9], check: () => S.soy >= 0.7 && S.soy <= 0.9 },
+  { id: 'nopa', line: '오늘은 파 빼고 합니따.', note: '대파 넣지 말 것', noPa: true, check: () => !S.pa.inPan },
+  { id: 'egg3', line: '오늘은 계란 3개 넣읍니따.', note: '계란 3개', eggs: 3, check: () => S.egg.beaten + S.egg.direct === 3 },
+  { id: 'spicy', line: '오늘은 후추 팍팍 뿌립니따.', note: '후추 5~7번', pepper: [5, 7], check: () => S.pepper >= 5 && S.pepper <= 7 },
+  { id: 'nosesame', line: '오늘은 참기름 빼고 합니따.', note: '참기름 넣지 말 것', noSesame: true, check: () => S.sesame < 0.05 },
+  { id: 'oyster', line: '오늘은 굴소스 꼭 넣읍니따.', note: '굴소스 ½작은술 꼭', oyster: true, check: () => S.oyster >= 0.3 && S.oyster <= 1.0 },
+];
+function pickOrder() {
+  const o = ORDERS[(rand() * ORDERS.length) | 0]; S.order = o;
+  $('#orderNote').innerHTML = `<b>오늘의 주문</b><span>${o.line}</span>`;
+  $('#bookOrder').innerHTML = `<b>오늘의 주문</b> ${o.line} <em>(${o.note})</em>`;
+}
+
+/* ===== Muay Thai QTE ===== */
+const QTE_KEYS = ['ArrowLeft', 'ArrowUp', 'ArrowRight', 'Space'], QTE_GLYPH = { ArrowLeft: '←', ArrowUp: '↑', ArrowRight: '→', Space: 'SPACE' };
+let qteWait = null;
+window.addEventListener('keydown', e => {
+  if (!qteWait || !QTE_KEYS.includes(e.code)) return;
+  e.preventDefault(); e.stopPropagation(); const w = qteWait; qteWait = null; w(e.code);
+}, true);
+document.querySelectorAll('#qteBtns button').forEach(b => b.addEventListener('pointerdown', e => {
+  e.preventDefault(); if (!qteWait) return; const w = qteWait; qteWait = null; w(b.dataset.k);
+}));
+function waitKey(ms) {
+  return new Promise(res => {
+    const to = setTimeout(() => { if (qteWait) { qteWait = null; res(null); } }, ms);
+    qteWait = k => { clearTimeout(to); res(k); };
+  });
+}
+function powWord(word) {
+  const el = document.createElement('span'); el.className = 'pow block'; el.textContent = word;
+  el.style.left = (30 + rand() * 40) + '%'; el.style.top = (30 + rand() * 30) + '%'; el.style.setProperty('--r', ((rand() - .5) * 30).toFixed(0) + 'deg');
+  powsEl.appendChild(el); setTimeout(() => el.remove(), 700);
+}
+function clang() { audio.tone(1500, 0.18, 0.3, 'square'); audio.tone(2250, 0.3, 0.2, 'triangle'); audio.burst(4200, 3, 0.1, 0.45); }
+async function runQTE(n) {
+  const box = $('#qte'), keyEl = $('#qteKey'), btns = $('#qteBtns');
+  await cineSub('막아 봅니따.', 1.1);
+  btns.hidden = false;
+  for (let i = 0; i < n; i++) {
+    const k = QTE_KEYS[(rand() * 4) | 0], f = fists[i % 2], side = i % 2 ? 1 : -1, p0 = FIST_HOME[i % 2].clone();
+    const hitP = new THREE.Vector3(side * 0.3, HEAD_C - 0.6, 2.1);
+    keyEl.textContent = QTE_GLYPH[k]; box.classList.remove('go', 'ok', 'bad'); box.hidden = false; void box.offsetWidth; box.classList.add('go');
+    timeScale = 0.3; audio.tone(880, 0.08, 0.15, 'square');
+    let stop = false;
+    anim(0.33, kk => { if (!stop) { f.position.lerpVectors(p0, hitP, kk * 0.85); f.scale.setScalar(1 + kk * 0.9); } }, x => x);
+    const got = await waitKey(1100 - i * 80);
+    stop = true; timeScale = 1;
+    if (got === k) {
+      box.classList.add('ok'); clang(); powWord('막음!'); camShake = 0.45; impactFrame(45);
+      const from = f.position.clone();
+      await anim(0.14, kk => { f.position.lerpVectors(from, p0, kk); f.scale.setScalar(1.8 - kk * 0.8); }, x => x);
+      await sleep(0.2); box.hidden = true;
+    } else {
+      box.classList.add('bad'); punchFx('빈틈!', i);
+      await sleep(0.35); box.hidden = true; btns.hidden = true;
+      f.position.copy(p0); f.scale.setScalar(1);
+      await cineSub('빈틈입니따.', 1.0);
+      return false;
+    }
+  }
+  btns.hidden = true;
+  await cineSub('오…? 제법입니따.', 1.4);
+  eyeFires.forEach(e => e.visible = true); audio.tone(60, 0.8, 0.5, 'sawtooth'); camShake = 0.6;
+  await cineSub('그럼 2인분으로 갑니따.', 1.3);
+  return true;
+}
+
 /* ===== ultimate move assets: aura, rice ring, beam ===== */
 const ULT_SKY = new THREE.Color(0x24306a), ULT_SKY2 = new THREE.Color(0xf3b04a), SCENE_BG = scene.background.clone();
 const ult = { fistW: new THREE.Vector3(), white: $('#whiteout') };
@@ -2361,7 +2519,8 @@ const ult = { fistW: new THREE.Vector3(), white: $('#whiteout') };
   };
   ult.reset = () => {
     ult.aura.visible = false; ult.ring.visible = false; ult.beam.visible = false; ult.fistGlow.visible = false; ult.bursting = false;
-    ult.white.hidden = true; ult.beam.material.opacity = 0.9; scene.background.copy(SCENE_BG);
+    ult.white.hidden = true; ult.beam.material.opacity = 0.9; scene.background.copy(SCENE_BG); ult.aura.material.color.setHex(0xffffff);
+    $('#qte').hidden = true; $('#qteBtns').hidden = true; qteWait = null;
   };
 }
 function chargeSound(dur) {
@@ -2437,6 +2596,7 @@ async function startFight() {
   audio.whoosh(); heavyHit();
   await anim(0.28, k => { taster.position.lerpVectors(start, goal, k); }, x => 1 - Math.pow(1 - x, 4));
   impactFrame(60);
+  const qteOk = await runQTE(4); r.qte = qteOk;
   fightUI.lines.hidden = false;
   const words = ['타', '타타', '타타타', '퍽', '퍽퍽', '쾅', '파바박', '퍽', '빡', '퍼퍼퍽', '쾅', '타타타타'];
   for (let i = 0; i < 12; i++) {
@@ -2485,7 +2645,8 @@ async function startFight() {
   ult.fistGlow.visible = true;
   const center = new THREE.Vector3();
   chargeSound(2.8);
-  cineSub('「얼티밋 디 계란 오브 볶음밥 펀찌.」', 0, true);
+  if (qteOk) { ult.aura.material.color.setHex(0xff6a4a); ult.aura.scale.multiplyScalar(1.3); }
+  cineSub(qteOk ? '「얼티밋 디 계란 오브 볶음밥 펀찌. 2인분.」' : '「얼티밋 디 계란 오브 볶음밥 펀찌.」', 0, true);
   await anim(2.8, (k, raw) => {
     aim.copy(taster.position).y += AIM; lookP.lerp(aim, 0.2);
     const pulse = 1 + Math.sin(raw * 40) * 0.06;
@@ -2508,7 +2669,7 @@ async function startFight() {
   ult.beam.visible = true; ult.burst(ult.fistW, camera.position);
   ult.white.hidden = false; ult.white.style.opacity = 1;
   ult.aura.visible = false; ult.ring.visible = false;
-  await anim(0.5, k => { ult.white.style.opacity = 1 - k * 0.7; ult.updateBeam(ult.fistW, camera.position, 1.2 + k * 2); ult.updateBurst(1 / 60 * 2); }, x => x);
+  await anim(0.5, k => { ult.white.style.opacity = 1 - k * 0.7; ult.updateBeam(ult.fistW, camera.position, (1.2 + k * 2) * (qteOk ? 2 : 1)); ult.updateBurst(1 / 60 * 2); }, x => x);
 
   // --- you get blasted away into the sky ---
   const c2 = c1.clone().add(new THREE.Vector3(-4, 9, 48)), cStart = camera.position.clone();
@@ -2519,7 +2680,7 @@ async function startFight() {
     headMesh.getWorldPosition(hw); lookP.lerp(hw, 0.3);
     camRoll = raw * PI * 5;
     ult.white.style.opacity = 0.3 * (1 - raw);
-    ult.updateBeam(ult.fistW, camera.position, 3.2 * (1 - raw) + 0.2);
+    ult.updateBeam(ult.fistW, camera.position, (3.2 * (1 - raw) + 0.2) * (qteOk ? 2 : 1));
     ult.beam.material.opacity = 0.9 * (1 - raw);
     ult.updateBurst(1 / 60 * 1.6);
     scene.background.copy(ULT_SKY).lerp(ULT_SKY2, raw);
@@ -2596,6 +2757,10 @@ async function finish() {
 /* ===== achievements (stored per browser) ===== */
 const ACH = [
   { id: 'slow', cat: '무현태', name: '느립니따', desc: '칼을 들고 현태에게 덤볐씁니다.', test: r => r.rageKind === 'fight' },
+  { id: 'qte', cat: '무현태', name: '막았다…?', desc: '현태 주먹을 4번 막았지만 소용없었씁니다.', test: r => !!r.qte },
+  { id: 'mukbang', cat: '실수', name: '현태 먹방', desc: '현태 먹방을 찍었씁니다.', test: () => S.fed >= 5 },
+  { id: 'rawfeed', cat: '실수', name: '날닭 먹방', desc: '현태에게 날닭을 먹였씁니다.', test: () => S.fedKinds.chicken || S.fedKinds.ckPieces },
+  { id: 'regular', cat: '잘함', name: '단골 손님', desc: '현태의 주문을 3번 맞췄씁니다.', test: (r, P) => P.ordersOk >= 3 },
   { id: 'ultimate', cat: '무현태', name: '얼티밋 디 계란 오브 볶음밥 펀찌', desc: '계란 볶음밥의 기운을 정통으로 맞고 하늘의 별이 되었씁니다.', test: r => r.rageKind === 'fight' },
   { id: 'staredown', cat: '무현태', name: '눈싸움 패배', desc: '현태를 너무 오래 쳐다보다 맞았씁니다.', test: r => r.rageKind === 'stare' },
   { id: 'prank', cat: '무현태', name: '음식 장난 금지', desc: '먹는 걸로 장난치다 맞았씁니다.', test: r => r.rageKind === 'prank' },
@@ -2627,7 +2792,7 @@ const ACH = [
 ];
 const ACH_KEY = 'kht-friedrice-ach';
 function achLoad() {
-  try { const v = JSON.parse(localStorage.getItem(ACH_KEY) || '{}'); return { got: v.got || {}, gameOvers: v.gameOvers || 0 }; }
+  try { const v = JSON.parse(localStorage.getItem(ACH_KEY) || '{}'); return { got: v.got || {}, gameOvers: v.gameOvers || 0, ordersOk: v.ordersOk || 0 }; }
   catch (e) { return { got: {}, gameOvers: 0 }; }
 }
 function achSave(P) { try { localStorage.setItem(ACH_KEY, JSON.stringify(P)); } catch (e) {} }
@@ -2635,6 +2800,7 @@ let achMem = null; // fallback when storage is blocked
 function achCheck(r) {
   const P = achMem || achLoad();
   if (r.total <= 30) P.gameOvers++;
+  if (r.orderOk) P.ordersOk = (P.ordersOk || 0) + 1;
   const fresh = [];
   ACH.forEach(a => { if (!P.got[a.id] && a.id !== 'all') { let ok = false; try { ok = a.test(r, P); } catch (e) {} if (ok) { P.got[a.id] = Date.now(); fresh.push(a); } } });
   const all = ACH.find(a => a.id === 'all');
@@ -2691,7 +2857,9 @@ function startGame() {
   taster.visible = true; headMode = 'idle'; headT = 0;
   $('#bottom').hidden = false; $('#panStat').hidden = false; updatePanel();
   camGo(vw / vh < 0.9 ? 'prep' : 'all');
+  pickOrder();
   toast('레시피 북부터 확인!');
+  setTimeout(() => { if (playing && !raging) say(S.order.line, 2800); }, 1400);
 }
 $('#startBtn').addEventListener('click', startGame);
 $('#againBtn').addEventListener('click', startGame);
