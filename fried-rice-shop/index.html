@@ -217,6 +217,15 @@ button:focus-visible{outline:3px dashed var(--red);outline-offset:3px}
 .ucard:disabled{opacity:.4;cursor:default}
 .ucard.owned{background:#d9f7d9}
 .cert .stamp{top:auto;bottom:64px;right:26px}
+.lb-on .ctl{bottom:calc(11vh + 14px)}
+.lb-on .mg:not(.low){top:calc(11vh + 14px)}
+.ob{position:fixed;left:0;top:0;z-index:6;transform:translate(-50%,-100%);pointer-events:none;background:#fff;border:3px solid var(--ink);border-radius:12px;padding:3px 9px;font:900 13px/1.3 var(--f-b);white-space:nowrap;box-shadow:3px 3px 0 var(--ink);text-align:center}
+.ob::after{content:"";position:absolute;left:50%;bottom:-11px;margin-left:-6px;border:6px solid transparent;border-top:7px solid var(--ink)}
+.ob b{color:var(--red);display:block;font-size:14px}
+.ob.on{background:var(--yolk)}
+.upg #uNext{flex:none}
+.ucard .uh{display:flex;gap:10px;align-items:center}
+.ucard img{width:56px;height:56px;flex:0 0 56px;border:3px solid var(--ink);border-radius:12px;background:#fffbea;box-shadow:2px 2px 0 var(--ink)}
 .race{position:fixed;z-index:8;left:50%;transform:translateX(-50%);top:calc(74px + env(safe-area-inset-top,0px));width:min(420px,calc(100% - 32px));background:#fff;border:3px solid var(--ink);box-shadow:4px 4px 0 var(--ink);padding:6px 10px;font:900 13px var(--f-b);pointer-events:none}
 .race .rb{height:12px;border:2px solid var(--ink);background:#eee;position:relative;overflow:hidden;margin:3px 0 6px}
 .race .rb i{position:absolute;inset:0;transform-origin:left;transform:scaleX(0)}
@@ -726,7 +735,7 @@ function whisper(t, ms) { const c = $('#coach'); $('#coachT').textContent = t; c
 function pop(text, pos, cls) { const el = document.createElement('div'); el.className = 'pop ' + (cls || ''); el.textContent = text; const [x, y] = pos ? toScreen(pos) : [vw / 2, vh * 0.42]; el.style.left = clamp(x, 80, vw - 80) + 'px'; el.style.top = clamp(y, 80, vh - 80) + 'px'; $('#pops').appendChild(el); setTimeout(() => el.remove(), 1300); }
 async function banner(t, sub) { const b = $('#banner'), s = $('#bannerT'); s.innerHTML = t + (sub ? `<small>${sub}</small>` : ''); b.hidden = false; s.style.animation = 'none'; void s.offsetWidth; s.style.animation = ''; await sleep(1.4); b.hidden = true; }
 let lbOn = false;
-const letterbox = on => { lbOn = on; $('#lb').classList.toggle('on', on); };
+const letterbox = on => { lbOn = on; $('#lb').classList.toggle('on', on); document.body.classList.toggle('lb-on', on); };
 async function flash(a) { const f = $('#flash'); await anim(0.25, k => { f.style.opacity = (a || 1) * (1 - k); }, x => x); f.style.opacity = 0; }
 async function fade(on, d) { const f = $('#fade'); const a = +f.style.opacity || 0; await anim(d || 0.5, k => { f.style.opacity = lerp(a, on ? 1 : 0, k); }, x => x); }
 const mgEl = $('#mg'), ctlEl = $('#ctl');
@@ -848,8 +857,9 @@ function makeCust(type) {
     c.top = 3.15;
   }
   c.m.userData = { pick: true, cust: c }; if (c.head) c.head.userData = { pick: true, cust: c };
-  c.rt = document.createElement('div'); c.rt.className = 'ing need give'; c.rt.textContent = '👆 클릭해서 주기'; c.rt.hidden = true; pbarsEl.appendChild(c.rt);
-  ANCH[c.id] = () => c.g.position.clone().add(V(0, c.top + 0.1, 0));
+  c.ob = document.createElement('div'); c.ob.className = 'ob'; c.ob.hidden = true; pbarsEl.appendChild(c.ob);
+  c.rt = document.createElement('div'); c.rt.className = 'ing need give'; c.rt.textContent = '👆 주기'; c.rt.hidden = true; pbarsEl.appendChild(c.rt);
+  ANCH[c.id] = () => c.g.position.clone().add(V(0, c.top + (c.ticket && c.state === 'wait' ? 0.75 : 0.1), 0));
   c.pb = document.createElement('div'); c.pb.className = 'pbar'; c.pb.innerHTML = '<i></i>'; c.pb.hidden = true; pbarsEl.appendChild(c.pb);
   custs.push(c); return c;
 }
@@ -860,7 +870,7 @@ function custMood(c, m, sec) {
 }
 const cSay = (c, t, ms) => { if (G && G.talking && c.type !== 'sw') return; bub(c.id, c.type === 'sw' ? swFmt(t) : t, ms); if (c.type === 'sw') audio.oink(); else audio.tone(260 + (cid % 5) * 40, 0.08, 0.12, 'triangle'); };
 function removeCust(c) {
-  c.gone = true; scene.remove(c.g); dropBub(c.id); c.pb.remove(); c.rt.remove();
+  c.gone = true; scene.remove(c.g); dropBub(c.id); c.pb.remove(); c.rt.remove(); c.ob.remove();
   const i = custs.indexOf(c); if (i >= 0) custs.splice(i, 1);
   if (c.type === 'guest') for (const m of ['n', 'smile', 'angry', 'shock', 'eat', 'down', 'fire']) { const k = c.key + m; if (texCache.has(k)) { texCache.get(k).dispose(); texCache.delete(k); } }
   if (c.ticket) dropTicket(c.ticket);
@@ -962,7 +972,11 @@ const tagEls = ING.map(d => { const e = document.createElement('div'); e.classNa
 function updateTags() { const t = G && G.active; ING.forEach((d, i) => { const el = tagEls[i]; el.classList.toggle('need', !!t && (W[d.k] || 0) < (t.req[d.k] || 0)); el.style.opacity = d.k === 'chicken' && !lv('chick') && !(t && t.req.chicken) ? 0.35 : 1; }); }
 function placeTags() {
   const on = G && G.cooking && !G.talking, ready = on && W.done >= 0.55 && !bizPause; ING.forEach((d, i) => { const el = tagEls[i]; el.hidden = !on; if (!on) return; const [x, y] = toScreen(d.g.position.clone().add(V(0, 0.95, 0))); el.style.left = x + 'px'; el.style.top = y + 'px'; });
-  for (const c of custs) { c.rt.hidden = !(ready && c.ticket && c.state === 'wait'); if (!c.rt.hidden) { const [rx, ry] = toScreen(c.g.position.clone().add(V(0, c.top + 0.55, 0.2))); c.rt.style.left = rx + 'px'; c.rt.style.top = ry + 'px'; }
+  for (const c of custs) {
+    const waiting = on && c.ticket && c.state === 'wait', talking = bubEls[c.id] && !bubEls[c.id].hidden;
+    c.ob.hidden = !waiting || talking;
+    if (!c.ob.hidden) { const t = c.ticket, key = (G.active === t) + t.name; if (c.ob.dataset.k !== key) { c.ob.dataset.k = key; c.ob.className = 'ob' + (G.active === t ? ' on' : ''); c.ob.innerHTML = `${{ egg: '🥚 계란', onion: '🌱 파', chick: '🍗 닭가슴살' }[t.menu]}<b>${t.p}인분</b>`; } const [ox, oy] = toScreen(c.g.position.clone().add(V(0, c.top + 0.45, 0.2))); c.ob.style.left = ox + 'px'; c.ob.style.top = oy + 'px'; }
+    c.rt.hidden = !(ready && waiting); if (!c.rt.hidden) { const [rx, ry] = toScreen(c.g.position.clone().add(V(0, c.top + 1.05, 0.2))); c.rt.style.left = rx + 'px'; c.rt.style.top = ry + 'px'; }
     c.pb.hidden = !(c.ticket && on && c.state === 'wait'); if (c.pb.hidden) continue; const [x, y] = toScreen(c.g.position.clone().add(V(0, c.top - 0.1, 0.2))); c.pb.style.left = x + 'px'; c.pb.style.top = y + 'px'; const f = clamp(c.patience / c.pmax, 0, 1), i = c.pb.firstChild; i.style.transform = `scaleX(${f})`; i.classList.toggle('low', f < 0.3); if (c.ticket && c.ticket.bar) { c.ticket.bar.style.transform = `scaleX(${f})`; c.ticket.bar.classList.toggle('low', f < 0.3); } }
 }
 function nextHint() {
@@ -1238,6 +1252,22 @@ async function settle() {
   await new Promise(res => { $('#sNext').onclick = res; if (AUTO) setTimeout(res, 400); });
   $('#settleScr').hidden = true;
 }
+const ICONS = {};
+function upgIcon(id) {
+  if (ICONS[id]) return ICONS[id];
+  const c = document.createElement('canvas'); c.width = c.height = 112; const g = c.getContext('2d');
+  g.lineJoin = 'round'; g.lineCap = 'round'; g.lineWidth = 6; g.strokeStyle = '#111';
+  const P = (pts, fill) => { g.beginPath(); pts.forEach(([x, y], i) => i ? g.lineTo(x, y) : g.moveTo(x, y)); g.closePath(); g.fillStyle = fill; g.fill(); g.stroke(); };
+  const E = (x, y, rx, ry, fill) => { g.beginPath(); g.ellipse(x, y, rx, ry, 0, 0, PI * 2); g.fillStyle = fill; g.fill(); g.stroke(); };
+  if (id === 'fire') { P([[56, 8], [80, 40], [92, 30], [96, 66], [84, 96], [56, 104], [28, 96], [16, 66], [24, 38], [36, 50]], '#ff5a1f'); P([[56, 44], [70, 66], [72, 86], [56, 96], [40, 86], [42, 66]], '#ffd21f'); }
+  else if (id === 'eggm') { P([[14, 60], [98, 60], [98, 104], [14, 104]], '#f5c518'); g.fillStyle = '#111'; g.font = '900 20px "Malgun Gothic",sans-serif'; g.textAlign = 'center'; g.fillText('자동', 56, 90); E(38, 38, 15, 20, '#fff5e6'); E(74, 34, 15, 20, '#fff5e6'); g.beginPath(); g.moveTo(56, 8); g.lineTo(56, 18); g.stroke(); }
+  else if (id === 'seat') { E(56, 34, 38, 12, '#d62a2a'); g.fillStyle = '#d62a2a'; g.fillRect(18, 34, 76, 10); g.strokeRect(18, 34, 76, 10); P([[50, 44], [62, 44], [62, 92], [50, 92]], '#666'); E(56, 98, 30, 8, '#555'); }
+  else if (id === 'neon') { g.shadowColor = '#ff5ab0'; g.shadowBlur = 18; P([[10, 28], [102, 28], [102, 84], [10, 84]], '#2a0a20'); g.shadowBlur = 12; g.fillStyle = '#ff7fd0'; g.font = '900 32px "Malgun Gothic",sans-serif'; g.textAlign = 'center'; g.fillText('2인분', 56, 68); g.shadowBlur = 0; }
+  else if (id === 'chick') { P([[70, 16], [96, 30], [98, 56], [80, 72], [56, 70], [44, 50], [50, 28]], '#c97a2a'); P([[48, 62], [60, 70], [30, 96], [22, 90]], '#f3ead8'); E(20, 98, 9, 9, '#f3ead8'); E(28, 104, 8, 8, '#f3ead8'); }
+  else if (id === 'noguk') { g.beginPath(); g.moveTo(16, 52); g.quadraticCurveTo(56, 116, 96, 52); g.closePath(); g.fillStyle = '#f4f1ea'; g.fill(); g.stroke(); E(56, 52, 40, 8, '#e0612a'); g.lineWidth = 9; g.strokeStyle = '#e3120b'; g.beginPath(); g.arc(56, 60, 46, 0, PI * 2); g.moveTo(24, 28); g.lineTo(88, 92); g.stroke(); }
+  else if (id === 'statue') { P([[30, 92], [82, 92], [90, 106], [22, 106]], '#888'); const img = hyTex.image; if (img && img.width) { g.drawImage(img, 26, 8, 60, 85); g.globalCompositeOperation = 'source-atop'; g.fillStyle = 'rgba(255,190,30,.6)'; g.fillRect(0, 0, 112, 92); g.globalCompositeOperation = 'source-over'; } g.fillStyle = '#fff'; g.beginPath(); g.arc(80, 22, 5, 0, PI * 2); g.fill(); }
+  return (ICONS[id] = c.toDataURL());
+}
 async function shop() {
   const draw = () => {
     $('#uMoney').textContent = '보유 ' + won(G.money);
@@ -1245,7 +1275,7 @@ async function shop() {
     UPG.forEach(u => {
       const l = lv(u.id), maxed = l >= u.max, cost = maxed ? 0 : u.cost[l];
       const b = document.createElement('button'); b.type = 'button'; b.className = 'ucard' + (maxed ? ' owned' : ''); b.disabled = maxed || G.money < cost;
-      b.innerHTML = `<b>${u.name}${u.max > 1 ? ` (${l}/${u.max})` : ''}</b><span>${u.d}</span><em>${maxed ? '구매 완료' : won(cost)}</em>`;
+      b.innerHTML = `<div class="uh"><img src="${upgIcon(u.id)}" alt=""><b>${u.name}${u.max > 1 ? ` (${l}/${u.max})` : ''}</b></div><span>${u.d}</span><em>${maxed ? '구매 완료' : won(cost)}</em>`;
       b.addEventListener('click', () => { if (b.disabled) return; G.money -= cost; G.up[u.id] = l + 1; audio.ding(); if (u.id === 'statue') addRep(0.3); applyUpgrades(); hud(); draw(); });
       $('#uGrid').appendChild(b);
     });
