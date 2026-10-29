@@ -486,12 +486,12 @@ scene.add(new THREE.HemisphereLight(0xfff1dc, 0x3b2a1e, 0.95));
 const sun = new THREE.DirectionalLight(0xffe2bf, 0.75); sun.position.set(-3, 9, 6); scene.add(sun);
 const fireLight = new THREE.PointLight(0xff8a3d, 0, 4.5, 2); scene.add(fireLight);
 add(new THREE.Mesh(new THREE.BoxGeometry(16, 0.6, 7.2), lam(0xffffff, { map: woodTex })), 0.3, -0.3, 0.4);
-add(new THREE.Mesh(new THREE.PlaneGeometry(18, 9), lam(0xffffff, { map: tileTex })), 0.3, 4.2, -3.2);
+const wallMesh = add(new THREE.Mesh(new THREE.PlaneGeometry(18, 9), lam(0xffffff, { map: tileTex })), 0.3, 4.2, -3.2);
 const signTex = textTex(512, 160, (g, w, h) => {
   g.fillStyle = '#3b2618'; g.fillRect(0, 0, w, h); g.strokeStyle = '#f5bf2a'; g.lineWidth = 6; g.strokeRect(10, 10, w - 20, h - 20);
   g.fillStyle = '#fbfaf5'; g.font = '72px "Black Han Sans", sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('현태네 주방', w / 2, h / 2 + 4);
 });
-add(new THREE.Mesh(new THREE.PlaneGeometry(2.4, 0.75), new THREE.MeshBasicMaterial({ map: signTex })), 0.3, 2.9, -3.15);
+const signMesh = add(new THREE.Mesh(new THREE.PlaneGeometry(2.4, 0.75), new THREE.MeshBasicMaterial({ map: signTex })), 0.3, 2.9, -3.15);
 
 /* ===== cutting board, leek, knife ===== */
 const BOARD = { x: -3.0, z: 0.3 };
@@ -812,6 +812,16 @@ function updateSteam(dt) {
   steamGeo.attributes.position.needsUpdate = true; steamGeo.attributes.aAlpha.needsUpdate = true; steamGeo.attributes.aSize.needsUpdate = true;
 }
 
+/* ===== the whole counter hangs off a hinge at its front edge, so it can be flipped ===== */
+const tableRoot = new THREE.Group(), tableInner = new THREE.Group();
+tableRoot.position.set(0, -0.6, 4.0); tableInner.position.set(0, 0.6, -4.0); tableRoot.add(tableInner);
+scene.children.slice().forEach(o => {
+  if (o.isLight && o !== fireLight) return;
+  if (o === wallMesh || o === signMesh || o === steamPts) return;
+  tableInner.add(o);
+});
+scene.add(tableRoot);
+
 /* ===== audio (synthesized) ===== */
 const audio = {
   ctx: null, muted: false, sz: null, master: null, noise: null,
@@ -894,8 +904,10 @@ function updateCamera(dt) {
   const s = VIEWS[camName], f = camName === 'title' ? Math.max(1, portrait * 0.8) : portrait;
   tL.set(...s.l); tP.set(s.l[0] + (s.p[0] - s.l[0]) * f, s.l[1] + (s.p[1] - s.l[1]) * f, s.l[2] + (s.p[2] - s.l[2]) * f);
   if (camName === 'title') tP.x += Math.sin(T * 0.25) * 0.8;
+  camShake = Math.max(0, camShake - dt * 1.6);
   const k = 1 - Math.exp(-dt * 3.5);
   camP.lerp(tP, k); camL.lerp(tL, k); camera.position.copy(camP); camera.lookAt(camL);
+  if (camShake > 0) { camera.position.x += (rand() - .5) * camShake; camera.position.y += (rand() - .5) * camShake; }
 }
 
 /* ===== heat ===== */
@@ -1709,7 +1721,12 @@ onFrame(dt => {
   headT += dt;
   const period = headMode === 'fast' ? 0.12 : headMode === 'chew' ? 0.16 : 0.46;
   const flip = Math.floor(headT / period) % 2 === 0;
-  if (headMode === 'droop') headPivot.rotation.z = 0.45;
+  if (headMode === 'rage') {
+    const f = Math.floor(headT / 0.045);
+    headPivot.rotation.z = (f % 2 ? 0.05 : -0.05) + (f % 3 - 1) * 0.02;
+    taster.position.x = TASTER.x + (f % 2 ? 0.045 : -0.045); taster.position.y = (f % 3) * 0.015;
+    const pulse = Math.floor(headT / 0.18) % 2 ? 1.18 : 0.92; angerMarks.forEach((m, i) => m.scale.setScalar(pulse * (i ? 0.7 : 1)));
+  } else if (headMode === 'droop') headPivot.rotation.z = 0.45;
   else if (headMode === 'still') headPivot.rotation.z = 0;
   else headPivot.rotation.z = flip ? (headMode === 'fast' ? 0.2 : 0.14) : (headMode === 'fast' ? -0.2 : -0.1);
   if (eyeFires[0].visible) { const s = Math.floor(headT / 0.08) % 2 ? 1.25 : 0.9; eyeFires.forEach(e => e.scale.set(s, s * 1.15, 1)); faceLight.intensity = 3 + (s > 1 ? 2 : 0); }
@@ -1735,6 +1752,7 @@ async function eatScene(score) {
     spoonFood.visible = false; headMode = 'chew'; bubble(['냠', '쩝쩝', '우물우물', '꿀꺽'][b]);
     for (let k = 0; k < 3; k++) { chomp(); await sleep(0.17); }
     headMode = 'idle';
+    if (score <= 30) { bubble('…?'); await sleep(0.5); break; }
   }
   spoon.visible = false; arm.visible = false;
   bubble('…'); await sleep(0.7);
@@ -1748,12 +1766,69 @@ async function eatScene(score) {
   } else if (score >= 31) {
     headMode = 'idle'; bubble(tier[2], true); await sleep(2.2);
   } else {
-    headMode = 'droop'; headMesh.material.color.setRGB(0.55, 0.6, 0.55); audio.nope();
-    bubble(tier[2], true); await sleep(2.4);
+    await rageScene();
   }
   bubble('');
 }
+/* rage: anger marks, trembling, face going red, then the counter gets flipped */
+const angerTex = canvasTex(256, 256, (g, w) => {
+  g.lineJoin = 'round'; g.lineCap = 'round';
+  const pieces = [[-1, -1], [1, -1], [-1, 1], [1, 1]];
+  const path = (cx, cy, r, a0) => {
+    g.beginPath();
+    for (let i = 0; i <= 14; i++) {
+      const a = a0 + i / 14 * PI * 0.62, j = (rand() - .5) * 5;
+      const x = cx + Math.cos(a) * (r + j), y = cy + Math.sin(a) * (r + j);
+      i ? g.lineTo(x, y) : g.moveTo(x, y);
+    }
+  };
+  pieces.forEach(([sx, sy]) => {
+    const cx = 128 + sx * 112, cy = 128 + sy * 112, a0 = Math.atan2(-sy, -sx) - PI * 0.31;
+    path(cx, cy, 82, a0); g.strokeStyle = '#111'; g.lineWidth = 46; g.stroke();
+    path(cx, cy, 82, a0); g.strokeStyle = '#ff3b3b'; g.lineWidth = 28; g.stroke();
+  });
+});
+const angerMarks = [[0.62, 0.72, 0.85], [-0.25, 1.1, 0.85]].map(([x, y]) => {
+  const m = add(new THREE.Mesh(new THREE.PlaneGeometry(0.85, 0.85), new THREE.MeshBasicMaterial({ map: angerTex, transparent: true, alphaTest: 0.3, depthWrite: false })), x, y, 0.08, headMesh);
+  m.visible = false; return m;
+});
+let camShake = 0;
+const FLY = ['oil', 'vinegar', 'soy', 'oyster', 'sesame', 'salt', 'sugar', 'pepper', 'riceCold', 'riceHot', 'bowl', 'knife', 'chopsticks', 'spatula', 'plate'];
+function crash() {
+  audio.burst(160, 0.7, 0.9, 1.0); audio.burst(900, 0.8, 0.6, 0.7); audio.tone(55, 0.7, 0.6, 'sawtooth');
+  [0, 90, 170, 260, 380].forEach((d, i) => setTimeout(() => { audio.tone(700 + i * 260, 0.25, 0.18, 'square'); audio.burst(2500 + i * 400, 3, 0.12, 0.35); }, d));
+}
+async function rageScene() {
+  bubble('…'); headMode = 'rage'; headT = 0;
+  angerMarks.forEach(m => m.visible = true); audio.nope();
+  await anim(2.4, k => {
+    headMesh.material.color.setRGB(1, 1 - 0.68 * k, 1 - 0.72 * k);
+    bodyMesh.material.color.setRGB(1, 1 - 0.25 * k, 1 - 0.25 * k);
+    if (Math.floor(k * 10) !== Math.floor((k - 0.004) * 10)) audio.tone(70 + k * 40, 0.08, 0.12, 'square');
+  }, x => x);
+  bubble('이런건 줘도 안먹씁니다!!!', true); camShake = 0.25;
+  await sleep(0.7);
+  // flip the whole counter toward the viewer, things fly off
+  const vel = FLY.map(() => [(rand() - .5) * 3, 3 + rand() * 4, -2 - rand() * 4, (rand() - .5) * 12, (rand() - .5) * 12]);
+  crash(); camShake = 0.9;
+  let last = 0;
+  await anim(1.3, (k, raw) => {
+    const dt = (raw - last) * 1.3; last = raw;
+    tableRoot.rotation.x = 2.5 * raw * raw;
+    tableRoot.position.y = -0.6 - 6 * Math.max(0, raw - 0.45) * Math.max(0, raw - 0.45);
+    FLY.forEach((id, i) => {
+      const o = OBJ[id], v = vel[i]; v[1] -= 9 * dt;
+      o.position.x += v[0] * dt; o.position.y += v[1] * dt; o.position.z += v[2] * dt;
+      o.rotation.x += v[3] * dt; o.rotation.z += v[4] * dt;
+    });
+  }, x => x);
+  tableRoot.visible = false; camShake = 0.4;
+  await sleep(1.6);
+}
 function resetTaster() {
+  tableRoot.visible = true; tableRoot.rotation.set(0, 0, 0); tableRoot.position.set(0, -0.6, 4.0); camShake = 0;
+  angerMarks.forEach(m => m.visible = false); taster.position.set(TASTER.x, 0, TASTER.z); headPivot.rotation.set(0, 0, 0);
+  headMesh.material.color.setRGB(1, 1, 1); bodyMesh.material.color.setRGB(1, 1, 1);
   taster.visible = false; spoon.visible = false; arm.visible = false; eyeFires.forEach(e => e.visible = false);
   faceLight.intensity = 0; headMode = 'off'; flashEl.hidden = true; bubble('');
 }
