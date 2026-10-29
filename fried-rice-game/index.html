@@ -333,6 +333,7 @@ button:focus-visible{outline:3px solid var(--yolk);outline-offset:2px}
       <ul class="ing">
         <li><span>밥 <em>(찬밥 추천)</em></span><span>200g · 1공기</span></li>
         <li><span>계란</span><span>2개</span></li>
+        <li><span>닭가슴살 <em>(깍둑썰기)</em></span><span>100g</span></li>
         <li><span>대파</span><span>½대</span></li>
         <li><span>식용유</span><span>1.5큰술</span></li>
         <li><span>진간장</span><span>½큰술</span></li>
@@ -347,9 +348,10 @@ button:focus-visible{outline:3px solid var(--yolk);outline-offset:2px}
     <div class="page">
       <span class="serv">만드는 순서</span>
       <ol class="steps">
-        <li><span><b>재료 준비</b> · 대파는 송송 썰고, 계란은 그릇에 깨서 소금 한 꼬집을 넣고 고르게 풀어 둔다.</span></li>
+        <li><span><b>재료 준비</b> · 대파는 송송 썰고, 닭가슴살은 깍둑썰고, 계란은 그릇에 깨서 소금 한 꼬집을 넣고 고르게 풀어 둔다.</span></li>
         <li><span><b>파기름</b> · 팬에 식용유를 두르고 <u>중불</u>에서 충분히 달군 뒤, 대파를 넣고 <u>계속 뒤적이며</u> 노릇하게 향을 낸다.</span></li>
-        <li><span><b>스크램블</b> · 파를 한쪽으로 밀고 계란물을 부어, 휘저어서 <u>반숙</u>으로 만든다.</span></li>
+        <li><span><b>닭가슴살</b> · 파기름이 나면 닭가슴살을 넣고 계속 뒤적이며 <u>속까지 하얗게</u> 익힌다.</span></li>
+        <li><span><b>스크램블</b> · 파와 닭가슴살을 한쪽으로 밀고 계란물을 부어, 휘저어서 <u>반숙</u>으로 만든다.</span></li>
         <li><span><b>밥 볶기</b> · 반숙일 때 밥을 넣고 <u>센불</u>로 올려, 밥이 뜨겁게 데워지도록 쉬지 않고 웍질하며 수분을 날린다.</span></li>
         <li><span><b>간하기</b> · 팬 <u>가장자리</u>에 간장을 둘러 살짝 눌린 뒤 섞는다. 굴소스·후추를 넣고 한 번 더 볶는다.</span></li>
         <li><span><b>마무리</b> · 불을 끄고 참기름을 둘러 섞은 뒤 접시에 담는다.</span></li>
@@ -569,6 +571,28 @@ const ZERO_M = new THREE.Matrix4().makeScale(0, 0, 0);
 const handPa = new THREE.Group(); scene.add(handPa); handPa.visible = false;
 for (let i = 0; i < 9; i++) { const m = add(new THREE.Mesh(ringGeo, lam(i % 3 ? 0xe9eed6 : 0x5d9a3a)), (rand() - .5) * 0.25, rand() * 0.08, (rand() - .5) * 0.25, handPa); m.scale.set(0.1, 0.045, 0.1); m.rotation.set(rand(), rand() * 3, rand()); }
 
+/* ===== chicken breast tray ===== */
+const TRAY = { x: -2.75, z: 2.3 };
+add(new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.06, 0.95), lam(0xeef0f2)), TRAY.x, 0.03, TRAY.z);
+const trayTex = textTex(256, 80, (g, w, h) => { g.fillStyle = '#c8371f'; g.fillRect(0, 0, w, h); g.fillStyle = '#fbfaf5'; g.font = '40px "Black Han Sans", sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('닭가슴살 100g', w / 2, h / 2 + 2); });
+const trayCard = add(new THREE.Mesh(new THREE.PlaneGeometry(0.85, 0.27), new THREE.MeshBasicMaterial({ map: trayTex })), TRAY.x, 0.12, TRAY.z + 0.62); trayCard.rotation.x = -0.9;
+const CK_START = TRAY.x - 0.25, CK_END = TRAY.x + 0.62, CK_CUTS = 9, CK_STEP = (CK_END - CK_START) / CK_CUTS, CK_N = CK_CUTS * 4;
+const chickenGrp = new THREE.Group(); scene.add(chickenGrp);
+const slabMat = lam(0xf2b0a2);
+const slab = add(new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), slabMat), 0, 0, 0, chickenGrp);
+function setSlab(cut) {
+  const left = CK_START + cut, len = Math.max(0, CK_END - left);
+  slab.visible = len > 0.01; slab.scale.set(Math.max(len, 0.001), 0.17, 0.5); slab.position.set(left + len / 2, 0.145, TRAY.z);
+  if (PROXY.chicken) { PROXY.chicken.position.set(left + len / 2, 0.15, TRAY.z); PROXY.chicken.scale.x = len + 0.15; }
+}
+const ckCenter = () => new THREE.Vector3((CK_START + S.ck.cut * CK_STEP + CK_END) / 2, 0.15, TRAY.z);
+const cubeGeo = new THREE.BoxGeometry(1, 1, 1);
+const trayPieces = new THREE.InstancedMesh(cubeGeo, lam(0xffffff), CK_N); trayPieces.frustumCulled = false; scene.add(trayPieces);
+for (let i = 0; i < CK_N; i++) trayPieces.setColorAt(i, new THREE.Color(0.95, 0.66, 0.62));
+const trayPos = new Float32Array(CK_N * 3), trayMat = [];
+const handCk = new THREE.Group(); scene.add(handCk); handCk.visible = false;
+for (let i = 0; i < 6; i++) { const m = add(new THREE.Mesh(cubeGeo, lam(0xf2b0a2)), (rand() - .5) * 0.25, rand() * 0.08, (rand() - .5) * 0.25, handCk); m.scale.set(0.12, 0.1, 0.11); m.rotation.set(rand(), rand() * 3, rand()); }
+
 /* ===== egg carton, bowl, chopsticks ===== */
 const CARTON = { x: -3.1, z: -1.55 };
 const carton = add(new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.18, 0.55), lam(0xc9b391)), CARTON.x, 0.09, CARTON.z);
@@ -608,8 +632,8 @@ const flameGeo = new THREE.ConeGeometry(0.06, 1, 5); flameGeo.translate(0, 0.5, 
 const flames = [];
 for (let i = 0; i < 14; i++) {
   const a = i / 14 * PI * 2, f = new THREE.Mesh(flameGeo, flameMat);
-  f.position.set(PAN.x + Math.cos(a) * 0.62, 0.29, PAN.z + Math.sin(a) * 0.62);
-  f.rotation.set(Math.sin(a) * 0.9, 0, -Math.cos(a) * 0.9); f.visible = false; scene.add(f); flames.push(f);
+  f.position.set(PAN.x + Math.cos(a) * 0.95, 0.27, PAN.z + Math.sin(a) * 0.95);
+  f.rotation.set(Math.sin(a) * 1.2, 0, -Math.cos(a) * 1.2); f.visible = false; scene.add(f); flames.push(f);
 }
 const glow = add(new THREE.Mesh(new THREE.PlaneGeometry(4.2, 4.2).rotateX(-PI / 2),
   new THREE.MeshBasicMaterial({ map: glowTex, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false })), PAN.x, 0.295, PAN.z);
@@ -700,7 +724,7 @@ const PLATE = { x: 4.2, y: 0.11, z: 1.25 };
 OBJ.plate = new THREE.Group(); OBJ.plate.position.set(PLATE.x, 0, PLATE.z); scene.add(OBJ.plate);
 add(new THREE.Mesh(new THREE.CylinderGeometry(1.0, 0.8, 0.1, 36), lam(0xf7f5f0)), 0, 0.05, 0, OBJ.plate);
 add(new THREE.Mesh(new THREE.TorusGeometry(0.96, 0.025, 6, 40), lam(0x3e6aa8)), 0, 0.105, 0, OBJ.plate).rotation.x = -PI / 2;
-OBJ.knife = knife; OBJ.chopsticks = chopsticks; OBJ.spatula = spatula; OBJ.bowl = eggBowl; OBJ.leek = leek; OBJ.egg = handEgg; OBJ.paPieces = handPa;
+OBJ.chicken = chickenGrp; OBJ.ckPieces = handCk; OBJ.knife = knife; OBJ.chopsticks = chopsticks; OBJ.spatula = spatula; OBJ.bowl = eggBowl; OBJ.leek = leek; OBJ.egg = handEgg; OBJ.paPieces = handPa;
 const bookTex = textTex(512, 340, (g, w, h) => {
   g.fillStyle = '#fbfaf5'; g.fillRect(0, 0, w, h);
   g.fillStyle = 'rgba(62,106,168,.18)'; for (let y = 60; y < h; y += 26) g.fillRect(16, y, w / 2 - 40, 2), g.fillRect(w / 2 + 24, y, w / 2 - 40, 2);
@@ -817,7 +841,8 @@ const rice = new PSet(new THREE.SphereGeometry(1, 6, 4), RICE_N, { mound: 0.24, 
 const curd = new PSet(new THREE.IcosahedronGeometry(1, 0), CURD_N, { mound: 0.06, scale: [0.12, 0.065, 0.1], vary: 0.6 });
 const pa = new PSet(ringGeo, PA_N, { mound: 0.07, scale: [0.105, 0.045, 0.105], vary: 0.25 });
 const speck = new PSet(new THREE.IcosahedronGeometry(1, 0), SPECK_N, { mound: 0.27, scale: [0.022, 0.022, 0.022], vary: 0.5 });
-const SETS = [rice, curd, pa, speck];
+const ck = new PSet(cubeGeo, CK_N, { mound: 0.08, scale: [0.12, 0.1, 0.11], vary: 0.35 });
+const SETS = [rice, curd, pa, speck, ck];
 
 /* ===== steam (single draw call, several emitters) ===== */
 const STEAM = 90;
@@ -988,7 +1013,7 @@ function updateFlame(dt) {
 /* ===== items registry & hit proxies ===== */
 const NAMES = { knife: '칼', leek: '대파', board: '도마', carton: '계란 판', egg: '계란', bowl: '그릇', chopsticks: '젓가락', salt: '소금', pepper: '후추', sugar: '설탕',
   oil: '식용유', soy: '진간장', vinegar: '식초', oyster: '굴소스', sesame: '참기름', riceCold: '찬밥 200g', riceHot: '햇밥 200g', pan: '팬', knob: '불 조절 손잡이',
-  spatula: '주걱', plate: '접시', book: '레시피 북', paPieces: '썬 대파' };
+  spatula: '주걱', plate: '접시', book: '레시피 북', paPieces: '썬 대파', chicken: '닭가슴살 100g', tray: '닭가슴살 쟁반', ckPieces: '깍둑썬 닭가슴살' };
 const proxyMat = new THREE.MeshBasicMaterial();
 const proxies = [];
 function addProxy(id, parent, size, off, geo) {
@@ -1000,6 +1025,8 @@ const PROXY = {};
 const fixedAnchor = (x, y, z) => { const g = new THREE.Group(); g.position.set(x, y, z); scene.add(g); return g; };
 PROXY.board = addProxy('board', fixedAnchor(BOARD.x, 0.12, BOARD.z), [2.6, 0.24, 1.6], [0, 0, 0]);
 PROXY.leek = addProxy('leek', leek, [1.0, 0.42, 0.5], [0, 0.25, BOARD.z]);
+PROXY.chicken = addProxy('chicken', chickenGrp, [1.0, 0.36, 0.62], [0, 0.15, TRAY.z]);
+PROXY.tray = addProxy('tray', fixedAnchor(TRAY.x, 0.1, TRAY.z), [1.55, 0.22, 1.0], [0, 0, 0]);
 PROXY.carton = addProxy('carton', fixedAnchor(CARTON.x, 0.2, CARTON.z), [1.5, 0.45, 0.7], [0, 0, 0]);
 PROXY.bowl = addProxy('bowl', eggBowl, [1.45, 0.6, 1.45], [0, 0.25, 0]);
 PROXY.pan = addProxy('pan', fixedAnchor(PAN.x, PAN.y + 0.3, PAN.z), null, [0, 0, 0], new THREE.CylinderGeometry(1.62, 1.1, 0.6, 20));
@@ -1014,16 +1041,16 @@ PROXY.plate = addProxy('plate', OBJ.plate, [2.0, 0.3, 2.0], [0, 0.1, 0]);
 });
 PROXY.riceCold = addProxy('riceCold', OBJ.riceCold, [1.1, 0.7, 1.1], [0, 0.3, 0]);
 PROXY.riceHot = addProxy('riceHot', OBJ.riceHot, [1.1, 0.7, 1.1], [0, 0.3, 0]);
-const PICKABLE = new Set(['knife', 'chopsticks', 'spatula', 'plate', 'oil', 'vinegar', 'soy', 'oyster', 'sesame', 'salt', 'sugar', 'pepper', 'riceCold', 'riceHot', 'bowl', 'leek']);
+const PICKABLE = new Set(['chicken', 'knife', 'chopsticks', 'spatula', 'plate', 'oil', 'vinegar', 'soy', 'oyster', 'sesame', 'salt', 'sugar', 'pepper', 'riceCold', 'riceHot', 'bowl', 'leek']);
 // rest poses
 const HOME = {};
 function setHome(id, pos, rot) { HOME[id] = { p: pos.clone(), r: rot.clone() }; }
 knife.position.set(-2.25, 0.16, 1.15); knife.rotation.set(0, 0, PI / 2);
 chopsticks.position.set(-0.25, 0.05, 1.6); chopsticks.rotation.set(0, 0.2, PI / 2);
 spatula.position.set(2.9, 0.06, 1.75); spatula.rotation.set(-0.62, 0.3, 0);
-Object.keys(OBJ).forEach(id => { if (OBJ[id] !== handEgg && OBJ[id] !== handPa) setHome(id, OBJ[id].position, OBJ[id].rotation); });
+Object.keys(OBJ).forEach(id => { if (OBJ[id] !== handEgg && OBJ[id] !== handPa && OBJ[id] !== handCk) setHome(id, OBJ[id].position, OBJ[id].rotation); });
 const HELD_ROT = { knife: [0, 0, 0], chopsticks: [0, 0, 0.45], spatula: [0, 0, 0] };
-const HELD_DY = { knife: -0.55, chopsticks: 0, spatula: -0.25, plate: -0.2, bowl: -0.35, riceCold: -0.35, riceHot: -0.35, egg: 0, paPieces: -0.1, leek: -0.1 };
+const HELD_DY = { ckPieces: -0.1, chicken: -0.1, knife: -0.55, chopsticks: 0, spatula: -0.25, plate: -0.2, bowl: -0.35, riceCold: -0.35, riceHot: -0.35, egg: 0, paPieces: -0.1, leek: -0.1 };
 
 /* ===== game state ===== */
 let playing = false, S = null, hand = null, act = null, modalOpen = false;
@@ -1032,6 +1059,7 @@ function freshState() {
     temp: 0, oil: 0, leekCut: 0, boardIdx: [], carton: 4,
     bowl: { eggs: 0, shells: 0, whisk: 0, salt: 0, pepper: 0, sugar: 0 },
     pa: { inPan: false, pieces: 0, whole: false, cook: 0, max: 0, cookAtEgg: null, lastStir: 0, idle: 0 },
+    ck: { cut: 0, inPan: false, pieces: 0, whole: false, cook: 0, max: 0, cookAtEgg: null, idle: 0 }, ckIdx: [],
     egg: { inPan: false, beaten: 0, direct: 0, shells: 0, whiskAtPour: 1, saltAtPour: 0, cook: 0, curd: 0, cookAtRice: null, curdAtRice: null },
     rice: { inPan: false, bowls: [], moisture: 1, warm: 0, scorch: 0, tosses: 0, spills: 0, lastMove: 0, lastToss: -9 },
     soy: 0, soyEdge: 0, soyHot: 0, mix: 0, oyster: 0, sesame: 0, sesameHot: 0, pepper: 0, panSalt: 0, sugar: 0, vinegar: 0,
@@ -1045,6 +1073,8 @@ const busy = {}; // items mid-animation
 function resetWorld() {
   S = freshState();
   setLeek(0); leek.position.set(0, 0, 0); leek.rotation.set(0, 0, 0); leek.visible = true;
+  setSlab(0); chickenGrp.position.set(0, 0, 0); chickenGrp.rotation.set(0, 0, 0); chickenGrp.visible = true; slabMat.color.setHex(0xf2b0a2); handCk.visible = false;
+  trayPieces.count = CK_N; for (let i = 0; i < CK_N; i++) trayPieces.setMatrixAt(i, ZERO_M); trayPieces.instanceMatrix.needsUpdate = true;
   leekWMat.color.setHex(0xeef1dc); leekGMat.color.setHex(0x4f8f30);
   boardPieces.count = PA_N; for (let i = 0; i < PA_N; i++) boardPieces.setMatrixAt(i, ZERO_M); boardPieces.instanceMatrix.needsUpdate = true;
   cartonEggs.forEach(e => e.visible = true); handEgg.visible = false; handPa.visible = false;
@@ -1064,7 +1094,7 @@ function resetWorld() {
   if (typeof resetTaster === 'function') resetTaster();
   for (const k in floatSeen) delete floatSeen[k];
   panFloat.hidden = true;
-  leek.visible = true;
+  leek.visible = true; chickenGrp.visible = true;
   updateHandBar();
 }
 
@@ -1083,7 +1113,8 @@ const hideGauge = () => { gauge.hidden = true; };
 function placeGauge() { gauge.style.left = clamp(ptr.x, 90, vw - 90) + 'px'; gauge.style.top = Math.max(70, ptr.y) + 'px'; }
 
 const HINT = {
-  knife: '대파를 눌러 한 번씩 썰기', leek: '팬이나 도마에 놓기', paPieces: '팬을 눌러 넣기',
+  chicken: '쟁반에 놓거나 팬에 넣기', ckPieces: '팬을 눌러 넣기',
+  knife: '대파나 닭가슴살을 눌러 한 번씩 썰기', leek: '팬이나 도마에 놓기', paPieces: '팬을 눌러 넣기',
   egg: '그릇이나 팬을 꾹 눌렀다가 노란 구간에서 떼면 깨져요', chopsticks: '그릇을 꾹 눌러 휘젓기',
   salt: '그릇이나 팬을 눌러 톡', pepper: '그릇이나 팬을 눌러 톡', sugar: '그릇이나 팬을 눌러 톡',
   oil: '팬을 꾹 눌러 붓기 — 양은 직접 보고 멈춰요', soy: '팬을 꾹 눌러 붓기 — 붓는 위치도 중요해요', vinegar: '팬을 꾹 눌러 붓기',
@@ -1093,6 +1124,8 @@ const HINT = {
 function handName() {
   if (!hand) return '빈손';
   if (hand.id === 'paPieces') return `썬 대파 ${hand.list.length}조각`;
+  if (hand.id === 'chicken') return S.ck.cut ? '남은 닭가슴살' : '닭가슴살 한 덩이';
+  if (hand.id === 'ckPieces') return `깍둑썬 닭가슴살 ${hand.list.length}조각`;
   if (hand.id === 'leek') return S.leekCut ? '남은 대파' : '대파 한 대(½대)';
   if (hand.id === 'bowl') return S.bowl.eggs ? `그릇 · 계란 ${S.bowl.eggs}개` : '빈 그릇';
   return NAMES[hand.id];
@@ -1113,6 +1146,7 @@ function pick(id) {
   hand = { id };
   if (PROXY[id]) proxyOn(id, false);
   if (id === 'leek') hand.c = leekCenter();
+  if (id === 'chicken') hand.c = ckCenter();
   audio.pick(); updateHandBar();
 }
 function pickEgg() {
@@ -1135,6 +1169,8 @@ function putBack() {
   if (id === 'egg') { cartonEggs[S.carton].visible = true; S.carton++; handEgg.visible = false; }
   else if (id === 'paPieces') { hand.list.forEach(i => { boardPieces.setMatrixAt(i, boardMat[i]); S.boardIdx.push(i); }); boardPieces.instanceMatrix.needsUpdate = true; handPa.visible = false; }
   else if (id === 'leek') { leek.position.set(0, 0, 0); proxyOn('leek', true); }
+  else if (id === 'chicken') { chickenGrp.position.set(0, 0, 0); proxyOn('chicken', true); }
+  else if (id === 'ckPieces') { hand.list.forEach(i => { trayPieces.setMatrixAt(i, trayMat[i]); S.ckIdx.push(i); }); trayPieces.instanceMatrix.needsUpdate = true; handCk.visible = false; }
   else {
     busy[id] = true; const o = OBJ[id], h = HOME[id];
     tweenTo(o, h.p, h.r, 0.3).then(() => { busy[id] = false; proxyOn(id, true); });
@@ -1171,17 +1207,19 @@ function onDown(hit) {
   if (t === 'knob') { cycleHeat(); return; }
   if (!hand) {
     if (t === 'pan') { doToss(); return; }
+    if (t === 'tray') { if (S.ckIdx.length) pickCk(); else nope('쟁반에 썬 닭가슴살이 없어요'); return; }
     if (t === 'board') { if (S.boardIdx.length) pickPa(); else nope('도마 위에 썬 대파가 없어요'); return; }
     if (t === 'carton') { if (S.carton > 0) pickEgg(); else nope('계란이 다 떨어졌어요'); return; }
-    if (PICKABLE.has(t)) { if (t === 'leek' && S.leekCut >= CHOPS) return; pick(t); }
+    if (PICKABLE.has(t)) { if (t === 'leek' && S.leekCut >= CHOPS) return; if (t === 'chicken' && S.ck.cut >= CK_CUTS) return; pick(t); }
     return;
   }
   const rule = USE[hand.id] && USE[hand.id][t];
   if (rule) { rule(hit); return; }
   if (t === 'carton' && hand.id === 'egg') { putBack(); return; }
-  if (PICKABLE.has(t) || t === 'carton' || (t === 'board' && S.boardIdx.length)) {
+  if (PICKABLE.has(t) || t === 'carton' || (t === 'board' && S.boardIdx.length) || (t === 'tray' && S.ckIdx.length)) {
     if (t === 'carton') { if (S.carton > 0) pickEgg(); return; }
     if (t === 'board') { pickPa(); return; }
+    if (t === 'tray') { pickCk(); return; }
     pick(t); return;
   }
   nope(`${NAMES[hand.id] || '이건'} 여기엔 못 써요`);
@@ -1222,11 +1260,69 @@ function addPa() {
   const list = hand.list;
   list.forEach((i, j) => {
     const a = rand() * PI * 2, r = Math.sqrt(rand()) * 0.8;
-    pa.launchTo(i, handPa.position.x + (rand() - .5) * 0.2, handPa.position.y, handPa.position.z + (rand() - .5) * 0.2, Math.cos(a) * r, Math.sin(a) * r, 0.35 + rand() * 0.1, j * 0.006);
+    pa.launchTo(i, handPa.position.x + (rand() - .5) * 0.2, handPa.position.y, handPa.position.z + (rand() - .5) * 0.2, Math.cos(a) * r, Math.sin(a) * r, 0.6 + rand() * 0.15, j * 0.006);
     pa.setColor(i, ...boardCol[i]);
   });
   S.pa.inPan = true; S.pa.pieces += list.length; S.pa.lastStir = T; mark('pa'); W.burst = Math.max(W.burst, S.temp > 0.4 ? 1 : 0.2);
   handPa.visible = false; hand = null; updateHandBar();
+}
+function cutCk() {
+  if (busy.knife) return;
+  if (S.ck.cut >= CK_CUTS) { nope('더 썰 닭가슴살이 없어요'); return; }
+  const n = S.ck.cut, x = CK_START + CK_STEP * (n + 1);
+  busy.knife = true; hand.lock = true;
+  const p0 = knife.position.clone();
+  anim(0.09, k => { knife.position.set(lerp(p0.x, x, k), lerp(p0.y, 0.6, k), lerp(p0.z, TRAY.z, k)); knife.rotation.set(0, 0, 0); }, v => v)
+    .then(() => anim(0.07, k => { knife.position.y = lerp(0.6, 0.1, k); }, v => v * v))
+    .then(() => {
+      audio.chop(); audio.burst(600, 1, 0.05, 0.3); S.ck.cut++; setSlab(S.ck.cut * CK_STEP);
+      const q = new THREE.Quaternion(), e = new THREE.Euler(), sc = new THREE.Vector3(), p = new THREE.Vector3();
+      for (let j = 0; j < 4; j++) {
+        const i = n * 4 + j, px = TRAY.x - 0.64 + rand() * 0.34, pz = TRAY.z + (rand() - .5) * 0.62, py = 0.12 + rand() * 0.04;
+        trayPos[i * 3] = px; trayPos[i * 3 + 1] = py; trayPos[i * 3 + 2] = pz;
+        e.set((rand() - .5) * 0.4, rand() * PI, (rand() - .5) * 0.4); q.setFromEuler(e);
+        const k = 0.85 + rand() * 0.3; sc.set(0.12 * k, 0.1 * k, 0.11 * k); p.set(px, py, pz);
+        trayMat[i] = new THREE.Matrix4().compose(p, q, sc); trayPieces.setMatrixAt(i, trayMat[i]); S.ckIdx.push(i);
+      }
+      trayPieces.instanceMatrix.needsUpdate = true;
+      if (S.ck.cut >= CK_CUTS) { proxyOn('chicken', false); toast('깍둑썰기 완료!'); }
+      return anim(0.08, k => { knife.position.y = lerp(0.1, 0.6, k); }, v => v);
+    }).then(() => { busy.knife = false; if (hand && hand.id === 'knife') hand.lock = false; });
+}
+function pickCk() {
+  if (hand) putBack();
+  const list = S.ckIdx; S.ckIdx = [];
+  list.forEach(i => trayPieces.setMatrixAt(i, ZERO_M)); trayPieces.instanceMatrix.needsUpdate = true;
+  handCk.position.set(trayPos[list[0] * 3], 0.4, TRAY.z); handCk.visible = true;
+  hand = { id: 'ckPieces', list }; audio.pick(); updateHandBar();
+}
+function addCk() {
+  const list = hand.list;
+  list.forEach((i, j) => {
+    const a = rand() * PI * 2, r = Math.sqrt(rand()) * 0.85;
+    ck.launchTo(i, handCk.position.x + (rand() - .5) * 0.2, handCk.position.y, handCk.position.z + (rand() - .5) * 0.2, Math.cos(a) * r, Math.sin(a) * r, 0.6 + rand() * 0.15, j * 0.01);
+    ck.setColor(i, 0.95, 0.66, 0.62);
+  });
+  snapshotPa();
+  S.ck.inPan = true; S.ck.pieces += list.length; S.pa.lastStir = T; mark('chicken'); W.burst = Math.max(W.burst, S.temp > 0.4 ? 1.2 : 0.2);
+  handCk.visible = false; hand = null; updateHandBar();
+}
+function dropCkWhole() {
+  snapshotPa();
+  S.ck.whole = true; S.ck.inPan = true; S.pa.lastStir = T; mark('chicken');
+  const c = hand.c; chickenGrp.position.set(PAN.x - c.x + 0.1, PAN.y + 0.02, PAN.z - c.z - 0.2);
+  hand = null; updateHandBar(); toast('통째로…?', true); W.burst = 1;
+}
+function ckColor(c) {
+  const k1 = clamp(c / 0.55, 0, 1), k2 = clamp((c - 0.6) / 0.35, 0, 1), k3 = clamp((c - 1.0) / 0.3, 0, 1);
+  let r = lerp(0.95, 0.97, k1), g = lerp(0.62, 0.93, k1), b = lerp(0.6, 0.86, k1);
+  r = lerp(r, 0.88, k2); g = lerp(g, 0.7, k2); b = lerp(b, 0.42, k2);
+  return [lerp(r, 0.3, k3), lerp(g, 0.2, k3), lerp(b, 0.12, k3)];
+}
+function recolorCk() {
+  const base = ckColor(S.ck.cook);
+  for (let i = 0; i < CK_N; i++) { if (!ck.inPan(i) && ck.mode[i] !== 3) continue; const v = 0.94 + ck.rnd[i] * 0.1; ck.setColor(i, base[0] * v, base[1] * v, base[2] * v); }
+  if (S.ck.whole) slabMat.color.setRGB(...ckColor(S.ck.cook * 0.7));
 }
 function startCrack(where, hit) {
   const target = where === 'bowl' ? new THREE.Vector3(BOWL.x + 0.1, 0.85, BOWL.z) : new THREE.Vector3(hit.point.x, PAN.y + 0.95, hit.point.z);
@@ -1260,7 +1356,8 @@ function startCrack(where, hit) {
     }
   };
 }
-function snapshotEgg() { if (S.pa.cookAtEgg == null && S.pa.inPan) S.pa.cookAtEgg = S.pa.cook; }
+function snapshotEgg() { snapshotPa(); if (S.ck.cookAtEgg == null && S.ck.inPan) S.ck.cookAtEgg = S.ck.cook; }
+function snapshotPa() { if (S.pa.cookAtEgg == null && S.pa.inPan) S.pa.cookAtEgg = S.pa.cook; }
 function startWhisk() {
   if (!S.bowl.eggs) { nope('그릇에 계란이 없어요'); return; }
   hand.lock = true; let ang = 0;
@@ -1345,7 +1442,7 @@ function pourEggBowl() {
   S.egg.whiskAtPour = Math.min(S.egg.whiskAtPour, b.whisk); S.egg.saltAtPour += b.salt; S.pepper += b.pepper; S.sugar += b.sugar;
   const n = b.eggs; S.bowl = { eggs: 0, shells: 0, whisk: 0, salt: 0, pepper: 0, sugar: 0 };
   // push scallions aside
-  for (let i = 0; i < PA_N; i++) { if (pa.mode[i] !== 2 && pa.mode[i] !== 1) continue; pa.launchTo(i, PAN.x + pa.lx[i], PAN.y + pa.ly[i], PAN.z + pa.lz[i], 0.3 + rand() * 0.55, (rand() - .5) * 1.1, 0.28, rand() * 0.15); }
+  [pa, ck].forEach(st => { for (let i = 0; i < st.n; i++) { if (st.mode[i] !== 2 && st.mode[i] !== 1) continue; st.launchTo(i, PAN.x + st.lx[i], PAN.y + st.ly[i], PAN.z + st.lz[i], 0.3 + rand() * 0.55, (rand() - .5) * 1.1, 0.28, rand() * 0.15); } });
   const wk = S.egg.whiskAtPour;
   tweenTo(eggBowl, new THREE.Vector3(PAN.x - 1.35, 1.25, PAN.z + 0.1), new THREE.Euler(0, 0, -1.75), 0.4).then(() => {
     streamOn(eggBowl, wk > 0.6 ? 0xf2b723 : 0xf3dc9a, PAN.y + 0.06, 0.45);
@@ -1377,6 +1474,7 @@ function pourRice(id) {
     S.rice.inPan = true; S.rice.lastMove = T;
     S.rice.moisture = id === 'riceHot' ? 1.35 : 1.0;
     if (S.egg.inPan) { S.egg.cookAtRice = S.egg.cook; S.egg.curdAtRice = S.egg.curd; }
+    snapshotPa(); if (S.ck.cookAtEgg == null && S.ck.inPan) S.ck.cookAtEgg = S.ck.cook;
   } else S.rice.moisture += 0.35;
   tweenTo(o, new THREE.Vector3(PAN.x + 1.05, 1.55, PAN.z - 0.35), new THREE.Euler(0, 0, 2.25), 0.4).then(() => {
     o.updateMatrixWorld(); const mouth = new THREE.Vector3(-0.35, 0.35, 0); o.localToWorld(mouth);
@@ -1384,7 +1482,7 @@ function pourRice(id) {
       const a = rand() * PI * 2, r = Math.sqrt(rand()) * 1.02;
       rice.launchTo(i, mouth.x + (rand() - .5) * 0.2, mouth.y + (rand() - .5) * 0.15, mouth.z + (rand() - .5) * 0.3, Math.cos(a) * r, Math.sin(a) * r, 0.42 + rand() * 0.22, rand() * 0.7);
     }
-    rice.mound = first ? 0.24 : 0.34; pa.mound = curd.mound = speck.mound = rice.mound + 0.03;
+    rice.mound = first ? 0.24 : 0.34; pa.mound = curd.mound = speck.mound = ck.mound = rice.mound + 0.03;
     W.burst = Math.max(W.burst, S.temp > 0.4 ? 1.3 : 0.2);
     if (id === 'riceHot') emitters[1].rate = 0;
     return sleep(0.35);
@@ -1448,7 +1546,9 @@ $('#cfNo').addEventListener('click', () => { modalOpen = false; $('#confirm').hi
 $('#cfYes').addEventListener('click', () => { modalOpen = false; $('#confirm').hidden = true; finish(); });
 
 const USE = {
-  knife: { leek: chop, board: chop },
+  knife: { leek: chop, board: chop, chicken: cutCk, tray: cutCk },
+  chicken: { pan: dropCkWhole, tray: () => putBack() },
+  ckPieces: { pan: addCk, tray: () => putBack() },
   leek: { pan: dropLeekInPan, board: () => putBack() },
   paPieces: { pan: addPa, board: () => putBack() },
   egg: { bowl: h => startCrack('bowl', h), pan: h => startCrack('pan', h) },
@@ -1469,12 +1569,13 @@ function verbFor(target) {
   if (!hand) {
     if (target === 'pan') return '웍질';
     if (target === 'board') return S.boardIdx.length ? '썬 대파 집기' : '';
+    if (target === 'tray') return S.ckIdx.length ? '썬 닭가슴살 집기' : '';
     if (target === 'carton') return S.carton ? `계란 집기 (${S.carton}개 남음)` : '비었음';
     return PICKABLE.has(target) ? '집기' : '';
   }
   const r = USE[hand.id] && USE[hand.id][target];
   if (r) return { knife: '썰기', leek: '놓기', paPieces: '넣기', egg: '깨기 (꾹)', chopsticks: '휘젓기 (꾹)', bowl: '계란물 붓기', spatula: '뒤적이기 (꾹)', plate: '담기',
-    riceCold: '밥 넣기', riceHot: '밥 넣기', salt: '톡', pepper: '톡', sugar: '톡' }[hand.id] || '붓기 (꾹)';
+    chicken: '놓기', ckPieces: '넣기', riceCold: '밥 넣기', riceHot: '밥 넣기', salt: '톡', pepper: '톡', sugar: '톡' }[hand.id] || '붓기 (꾹)';
   return null;
 }
 
@@ -1513,17 +1614,21 @@ function simulate(dt) {
   const tgt = [0, 0.4, 0.7, 1][heat];
   S.temp += (tgt - S.temp) * (1 - Math.exp(-dt * 0.2));
   const tp = S.temp;
-  const paOnly = S.pa.inPan && !S.egg.inPan && !S.rice.inPan;
-  const paIdle = paOnly && tp > 0.3 && T - S.pa.lastStir > 6;
+  const paOnly = S.pa.inPan && !S.ck.inPan && !S.egg.inPan && !S.rice.inPan;
+  const ckOnly = S.ck.inPan && !S.egg.inPan && !S.rice.inPan;
+  const idleNow = tp > 0.3 && T - S.pa.lastStir > 6;
+  const paIdle = paOnly && idleNow, ckIdle = ckOnly && idleNow;
   if (paIdle) S.pa.idle += dt;
-  if (S.pa.inPan) { S.pa.cook += 0.022 * tp * dt * (S.oil > 0.2 ? 1 : 1.7) * (paIdle ? 1.5 : 1) * (S.rice.inPan ? 0 : S.egg.inPan ? 0.3 : 1); S.pa.max = Math.max(S.pa.max, S.pa.cook); }
+  if (ckIdle) S.ck.idle += dt;
+  if (S.pa.inPan) { S.pa.cook += 0.022 * tp * dt * (S.oil > 0.2 ? 1 : 1.7) * (paIdle ? 1.5 : 1) * (S.rice.inPan ? 0 : S.egg.inPan ? 0.3 : S.ck.inPan ? 0.35 : 1); S.pa.max = Math.max(S.pa.max, S.pa.cook); }
+  if (S.ck.inPan) { S.ck.cook += 0.02 * tp * dt * (S.ck.whole ? 0.35 : 1) * (ckIdle ? 1.4 : 1) * (S.rice.inPan ? 0.15 : S.egg.inPan ? 0.4 : 1); S.ck.max = Math.max(S.ck.max, S.ck.cook); }
   if (S.egg.inPan) S.egg.cook += 0.035 * tp * dt * (S.rice.inPan ? 0.3 : 1);
   if (S.rice.inPan) S.rice.warm = Math.min(1, S.rice.warm + dt * 0.035 * tp);
   if (S.rice.inPan && tp > 0.5 && T - S.rice.lastMove > 2.5) S.rice.scorch = Math.min(1, S.rice.scorch + (tp - 0.4) * dt * 0.05);
   if (S.oil > 0.2 && !S.pa.inPan && !S.egg.inPan && !S.rice.inPan && tp > 0.9) {
     S.smokeT += dt; if (S.smokeT > 4 && !S.smoke) { S.smoke = true; toast('기름에서 연기가 나요!', true); }
   }
-  if (S.pa.inPan && !S.egg.inPan && !S.rice.inPan) { S.paHeat.s += heat * dt; S.paHeat.t += dt; }
+  if (paOnly) { S.paHeat.s += heat * dt; S.paHeat.t += dt; }
   if (S.rice.inPan && !S.heatOffAfterRice) { S.riceHeat.s += heat * dt; S.riceHeat.t += dt; }
   if (S.pa.max > 1.0 && !S.warned.paBurn) { S.warned.paBurn = 1; toast('파가 타고 있어요!', true); }
   if (S.egg.inPan && !S.rice.inPan && S.egg.cook > 0.9 && !S.warned.egg) { S.warned.egg = 1; toast('계란이 다 익었어요', true); }
@@ -1532,6 +1637,7 @@ function simulate(dt) {
   if (recolAcc > 0.12) {
     recolAcc = 0;
     if (S.pa.inPan) recolorPa();
+    if (S.ck.inPan) recolorCk();
     if (S.egg.inPan && eggDisc.visible) { const c = clamp(S.egg.cook, 0, 1.2); if (S.egg.beaten) eggDiscMat.color.setRGB(0.95 + 0.04 * c, 0.66 + 0.16 * c - (c > 1 ? 0.2 : 0), 0.14 + 0.06 * c); }
     if (S.rice.inPan && S.rice.scorch > 0.05) recolorRice();
   }
@@ -1544,6 +1650,7 @@ const panFloat = $('#panFloat');
 const GAUGES = {
   pa: { name: '대파', cuts: [0.3, 0.6, 0.82, 1.0], max: 1.2, words: ['하얌', '숨 죽음', '노릇노릇', '갈색', '탔음'], cols: ['#e9eed6', '#c8d68a', '#f5bf2a', '#a8642a', '#2a1a12'], target: 2 },
   egg: { name: '계란', cuts: [0.2, 0.45, 0.72, 1.0], max: 1.2, words: ['생계란', '묽음', '반숙', '완숙', '퍽퍽'], cols: ['#fbe3a0', '#f7cf52', '#f2b723', '#d99a2b', '#9a6a2a'], target: 2 },
+  ck: { name: '닭가슴살', cuts: [0.25, 0.55, 0.8, 1.0], max: 1.2, words: ['날것', '겉만 익음', '속까지 익음', '질겨짐', '탔음'], cols: ['#f2a49a', '#f3d0c4', '#f4ead8', '#d9a560', '#5a3a20'], target: 2 },
   temp: { name: '팬 온도', cuts: [0.3, 0.55, 0.9], max: 1.05, words: ['차가움', '미지근', '달궈짐', '연기 직전'], cols: ['#8fa6c2', '#e9cf9a', '#f5bf2a', '#e3120b'], target: 2 },
   rice: { name: '밥 수분', cuts: [0.3, 0.7], max: 1.35, words: ['고슬고슬', '촉촉', '질척'], cols: ['#f5bf2a', '#e9e4d8', '#b9c6d8'], target: 0 },
 };
@@ -1551,7 +1658,7 @@ const floatSeen = {};
 function gaugeRow(key, v, extraBad, quiet) {
   const g = GAUGES[key];
   let seg = g.cuts.findIndex(c => v < c); if (seg < 0) seg = g.cuts.length;
-  if (key === 'pa' || key === 'egg') seg = v <= g.cuts[2] && v >= g.cuts[1] ? 2 : seg; // inclusive target edge
+  if (key === 'pa' || key === 'egg' || key === 'ck') seg = v <= g.cuts[2] && v >= g.cuts[1] ? 2 : seg; // inclusive target edge
   const n = g.words.length, bounds = [0, ...g.cuts, g.max];
   const fr = bounds.slice(1).map((b, i) => Math.max(0.05, b - bounds[i]));
   const cols = fr.map(f => f.toFixed(3) + 'fr').join(' ');
@@ -1567,14 +1674,17 @@ function updateFloat() {
   if (!playing || modalOpen) { panFloat.hidden = true; return; }
   const rows = [];
   if (heat > 0 && S.oil > 0.1 && !S.pa.inPan && !S.egg.inPan && !S.rice.inPan) rows.push(gaugeRow('temp', S.temp));
-  if (S.pa.inPan && !S.egg.inPan && !S.rice.inPan) rows.push(gaugeRow('pa', S.pa.cook, T - S.pa.lastStir > 6 && S.temp > 0.3 && S.pa.cook < 1 ? '뒤적여야 함!' : ''));
+  const idleWarn = T - S.pa.lastStir > 6 && S.temp > 0.3;
+  if (S.pa.inPan && !S.ck.inPan && !S.egg.inPan && !S.rice.inPan) rows.push(gaugeRow('pa', S.pa.cook, idleWarn && S.pa.cook < 1 ? '뒤적여야 함!' : ''));
+  if (S.ck.inPan && !S.egg.inPan && !S.rice.inPan) { rows.push(gaugeRow('ck', S.ck.cook, idleWarn && S.ck.cook < 1 ? '뒤적여야 함!' : '')); if (S.pa.inPan) rows.push(gaugeRow('pa', S.pa.cook, '', true)); }
   if (S.egg.inPan && !S.rice.inPan) rows.push(gaugeRow('egg', S.egg.cook));
   if (S.rice.inPan) {
     GAUGES.rice.max = Math.max(1.0, S.rice.bowls.length > 1 ? 1.7 : S.rice.bowls[0] === 'riceHot' ? 1.35 : 1.0);
     GAUGES.rice.name = S.rice.warm < 0.7 ? '밥 수분 · 데우는 중' : '밥 수분';
     rows.push(gaugeRow('rice', S.rice.moisture, S.rice.scorch > 0.06 ? '눌어붙는 중!' : ''));
   }
-  if (S.pa.inPan && S.egg.inPan && !S.rice.inPan) rows.push(gaugeRow('pa', S.pa.cook, '', true));
+  if (S.ck.inPan && S.egg.inPan && !S.rice.inPan) rows.push(gaugeRow('ck', S.ck.cook, '', true));
+  else if (S.pa.inPan && S.egg.inPan && !S.rice.inPan) rows.push(gaugeRow('pa', S.pa.cook, '', true));
   if (!rows.length) { panFloat.hidden = true; return; }
   panFloat.innerHTML = rows.join(''); panFloat.hidden = false;
 }
@@ -1593,6 +1703,7 @@ function updatePanel() {
   const row = (a, b, warn) => L.push(`<li${warn ? ' class="warn"' : ''}><span>${a}</span><span>${b}</span></li>`);
   if (S.oil > 0.02) row('식용유', S.oil.toFixed(1) + '큰술', S.smoke);
   if (S.pa.inPan) row(S.pa.whole ? '통대파' : '대파', doneWord(S.pa.cook, ['하얌', '숨 죽음', '노릇노릇', '갈색', '탔음']), S.pa.cook > 0.82);
+  if (S.ck.inPan) { const c = S.ck.cook; row(S.ck.whole ? '통닭가슴살' : '닭가슴살', c < 0.25 ? '날것' : c < 0.55 ? '겉만 익음' : c <= 0.8 ? '속까지 익음' : c <= 1 ? '질겨짐' : '탔음', c < 0.55 || c > 0.8); }
   if (S.egg.inPan) {
     const c = S.egg.cook, w = c < 0.2 ? '생계란' : c < 0.45 ? '묽음' : c <= 0.72 ? '반숙' : c <= 1 ? '완숙' : '퍽퍽';
     row(S.egg.direct && !S.egg.beaten ? '계란(안 푼)' : '계란', S.rice.inPan ? '밥과 섞임' : (S.egg.curd > 0.5 ? '몽글 · ' : '') + w, !S.rice.inPan && c > 0.72);
@@ -1639,6 +1750,8 @@ function evaluate() {
   if (S.pa.whole) { prep -= 50; no('대파를 안 썰고 통째로 넣었씁니다.', 50); }
   else if (!S.pa.inPan) { prep -= 45; no('대파를 안 넣었씁니다.', 60); }
   else if (S.pa.pieces < PA_N * 0.95) { prep -= 25; no('대파를 덜 썰었씁니다.'); }
+  if (S.ck.whole) { prep -= 45; no('닭가슴살을 안 썰고 통째로 넣었씁니다.', 55); }
+  else if (S.ck.inPan && S.ck.pieces < CK_N * 0.95) { prep -= 20; no('닭가슴살을 덜 썰었씁니다.'); }
   if (prep >= 100 && eggs === 2) yes('재료 손질이 깔끔했씁니다.');
 
   let ing = 100;
@@ -1648,6 +1761,7 @@ function evaluate() {
     if (S.rice.bowls.length > 1) { ing -= 30; no('밥을 두 공기나 넣었씁니다.', 75); }
     if (S.rice.bowls.length === 1 && S.rice.bowls[0] === 'riceCold') yes('찬밥을 제대로 골랐씁니다.');
   }
+  if (!S.ck.inPan) { ing -= 30; no('닭가슴살을 안 넣었씁니다. 현태 볶음밥엔 닭가슴살이 필수였씁니다.', 75); }
   if (S.sugar) { ing -= 45; no('레시피에 없는 설탕을 넣었씁니다.', 45); }
   if (S.vinegar > 0.05) { ing -= 45; no('레시피에 없는 식초를 넣었씁니다.', 40); }
   if (S.oil < 0.2) { ing -= 35; no('기름 없이 볶았씁니다.', 55); }
@@ -1655,13 +1769,16 @@ function evaluate() {
   let ord = 100; const f = S.first, before = (a, b) => f[a] != null && f[b] != null && f[a] < f[b];
   if (f.pa != null && (f.oil == null || f.pa < f.oil)) { ord -= 30; no('기름보다 대파를 먼저 넣었씁니다.', 75); }
   if (before('egg', 'pa')) { ord -= 30; no('파기름도 안 내고 계란부터 넣었씁니다.', 75); }
+  if (before('chicken', 'pa')) { ord -= 30; no('파기름도 안 내고 닭가슴살부터 넣었씁니다.', 75); }
+  if (before('egg', 'chicken')) { ord -= 30; no('계란 다음에 닭가슴살을 넣었씁니다.', 75); }
+  if (before('rice', 'chicken')) { ord -= 30; no('밥 다음에 닭가슴살을 넣었씁니다.', 75); }
   if (before('rice', 'egg')) { ord -= 30; no('계란보다 밥을 먼저 넣었씁니다.', 75); }
   if (before('soy', 'rice')) { ord -= 30; no('밥 넣기 전에 간장을 넣었씁니다.', 75); }
   if (before('sesame', 'rice')) { ord -= 25; no('참기름을 마무리가 아니라 중간에 넣었씁니다.'); }
   if (S.pepperEarly) { ord -= 15; no('후추를 밥 넣기 전에 뿌렸씁니다.'); }
   if (S.oysterEarly) { ord -= 10; no('굴소스를 간장보다 먼저 넣었씁니다.'); }
   ord = Math.max(0, ord);
-  if (ord === 100 && f.rice != null && f.egg != null && f.pa != null && f.soy != null) yes('레시피 순서를 그대로 따랐씁니다.');
+  if (ord === 100 && f.rice != null && f.egg != null && f.pa != null && f.soy != null && f.chicken != null) yes('레시피 순서를 그대로 따랐씁니다.');
 
   const parts = [], ft = S.firstTemp;
   if (ft.pa != null && ft.pa < 0.55) { parts.push(45); no('팬을 달구지도 않고 대파를 넣었씁니다.'); }
@@ -1672,9 +1789,16 @@ function evaluate() {
   }
   if (S.pa.cookAtEgg != null && !S.pa.whole) {
     const c = S.pa.cookAtEgg; parts.push(zoneScore(c, 0.6, 0.82, 250, 300));
-    if (c < 0.6) no('파가 노릇해지기도 전에 계란을 넣었씁니다.'); else if (c > 0.82) no('파를 너무 오래 볶았씁니다.'); else yes('파기름 향이 딱 좋았씁니다.');
+    if (c < 0.6) no('파가 노릇해지기도 전에 다음 재료를 넣었씁니다.'); else if (c > 0.82) no('파를 너무 오래 볶았씁니다.'); else yes('파기름 향이 딱 좋았씁니다.');
   }
   if (S.pa.max > 1.05) { parts.push(0); no('파를 까맣게 태웠씁니다.', 55); }
+  if (S.ck.cookAtEgg != null && !S.ck.whole) {
+    const c = S.ck.cookAtEgg; parts.push(zoneScore(c, 0.55, 0.8, 220, 260));
+    if (c < 0.55) no('닭가슴살이 속까지 익기 전에 다음 재료를 넣었씁니다.'); else if (c > 0.8) no('닭가슴살을 너무 오래 익혀서 질겨졌씁니다.'); else yes('닭가슴살이 속까지 촉촉하게 익었씁니다.');
+  }
+  if (S.ck.inPan && S.ck.cook < 0.5) { parts.push(0); no('닭가슴살이 덜 익었씁니다. 배탈 나겠씁니다.', 50); }
+  if (S.ck.max > 1.05) { parts.push(0); no('닭가슴살을 태웠씁니다.', 60); }
+  if (S.ck.idle > 12) { parts.push(55); no('닭가슴살을 안 뒤적여서 한쪽만 탔씁니다.'); }
   if (ft.egg != null && ft.egg < 0.4) { parts.push(50); no('차가운 팬에 계란을 부었씁니다.'); }
   if (S.egg.cookAtRice != null) {
     const c = S.egg.cookAtRice; parts.push(zoneScore(c, 0.45, 0.72, 220, 260));
@@ -1815,6 +1939,7 @@ async function eatScene(score) {
     spoonFood.visible = false; placeHand(scoop); await sleep(0.32);
     SETS.forEach(s => { for (let i = b; i < s.n; i += 4) if (s.mode[i] === 4 || s.mode[i] === 3) s.hide(i); });
     if (S.pa.whole && b === 3) leek.visible = false;
+    if (S.ck.whole && b === 2) chickenGrp.visible = false;
     spoonFood.visible = true; placeHand(mid); await sleep(0.16);
     placeHand(mouthWorld()); headMode = 'still'; await sleep(0.2);
     spoonFood.visible = false; headMode = 'chew'; bubble(['냠', '쩝쩝', '우물우물', '꿀꺽'][b]);
@@ -2001,6 +2126,7 @@ async function finish() {
   $('#bottom').hidden = true; $('#panStat').hidden = true; tipEl.classList.remove('on');
   audio.whoosh(); SETS.forEach(s => s.toPlate());
   if (S.pa.whole) { const p0 = leek.position.clone(), c = leekCenter(); anim(0.8, k => { leek.position.set(lerp(p0.x, PLATE.x - c.x, k), lerp(p0.y, PLATE.y + 0.2, k) + Math.sin(k * PI), lerp(p0.z, PLATE.z - c.z, k)); }); }
+  if (S.ck.whole) { const p0 = chickenGrp.position.clone(), c = ckCenter(); anim(0.8, k => { chickenGrp.position.set(lerp(p0.x, PLATE.x - c.x + 0.2, k), lerp(p0.y, PLATE.y + 0.3, k) + Math.sin(k * PI), lerp(p0.z, PLATE.z - c.z, k)); }); }
   eggDisc.visible = false; panYolks.forEach(y => y.visible = false); oilMat.opacity = 0; soyMat.opacity = 0;
   await sleep(0.3); camGo('plate');
   emitters[0].x = PLATE.x; emitters[0].y = PLATE.y + 0.4; emitters[0].z = PLATE.z; emitters[0].r = 0.5;
@@ -2023,6 +2149,8 @@ const ACH = [
   { id: 'nobook', cat: '잘함', name: '감으로 요리함', desc: '레시피 북이 필요 없었씁니다.', test: r => r.total >= 61 && S.bookOpens === 0 },
   { id: 'wokmaster', cat: '잘함', name: '웍질 장인', desc: '밥알이 하늘을 날아도 하나도 안 떨어졌씁니다.', test: () => S.rice.tosses >= 15 && S.rice.spills === 0 },
   { id: 'wholeleek', cat: '실수', name: '썰기 귀찮음', desc: '대파 한 대를 그대로 넣었씁니다.', test: () => S.pa.whole },
+  { id: 'rawck', cat: '실수', name: '배탈 예약', desc: '덜 익은 닭가슴살을 대접했씁니다.', test: () => S.ck.inPan && S.ck.cook < 0.4 },
+  { id: 'wholeck', cat: '실수', name: '통닭가슴살', desc: '닭가슴살을 스테이크처럼 넣었씁니다.', test: () => S.ck.whole },
   { id: 'sugar', cat: '실수', name: '디저트 볶음밥', desc: '현태 입맛을 시험했씁니다.', test: () => S.sugar > 0 },
   { id: 'vinegar', cat: '실수', name: '시큼한 결심', desc: '볶음밥에 식초를 넣었씁니다.', test: () => S.vinegar > 0.05 },
   { id: 'eggs4', cat: '실수', name: '계란 판 털이', desc: '계란 판을 싹 비웠씁니다.', test: () => S.egg.beaten + S.egg.direct >= 4 },
@@ -2115,6 +2243,7 @@ function followHand(dt) {
   if (!ray.ray.intersectPlane(holdPlane, _hp)) return;
   _hp.x = clamp(_hp.x, -5.5, 5.8); _hp.z = clamp(_hp.z, -2.5, 3.0);
   const id = hand.id, k = 1 - Math.exp(-dt * 18), dy = HELD_DY[id] != null ? HELD_DY[id] : -0.75;
+  if (id === 'chicken') { chickenGrp.position.lerp(_v.set(_hp.x - hand.c.x, _hp.y + dy - hand.c.y + 0.15, _hp.z - hand.c.z), k); return; }
   if (id === 'leek') { leek.position.lerp(_v.set(_hp.x - hand.c.x, _hp.y + dy - hand.c.y + 0.25, _hp.z - hand.c.z), k); return; }
   const o = OBJ[id]; if (!o) return;
   o.position.lerp(_v.set(_hp.x, _hp.y + dy, _hp.z), k);
