@@ -1622,7 +1622,7 @@ function simulate(dt) {
   const paIdle = paOnly && idleNow, ckIdle = ckOnly && idleNow;
   if (paIdle) S.pa.idle += dt;
   if (ckIdle) S.ck.idle += dt;
-  if (S.pa.inPan) { S.pa.cook += 0.022 * tp * dt * (S.oil > 0.2 ? 1 : 1.7) * (paIdle ? 1.5 : 1) * (S.rice.inPan ? 0 : S.egg.inPan ? 0.3 : S.ck.inPan ? 0.35 : 1); S.pa.max = Math.max(S.pa.max, S.pa.cook); }
+  if (S.pa.inPan) { S.pa.cook += 0.022 * tp * dt * (S.oil > 0.2 ? 1 : 1.7) * (paIdle ? 1.5 : 1) * (S.rice.inPan ? 0 : S.egg.inPan || S.ck.inPan ? 0.12 : 1); S.pa.max = Math.max(S.pa.max, S.pa.cook); }
   if (S.ck.inPan) { S.ck.cook += 0.02 * tp * dt * (S.ck.whole ? 0.35 : 1) * (ckIdle ? 1.4 : 1) * (S.rice.inPan ? 0.15 : S.egg.inPan ? 0.4 : 1); S.ck.max = Math.max(S.ck.max, S.ck.cook); }
   if (S.egg.inPan) S.egg.cook += 0.035 * tp * dt * (S.rice.inPan ? 0.3 : 1);
   if (S.rice.inPan) S.rice.warm = Math.min(1, S.rice.warm + dt * 0.035 * tp);
