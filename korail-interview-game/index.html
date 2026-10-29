@@ -665,14 +665,16 @@ function placeBubbles() {
   for (const k in bubEls) {
     const b = bubEls[k]; if (b.hidden) continue;
     const [x, y, ok] = toScreen(ANCH[k]()); b.style.visibility = ok ? '' : 'hidden';
-    b.style.left = clamp(x, 140, vw - 140) + 'px'; b.style.top = clamp(y, 120, vh - 60) + 'px';
+    const minY = lbOn ? vh * 0.11 + b.offsetHeight + 24 : 120;
+    b.style.left = clamp(x, 140, vw - 140) + 'px'; b.style.top = clamp(lbOn ? Math.max(y, minY + vh * 0.04) : y, minY, vh - 60) + 'px';
   }
 }
 let coachTimer = 0;
 function whisper(t, ms) { const c = $('#coach'); $('#coachT').textContent = t; c.hidden = false; c.style.animation = 'none'; void c.offsetWidth; c.style.animation = ''; clearTimeout(coachTimer); coachTimer = setTimeout(() => c.hidden = true, (ms || 1600) / SPEED); audio.tone(1200, 0.05, 0.06, 'sine'); }
 function pop(text, pos, cls) { const el = document.createElement('div'); el.className = 'pop ' + (cls || ''); el.textContent = text; const [x, y] = pos ? toScreen(pos) : [vw / 2, vh * 0.42]; el.style.left = clamp(x, 80, vw - 80) + 'px'; el.style.top = clamp(y, 80, vh - 80) + 'px'; $('#pops').appendChild(el); setTimeout(() => el.remove(), 1300); }
 async function banner(t, sub) { const b = $('#banner'), s = $('#bannerT'); s.innerHTML = t + (sub ? `<small>${sub}</small>` : ''); b.hidden = false; s.style.animation = 'none'; void s.offsetWidth; s.style.animation = ''; await sleep(1.4); b.hidden = true; }
-const letterbox = on => $('#lb').classList.toggle('on', on);
+let lbOn = false;
+const letterbox = on => { lbOn = on; $('#lb').classList.toggle('on', on); };
 async function flash(a) { const f = $('#flash'); await anim(0.25, k => { f.style.opacity = (a || 1) * (1 - k); }, x => x); f.style.opacity = 0; }
 async function fade(on, d) { const f = $('#fade'); const a = +f.style.opacity || 0; await anim(d || 0.5, k => { f.style.opacity = lerp(a, on ? 1 : 0, k); }, x => x); }
 const mgEl = $('#mg'), ctlEl = $('#ctl');
