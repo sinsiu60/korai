@@ -1068,10 +1068,10 @@ async function stPress() {
     closeOn(hyHeadW(), 2.6, 7, -0.3); tremble = 0.6 + G.rage / 100; letterbox(false);
     whisper('참아!!', 1200);
     mg(`참아라! (${i + 1} / 4)`, '빨간 표시가 노란 구간에 올 때 눌러서 화를 참으세요!');
-    const ok = await timing([0.43, 0.57 - i * 0.015], 4 + i * 0.9, 3.6);
+    const ok = await timing([0.35, 0.65 - i * 0.01], 2.4 + i * 0.35, 5);
     mgOff();
-    if (ok) { calm++; addRage(6); hySay('예.', 1400); audio.good(); }
-    else { addRage(34); camShake = 0.5; audio.bad(); hySay(pick(['…참겟씁니다.', '…예.', '…….']), 1600); pop('빠직', hyHeadW().add(V(0.5, 0.4, 0)), 'big'); }
+    if (ok) { calm++; addRage(-8); hySay('예.', 1400); audio.good(); }
+    else { addRage(27); camShake = 0.5; audio.bad(); hySay(pick(['…참겟씁니다.', '…예.', '…….']), 1600); pop('빠직', hyHeadW().add(V(0.5, 0.4, 0)), 'big'); }
     await sleep(1.5); camOv = null; tremble = 0;
     if (G.rage >= 100) { G.raged = true; await rageScene(); return; }
   }
