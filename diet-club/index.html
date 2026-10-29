@@ -678,7 +678,7 @@ async function evHyuntae() {
   }
   hySay('지금 제 볶음밥을 막앗씁니까?', 2400); await sleep(1.4);
   // BOING: the whole muscle body springs out of the door
-  hyPeek.visible = false; bigHy.visible = true; audio.boing(); pop('뽀잉!', V(-3.8, 3, 1.4), 'big');
+  hyPeek.visible = false; bigHy.visible = true; audio.boing();
   const from = V(-4.3, 0, 1.2), to = V(-1.0, 0, 2.2);
   bigHy.scale.setScalar(1.25); hyRig.scale.set(1, 1, 1);
   camOv = { p: V(-0.6, 3.8, 12.8), l: V(-1.4, 3.4, 1.6), k: 7 };
@@ -686,24 +686,23 @@ async function evHyuntae() {
   audio.slam(); camShake = 1.2;
   await anim(0.35, (k, raw) => { hyRig.scale.set(1 + Math.sin(raw * PI * 2) * 0.15 * (1 - raw), 1 - Math.sin(raw * PI * 2) * 0.2 * (1 - raw), 1); }, x => x);
   hyRig.scale.set(1, 1, 1);
-  pop('두둥', V(-1.0, 6.5, 2.2), 'big'); audio.tone(55, 0.8, 0.5, 'sawtooth'); await sleep(1.1);
+  audio.tone(55, 0.8, 0.5, 'sawtooth'); await sleep(1.1);
   // the trainer looks up at him
   view = 'room';
   const hw = V(0, 0, 0), eye = V(-0.4, 0.9, 5.8);
   camOv = { p: eye, l: hyHead.getWorldPosition(hw), k: 5 };
   hySay('예?', 1200); await sleep(1.6);
   fists.forEach(f => f.visible = true);
-  const words = ['퍽!', '빡!', '퍼퍽!', '쾅!', '퍽!', '빠악!'];
   for (let i = 0; i < 6; i++) {
     const f = fists[i % 2], s = i % 2 ? -1 : 1, home = V(-s * 1.4, 1.6, 0.3), hit = V(-s * 0.25, 1.35, 1.9);
     await anim(0.07, k => { f.position.lerpVectors(home, hit, k); f.scale.set(s * (1 + k * 1.2), 1 + k * 1.2, 1); }, x => x);
-    audio.hit(); camShake = 0.9; pop(words[i], null, 'big'); hurtEl.style.opacity = Math.min(0.85, (i + 1) * 0.15);
+    audio.hit(); camShake = 0.9; hurtEl.style.opacity = Math.min(0.85, (i + 1) * 0.15);
     camRoll = (i % 2 ? 1 : -1) * 0.12;
     await anim(0.1, k => { f.position.lerpVectors(hit, home, k); f.scale.set(s * (2.2 - k * 1.2), 2.2 - k * 1.2, 1); }, x => x);
   }
   await anim(0.5, k => { camRoll = k * 1.4; eye.y = lerp(0.9, 0.25, k); fadeEl.style.opacity = k; }, x => x * x);
   audio.slam(); camShake = 0.6; fists.forEach(f => f.visible = false);
-  await sleep(0.8); pop('…', null); await sleep(0.6);
+  await sleep(1.4);
   // gets back up
   await anim(0.8, k => { camRoll = 1.4 * (1 - k); eye.y = lerp(0.25, 1.4, k); fadeEl.style.opacity = 1 - k; hurtEl.style.opacity = 0.85 * (1 - k); }, x => x);
   camRoll = 0; hySay('예.', 1500); await sleep(1.0);
