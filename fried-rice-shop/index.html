@@ -219,6 +219,7 @@ button:focus-visible{outline:3px dashed var(--red);outline-offset:3px}
 .cert .stamp{top:auto;bottom:64px;right:26px}
 .lb-on .ctl{bottom:calc(11vh + 14px)}
 .lb-on .mg:not(.low){top:calc(11vh + 14px)}
+.ing.punch{background:#ff5a3a;color:#fff}
 .ob{position:fixed;left:0;top:0;z-index:6;transform:translate(-50%,-100%);pointer-events:none;background:#fff;border:3px solid var(--ink);border-radius:12px;padding:3px 9px;font:900 13px/1.3 var(--f-b);white-space:nowrap;box-shadow:3px 3px 0 var(--ink);text-align:center}
 .ob::after{content:"";position:absolute;left:50%;bottom:-11px;margin-left:-6px;border:6px solid transparent;border-top:7px solid var(--ink)}
 .ob b{color:var(--red);display:block;font-size:14px}
@@ -858,6 +859,7 @@ function makeCust(type) {
   }
   c.m.userData = { pick: true, cust: c }; if (c.head) c.head.userData = { pick: true, cust: c };
   c.ob = document.createElement('div'); c.ob.className = 'ob'; c.ob.hidden = true; pbarsEl.appendChild(c.ob);
+  if (type === 'jin') { c.pt = document.createElement('div'); c.pt.className = 'ing give punch'; c.pt.textContent = '👊 클릭하면 펀찌'; c.pt.hidden = true; pbarsEl.appendChild(c.pt); }
   c.rt = document.createElement('div'); c.rt.className = 'ing need give'; c.rt.textContent = '👆 주기'; c.rt.hidden = true; pbarsEl.appendChild(c.rt);
   ANCH[c.id] = () => c.g.position.clone().add(V(0, c.top + (c.ticket && c.state === 'wait' ? 0.75 : 0.1), 0));
   c.pb = document.createElement('div'); c.pb.className = 'pbar'; c.pb.innerHTML = '<i></i>'; c.pb.hidden = true; pbarsEl.appendChild(c.pb);
@@ -870,7 +872,7 @@ function custMood(c, m, sec) {
 }
 const cSay = (c, t, ms) => { if (G && G.talking && c.type !== 'sw') return; bub(c.id, c.type === 'sw' ? swFmt(t) : t, ms); if (c.type === 'sw') audio.oink(); else audio.tone(260 + (cid % 5) * 40, 0.08, 0.12, 'triangle'); };
 function removeCust(c) {
-  c.gone = true; scene.remove(c.g); dropBub(c.id); c.pb.remove(); c.rt.remove(); c.ob.remove();
+  c.gone = true; scene.remove(c.g); dropBub(c.id); c.pb.remove(); c.rt.remove(); c.ob.remove(); if (c.pt) c.pt.remove();
   const i = custs.indexOf(c); if (i >= 0) custs.splice(i, 1);
   if (c.type === 'guest') for (const m of ['n', 'smile', 'angry', 'shock', 'eat', 'down', 'fire']) { const k = c.key + m; if (texCache.has(k)) { texCache.get(k).dispose(); texCache.delete(k); } }
   if (c.ticket) dropTicket(c.ticket);
@@ -964,7 +966,8 @@ function cookCtl() {
   ctl([{ label: '꾹 볶기', key: 'Space', kname: 'Space', down: stirOn, up: stirOff }, { label: '내기', key: 'Enter', kname: 'Enter', down: serve }, { label: '버리기', cls: 'r', key: 'Backspace', kname: '⌫', down: dump }]);
   ING.forEach(d => { keys[d.key] = { down: () => addIng(d.k), up() {} }; });
   pickables = [...ING.map(d => d.hit), wokHit, ...custs.flatMap(c => c.head ? [c.m, c.head] : [c.m])];
-  onPick = o => { const u = o.userData; if (u.ing) addIng(u.ing); else if (u.wok) stirOn(); else if (u.cust && u.cust.ticket) { if (W.done >= 0.05 && u.cust.state === 'wait') serveTo(u.cust.ticket); else setActive(u.cust.ticket); } };
+  onPick = o => { const u = o.userData; if (u.ing) addIng(u.ing); else if (u.wok) stirOn(); else if (u.cust && u.cust.type === 'jin' && !bizPause && !u.cust.gone && u.cust.state !== 'walk' && u.cust.state !== 'leave') { const c = u.cust; exclusive(() => freePunch(c)); }
+    else if (u.cust && u.cust.ticket) { if (W.done >= 0.05 && u.cust.state === 'wait') serveTo(u.cust.ticket); else setActive(u.cust.ticket); } };
   onRelease = stirOff;
 }
 // floating labels over ingredients
@@ -976,7 +979,8 @@ function placeTags() {
     const waiting = on && c.ticket && c.state === 'wait', talking = bubEls[c.id] && !bubEls[c.id].hidden;
     c.ob.hidden = !waiting || talking;
     if (!c.ob.hidden) { const t = c.ticket, key = (G.active === t) + t.name; if (c.ob.dataset.k !== key) { c.ob.dataset.k = key; c.ob.className = 'ob' + (G.active === t ? ' on' : ''); c.ob.innerHTML = `${{ egg: '🥚 계란', onion: '🌱 파', chick: '🍗 닭가슴살' }[t.menu]}<b>${t.p}인분</b>`; } const [ox, oy] = toScreen(c.g.position.clone().add(V(0, c.top + 0.45, 0.2))); c.ob.style.left = ox + 'px'; c.ob.style.top = oy + 'px'; }
-    c.rt.hidden = !(ready && waiting); if (!c.rt.hidden) { const [rx, ry] = toScreen(c.g.position.clone().add(V(0, c.top + 1.05, 0.2))); c.rt.style.left = rx + 'px'; c.rt.style.top = ry + 'px'; }
+    if (c.pt) { c.pt.hidden = !(on && !bizPause && ['order', 'wait', 'eat'].includes(c.state)); if (!c.pt.hidden) { const [px, py] = toScreen(c.g.position.clone().add(V(0, 1.55, 0.3))); c.pt.style.left = px + 'px'; c.pt.style.top = py + 'px'; } }
+    c.rt.hidden = !(ready && waiting) || !!c.pt; if (!c.rt.hidden) { const [rx, ry] = toScreen(c.g.position.clone().add(V(0, c.top + 1.05, 0.2))); c.rt.style.left = rx + 'px'; c.rt.style.top = ry + 'px'; }
     c.pb.hidden = !(c.ticket && on && c.state === 'wait'); if (c.pb.hidden) continue; const [x, y] = toScreen(c.g.position.clone().add(V(0, c.top - 0.1, 0.2))); c.pb.style.left = x + 'px'; c.pb.style.top = y + 'px'; const f = clamp(c.patience / c.pmax, 0, 1), i = c.pb.firstChild; i.style.transform = `scaleX(${f})`; i.classList.toggle('low', f < 0.3); if (c.ticket && c.ticket.bar) { c.ticket.bar.style.transform = `scaleX(${f})`; c.ticket.bar.classList.toggle('low', f < 0.3); } }
 }
 function nextHint() {
@@ -1011,8 +1015,16 @@ async function angerEventNow(c, line) {
   if (G.rage >= 100 && !c.gone) await punchScene(c);
   resumeCook();
 }
-async function punchScene(c) {
-  letterbox(true); hySay('참을 만큼 참앗씁니다.', 2000); tremble = 2; await sleep(1.6); tremble = 0;
+async function freePunch(c) {
+  if (c.gone || !G.cooking) return;
+  bizPause = true; stirring = false; G.talking = true;
+  custMood(c, 'shock'); closeOn(hyHeadW(), 2.4, 7, 0.9); letterbox(true);
+  pop('무현태 해방!', null, 'big'); audio.drum(); camShake = 0.6; anger(2); setRed(1);
+  await punchScene(c, true);
+  setRed(G.rage / 100); anger(0); G.talking = false; resumeCook();
+}
+async function punchScene(c, free) {
+  letterbox(true); hySay(free ? '참을 필요 없씁니다.' : '참을 만큼 참앗씁니다.', 2000); tremble = 2; await sleep(1.6); tremble = 0;
   hy.visible = false; bigHy.visible = true; bigHy.position.copy(hy.position); bigHy.scale.setScalar(0.6); flash(0.8); audio.boom(); camShake = 1;
   camOv = { p: V(0, 3.4, 6.4), l: c.g.position.clone().add(V(0, 1.8, 0)), k: 5 };
   const from = bigHy.position.clone(), to = c.g.position.clone().add(V(0.8, 0.6, 1.2));
@@ -1122,6 +1134,7 @@ async function runCust(c) {
   c.state = 'eat';
   await sleep(0.6);
   for (let i = 0; i < 3; i++) { custMood(c, 'eat'); audio.chomp(); if (c.dish) { c.dish.scale.multiplyScalar(0.85); burst(c.dish.position, 0xe8c26a, 4, 1); } await sleep(0.28); custMood(c, 'n'); await sleep(0.18); }
+  if (c.gone) { dropFood(c.dish); return; }
   dropFood(c.dish); c.dish = null;
   const st = c.served.stars; G.served++; G.ds.n++; G.ds.stars += st; G.starsSum += st;
   G.ach.first = true; if (st === 5) G.ach.five = true;
@@ -1139,7 +1152,7 @@ async function runCust(c) {
   custMood(c, mood, 2); cSay(c, line, 1800);
   const sp = document.createElement('div'); sp.className = 'stars'; sp.textContent = '★'.repeat(st) + '☆'.repeat(5 - st); const [sx, sy] = toScreen(c.g.position.clone().add(V(0, c.top + 0.8, 0))); sp.style.left = sx + 'px'; sp.style.top = sy + 'px'; $('#pops').appendChild(sp); setTimeout(() => sp.remove(), 1600);
   addRep((st - 3) * 0.06);
-  await sleep(0.9);
+  await sleep(0.9); if (c.gone) return;
   if (pay > 0) { addMoney(pay, c.g.position.clone().add(V(0, 2.4, 0.5))); audio.ding(); burst(c.g.position.clone().add(V(0, 1.6, 0.6)), 0xffcc33, 8, 2); }
   await sleep(0.6); await leave(c, st);
 }
@@ -1162,7 +1175,7 @@ async function business() {
   cookCtl(); mg('주방', '손님을 기다리는 중…', true); $('#tickets').hidden = false;
   const len = DAY_LEN[G.day - 1];
   const sched = {
-    1: [], 2: [[14, 'sw']], 3: [[6, 'iv0'], [6.5, 'iv1'], [7, 'iv2'], [40, 'sw']], 4: [[9, 'jin'], [26, 'reviewer'], [50, lv('statue') ? null : 'jin']], 5: [[12, 'jin'], [35, 'sw']],
+    1: [[20, 'jin']], 2: [[8, 'jin'], [14, 'sw'], [44, 'jin']], 3: [[6, 'iv0'], [6.5, 'iv1'], [7, 'iv2'], [28, 'jin'], [40, 'sw']], 4: [[9, 'jin'], [26, 'reviewer'], [40, 'jin'], [55, lv('statue') ? null : 'jin']], 5: [[12, 'jin'], [35, 'sw']],
   }[G.day].filter(e => e[1]);
   let t = 0, nextSpawn = G.day === 1 ? 1.5 : 2.5, autoT = 0, first = G.day === 1;
   await until(dt => {
@@ -1293,7 +1306,7 @@ const ENDINGS = [
   { id: 'normal', name: '그럭저럭 장사', d: '망하지도 대박 나지도 않았습니다. 현태는 오늘도 2인분을 볶습니다.', q: '예.', stamp: '영업중' },
   { id: 'egg', name: '계란 품절 사태', d: '계란을 너무 많이 넣고 버려서 동네 마트 계란이 전부 동났습니다.', q: '계란은 1인분에 2개씩이씁니다.', stamp: '품절' },
   { id: 'gukbap', name: '국밥집에 인수됨', d: '국밥집과의 대결에서 졌습니다. 가게는 "진상욱 국밥 2호점"이 되었습니다.', q: '국밥도 맛잇씁니다.', stamp: '인수' },
-  { id: 'gym', name: '무에타이 체육관 전업', d: '진상 손님을 너무 많이 날려 보냈습니다. 가게는 무에타이 체육관이 되었습니다.', q: '펀찌도 2인분이씁니다.', stamp: '전업' },
+  { id: 'gym', name: '무에타이 체육관 전업', d: '진상 손님을 세 명이나 날려 보냈습니다. 가게는 무에타이 체육관이 되었습니다.', q: '펀찌도 2인분이씁니다.', stamp: '전업' },
   { id: 'close', name: '폐업', d: '평판이 바닥을 쳤습니다. 현태는 문을 닫고 혼자 볶음밥 2인분을 먹었습니다.', q: '…예.', stamp: '폐업' },
 ];
 const ACHS = [
@@ -1309,7 +1322,7 @@ const ACHS = [
   { id: 'ten', name: '10인분 승리', d: '국밥집과의 대결에서 이겼습니다.' },
 ];
 function decideEnding() {
-  if (G.punches >= 2) return 'gym';
+  if (G.punches >= 3) return 'gym';
   if (G.rep < 2.0) return 'close';
   if (!G.finalWin) return 'gukbap';
   if (G.waste >= 16) return 'egg';
