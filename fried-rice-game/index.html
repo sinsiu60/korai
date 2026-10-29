@@ -75,6 +75,25 @@ button:focus-visible{outline:3px solid var(--yolk);outline-offset:2px}
 .drop:disabled{opacity:.3;cursor:default}
 
 /* floating hints */
+.panfloat{position:fixed;left:0;top:0;z-index:4;pointer-events:none;display:flex;flex-direction:column;gap:6px;width:250px;
+  transform:translate(-50%,-100%);will-change:transform}
+.pf-row{background:rgba(20,14,10,.86);border:2px solid rgba(255,236,200,.22);border-radius:10px;padding:7px 9px 8px;display:flex;flex-direction:column;gap:5px}
+.pf-top{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.pf-name{font:400 15px var(--f-display);color:var(--cream-text)}
+.pf-word{font:400 19px var(--f-display);color:var(--cream-text);white-space:nowrap}
+.pf-bar{position:relative;display:grid;gap:2px;height:12px}
+.pf-seg{border-radius:3px;opacity:.35}
+.pf-seg.target{outline:2px solid var(--yolk);outline-offset:-1px;opacity:.6}
+.pf-seg.now{opacity:1}
+.pf-mark{position:absolute;top:-4px;bottom:-4px;width:4px;margin-left:-2px;background:#fff;border-radius:2px;box-shadow:0 0 0 2px #111}
+.pf-row.good{border-color:var(--yolk);box-shadow:0 0 0 2px rgba(245,191,42,.35),0 0 18px rgba(245,191,42,.45)}
+.pf-row.good .pf-word{color:var(--yolk)}
+.pf-row.warn{border-color:#ff8a3d}.pf-row.warn .pf-word{color:#ffb27a}
+.pf-row.bad{border-color:#ff3b1f;animation:pfblink .5s infinite steps(1,end)}.pf-row.bad .pf-word{color:#ff6a50}
+@keyframes pfblink{50%{border-color:transparent;background:rgba(90,10,0,.9)}}
+.pf-pop{font:400 13px var(--f-display);color:var(--ink);background:var(--yolk);border-radius:4px;padding:1px 6px;margin-left:6px}
+@media (max-width:560px){.panfloat{width:210px}.pf-word{font-size:16px}}
+@media (prefers-reduced-motion:reduce){.pf-row.bad{animation:none}}
 .tip{position:fixed;z-index:8;pointer-events:none;background:var(--paper);color:var(--ink);font-size:13px;padding:5px 9px;border-radius:7px;
   box-shadow:0 6px 18px rgba(0,0,0,.35);white-space:nowrap;transform:translate(14px,14px);opacity:0;transition:opacity .1s}
 .tip b{font-family:var(--f-display);font-weight:400;margin-right:6px}
@@ -261,6 +280,7 @@ button:focus-visible{outline:3px solid var(--yolk);outline-offset:2px}
   </div>
 </div>
 
+<div class="panfloat" id="panFloat" hidden aria-live="polite"></div>
 <div class="tip" id="tip"></div>
 <div class="gauge" id="gauge" hidden>
   <div class="g-row"><span id="gLabel"></span><span class="mono" id="gVal"></span></div>
@@ -980,6 +1000,8 @@ function resetWorld() {
   emitters[0].x = PAN.x; emitters[0].y = PAN.y + 0.3; emitters[0].z = PAN.z; emitters[0].r = 0.9;
   for (const k in busy) delete busy[k];
   if (typeof resetTaster === 'function') resetTaster();
+  for (const k in floatSeen) delete floatSeen[k];
+  panFloat.hidden = true;
   leek.visible = true;
   updateHandBar();
 }
@@ -1448,18 +1470,65 @@ function simulate(dt) {
     if (S.rice.inPan && S.rice.scorch > 0.05) recolorRice();
   }
   panelAcc += dt; if (panelAcc > 0.2) { panelAcc = 0; updatePanel(); }
+  floatAcc += dt; if (floatAcc > 0.1) { floatAcc = 0; updateFloat(); }
 }
-const doneWord = (c, words) => c < 0.3 ? words[0] : c < 0.55 ? words[1] : c <= 0.85 ? words[2] : c <= 1.0 ? words[3] : words[4];
+/* doneness gauges pinned above the pan: what is cooking right now, at a glance */
+let floatAcc = 0;
+const panFloat = $('#panFloat');
+const GAUGES = {
+  pa: { name: '대파', cuts: [0.3, 0.6, 0.82, 1.0], max: 1.2, words: ['하얌', '숨 죽음', '노릇노릇', '갈색', '탔음'], cols: ['#e9eed6', '#c8d68a', '#f5bf2a', '#a8642a', '#2a1a12'], target: 2 },
+  egg: { name: '계란', cuts: [0.2, 0.45, 0.72, 1.0], max: 1.2, words: ['생계란', '묽음', '반숙', '완숙', '퍽퍽'], cols: ['#fbe3a0', '#f7cf52', '#f2b723', '#d99a2b', '#9a6a2a'], target: 2 },
+  rice: { name: '밥 수분', cuts: [0.3, 0.7], max: 1.35, words: ['고슬고슬', '촉촉', '질척'], cols: ['#f5bf2a', '#e9e4d8', '#b9c6d8'], target: 0 },
+};
+const floatSeen = {};
+function gaugeRow(key, v, extraBad) {
+  const g = GAUGES[key];
+  let seg = g.cuts.findIndex(c => v < c); if (seg < 0) seg = g.cuts.length;
+  if (key === 'pa' || key === 'egg') seg = v <= g.cuts[2] && v >= g.cuts[1] ? 2 : seg; // inclusive target edge
+  const n = g.words.length, bounds = [0, ...g.cuts, g.max];
+  const fr = bounds.slice(1).map((b, i) => Math.max(0.05, b - bounds[i]));
+  const cols = fr.map(f => f.toFixed(3) + 'fr').join(' ');
+  const pos = clamp(v / g.max, 0, 1) * 100;
+  const state = extraBad ? 'bad' : seg === g.target ? 'good' : (key === 'rice' ? seg === 2 : seg >= 3) ? (seg >= 4 ? 'bad' : 'warn') : '';
+  const fresh = state === 'good' ? '<span class="pf-pop">지금!</span>' : '';
+  if (state === 'good' && !floatSeen[key]) { floatSeen[key] = 1; audio.tick(); }
+  const segs = g.words.map((w, i) => `<span class="pf-seg${i === g.target ? ' target' : ''}${i === seg ? ' now' : ''}" style="background:${g.cols[i]}"></span>`).join('');
+  return `<div class="pf-row ${state}"><div class="pf-top"><span class="pf-name">${g.name}${fresh}</span><span class="pf-word">${extraBad || g.words[seg]}</span></div>` +
+    `<div class="pf-bar" style="grid-template-columns:${cols}">${segs}<i class="pf-mark" style="left:${pos}%"></i></div></div>`;
+}
+function updateFloat() {
+  if (!playing || modalOpen) { panFloat.hidden = true; return; }
+  const rows = [];
+  if (S.pa.inPan && !S.egg.inPan && !S.rice.inPan) rows.push(gaugeRow('pa', S.pa.cook));
+  if (S.egg.inPan && !S.rice.inPan) rows.push(gaugeRow('egg', S.egg.cook));
+  if (S.rice.inPan) {
+    GAUGES.rice.max = Math.max(1.0, S.rice.bowls.length > 1 ? 1.7 : S.rice.bowls[0] === 'riceHot' ? 1.35 : 1.0);
+    rows.push(gaugeRow('rice', S.rice.moisture, S.rice.scorch > 0.06 ? '눌어붙는 중!' : ''));
+  }
+  if (S.pa.max > 1.0 && S.egg.inPan && !S.rice.inPan) rows.unshift(gaugeRow('pa', S.pa.cook));
+  if (!rows.length) { panFloat.hidden = true; return; }
+  panFloat.innerHTML = rows.join(''); panFloat.hidden = false;
+}
+const _fp = new THREE.Vector3();
+function placeFloat() {
+  if (panFloat.hidden) return;
+  _fp.set(PAN.x, PAN.y + 0.95, PAN.z - 1.25).project(camera);
+  if (_fp.z > 1) { panFloat.style.visibility = 'hidden'; return; }
+  panFloat.style.visibility = '';
+  const x = clamp((_fp.x + 1) / 2 * vw, 135, vw - 135), y = clamp((1 - _fp.y) / 2 * vh, 150, vh - 120);
+  panFloat.style.transform = `translate(${x.toFixed(0)}px,${y.toFixed(0)}px) translate(-50%,-100%)`;
+}
+const doneWord = (c, words) => c < 0.3 ? words[0] : c < 0.6 ? words[1] : c <= 0.82 ? words[2] : c <= 1.0 ? words[3] : words[4];
 function updatePanel() {
   const L = [];
   const row = (a, b, warn) => L.push(`<li${warn ? ' class="warn"' : ''}><span>${a}</span><span>${b}</span></li>`);
   if (S.oil > 0.02) row('식용유', S.oil.toFixed(1) + '큰술', S.smoke);
-  if (S.pa.inPan) row(S.pa.whole ? '통대파' : '대파', doneWord(S.pa.cook, ['하얌', '숨 죽음', '노릇노릇', '갈색', '탔음']), S.pa.cook > 0.9);
+  if (S.pa.inPan) row(S.pa.whole ? '통대파' : '대파', doneWord(S.pa.cook, ['하얌', '숨 죽음', '노릇노릇', '갈색', '탔음']), S.pa.cook > 0.82);
   if (S.egg.inPan) {
-    const c = S.egg.cook, w = c < 0.2 ? '생계란' : c < 0.45 ? '묽음' : c <= 0.75 ? '반숙' : c <= 1 ? '완숙' : '퍽퍽';
-    row(S.egg.direct && !S.egg.beaten ? '계란(안 푼)' : '계란', S.rice.inPan ? '밥과 섞임' : (S.egg.curd > 0.5 ? '몽글 · ' : '') + w, !S.rice.inPan && c > 0.85);
+    const c = S.egg.cook, w = c < 0.2 ? '생계란' : c < 0.45 ? '묽음' : c <= 0.72 ? '반숙' : c <= 1 ? '완숙' : '퍽퍽';
+    row(S.egg.direct && !S.egg.beaten ? '계란(안 푼)' : '계란', S.rice.inPan ? '밥과 섞임' : (S.egg.curd > 0.5 ? '몽글 · ' : '') + w, !S.rice.inPan && c > 0.72);
   }
-  if (S.rice.inPan) { const m = S.rice.moisture; row(S.rice.bowls.length > 1 ? '밥 ×2' : '밥', (m > 0.7 ? '질척' : m > 0.35 ? '촉촉' : '고슬고슬') + (S.rice.scorch > 0.12 ? ' · 눌음' : ''), S.rice.scorch > 0.12); }
+  if (S.rice.inPan) { const m = S.rice.moisture; row(S.rice.bowls.length > 1 ? '밥 ×2' : '밥', (m > 0.7 ? '질척' : m > 0.3 ? '촉촉' : '고슬고슬') + (S.rice.scorch > 0.12 ? ' · 눌음' : ''), S.rice.scorch > 0.12); }
   if (S.soy > 0.02) row('간장', S.soy.toFixed(1) + '큰술');
   if (S.oyster > 0.02) row('굴소스', S.oyster.toFixed(1) + '작은술');
   if (S.vinegar > 0.02) row('식초', S.vinegar.toFixed(1) + '큰술', true);
@@ -1798,6 +1867,7 @@ function loop(ts) {
   frameFns.forEach(f => f(dt));
   if (act) { if (!ptr.down) { const a = act; act = null; a.end(); } else { act.tick(dt); placeGauge(); } }
   if (playing) { simulate(dt); followHand(dt); }
+  placeFloat();
   updateHover(dt);
   updateCamera(dt); updateFlame(dt); updateStream();
   for (let i = 0; i < SETS.length; i++) SETS[i].update(dt);
