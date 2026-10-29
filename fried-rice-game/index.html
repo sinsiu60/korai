@@ -303,6 +303,7 @@ button:focus-visible{outline:3px solid var(--yolk);outline-offset:2px}
     <button type="button" data-v="prep" aria-pressed="false">손질 2</button>
     <button type="button" data-v="stove" aria-pressed="false">화구 3</button>
     <button type="button" data-v="right" aria-pressed="false">밥·접시 4</button>
+    <button type="button" data-v="face" aria-pressed="false">현태 5</button>
   </div>
   <div class="handbar" id="handbar">
     <div class="hand-ico">손</div>
@@ -539,7 +540,7 @@ const signTex = textTex(512, 160, (g, w, h) => {
   g.fillStyle = '#3b2618'; g.fillRect(0, 0, w, h); g.strokeStyle = '#f5bf2a'; g.lineWidth = 6; g.strokeRect(10, 10, w - 20, h - 20);
   g.fillStyle = '#fbfaf5'; g.font = '72px "Black Han Sans", sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('현태네 주방', w / 2, h / 2 + 4);
 });
-const signMesh = add(new THREE.Mesh(new THREE.PlaneGeometry(2.4, 0.75), new THREE.MeshBasicMaterial({ map: signTex })), 0.3, 2.9, -3.15);
+const signMesh = add(new THREE.Mesh(new THREE.PlaneGeometry(2.4, 0.75), new THREE.MeshBasicMaterial({ map: signTex })), -3.4, 2.9, -3.15);
 
 /* ===== cutting board, leek, knife ===== */
 const BOARD = { x: -3.0, z: 0.3 };
@@ -953,7 +954,8 @@ function tweenTo(obj, pos, rot, dur) {
 /* ===== camera ===== */
 const VIEWS = {
   title: { p: [0.4, 5.6, 9.0], l: [0.4, 0.3, -0.2] },
-  all: { p: [0.2, 8.0, 7.4], l: [0.2, 0.0, 0.0] },
+  face: { p: [0.6, 2.45, 1.0], l: [0.6, 2.2, -2.8] },
+  all: { p: [0.2, 8.0, 7.4], l: [0.2, 0.45, 0.0] },
   prep: { p: [-2.5, 4.6, 4.6], l: [-2.5, 0.2, 0.15] },
   stove: { p: [0.9, 5.0, 4.5], l: [0.9, 0.35, -0.7] },
   right: { p: [4.0, 4.6, 4.7], l: [4.0, 0.3, 0.1] },
@@ -1063,7 +1065,7 @@ function freshState() {
     egg: { inPan: false, beaten: 0, direct: 0, shells: 0, whiskAtPour: 1, saltAtPour: 0, cook: 0, curd: 0, cookAtRice: null, curdAtRice: null },
     rice: { inPan: false, bowls: [], moisture: 1, warm: 0, scorch: 0, tosses: 0, spills: 0, lastMove: 0, lastToss: -9 },
     soy: 0, soyEdge: 0, soyHot: 0, mix: 0, oyster: 0, sesame: 0, sesameHot: 0, pepper: 0, panSalt: 0, sugar: 0, vinegar: 0,
-    bookOpens: 0, emptyTosses: 0, first: {}, firstTemp: {}, pepperEarly: false, oysterEarly: false, heatAtEnd: 0, endT: 0, heatOffAfterRice: false, smoke: false, smokeT: 0, toastK: 0,
+    bookOpens: 0, emptyTosses: 0, stareLvl: 0, strikes: 0, prankHit: {}, first: {}, firstTemp: {}, pepperEarly: false, oysterEarly: false, heatAtEnd: 0, endT: 0, heatOffAfterRice: false, smoke: false, smokeT: 0, toastK: 0,
     paHeat: { s: 0, t: 0 }, riceHeat: { s: 0, t: 0 }, start: T, warned: {}
   };
 }
@@ -1641,7 +1643,7 @@ function simulate(dt) {
     if (S.egg.inPan && eggDisc.visible) { const c = clamp(S.egg.cook, 0, 1.2); if (S.egg.beaten) eggDiscMat.color.setRGB(0.95 + 0.04 * c, 0.66 + 0.16 * c - (c > 1 ? 0.2 : 0), 0.14 + 0.06 * c); }
     if (S.rice.inPan && S.rice.scorch > 0.05) recolorRice();
   }
-  panelAcc += dt; if (panelAcc > 0.2) { panelAcc = 0; updatePanel(); }
+  panelAcc += dt; if (panelAcc > 0.2) { panelAcc = 0; updatePanel(); checkPranks(); }
   floatAcc += dt; if (floatAcc > 0.1) { floatAcc = 0; updateFloat(); }
 }
 /* doneness gauges pinned above the pan: what is cooking right now, at a glance */
@@ -1927,6 +1929,7 @@ const bubbleEl = $('#eatBubble'), flashEl = $('#flash');
 function bubble(t, big) { bubbleEl.textContent = t; bubbleEl.hidden = !t; bubbleEl.classList.toggle('big', !!big); }
 function chomp() { audio.burst(700, 0.9, 0.09, 0.55); audio.tone(95, 0.08, 0.3, 'triangle'); }
 async function eatScene(score) {
+  taster.position.set(TASTER.x, 0, TASTER.z); taster.scale.setScalar(1); angerMarks.forEach(m => m.visible = false);
   taster.visible = true; headMode = 'idle'; headT = 0;
   headMesh.material.color.setRGB(1, 1, 1); bodyMesh.material.color.setRGB(1, 1, 1);
   camGo('eat');
@@ -2002,7 +2005,9 @@ async function rageScene() {
   bubble('이런건 줘도 안먹씁니다!!!', true); camShake = 0.25;
   await sleep(0.8);
   bubble('');
-
+  await flipAndBeat('eat');
+}
+async function flipAndBeat(view) {
   // 1) the counter gets launched sky-high, the camera follows it up and back down
   const vel = FLY.map(() => [(rand() - .5) * 2, 1.5 + rand() * 2.5, (rand() - .5) * 2, (rand() - .5) * 10, (rand() - .5) * 10]);
   audio.whoosh(); audio.burst(160, 0.7, 0.4, 0.8); camShake = 0.5;
@@ -2025,7 +2030,7 @@ async function rageScene() {
   await sleep(0.9);
 
   // 2) back to Hyuntae: fists clenched, shaking with rage
-  camTrack = null; camGo('eat');
+  camTrack = null; camGo(view);
   fists.forEach(f => { f.visible = true; f.scale.setScalar(0.2); });
   await anim(0.25, k => fists.forEach(f => f.scale.setScalar(0.2 + k * 0.8)), x => x);
   audio.burst(400, 1, 0.15, 0.6);
@@ -2035,7 +2040,7 @@ async function rageScene() {
   // 3) charges straight at the player
   bubble('');
   const cam = camera.position.clone();
-  const start = taster.position.clone(), goal = new THREE.Vector3(cam.x, Math.max(0, cam.y - 3.05), cam.z - 2.5);
+  const start = taster.position.clone(), goal = new THREE.Vector3(cam.x, Math.max(0, cam.y - 3.05 * taster.scale.y), cam.z - 2.5 * taster.scale.y);
   const hw = new THREE.Vector3();
   camTrack = { look: () => { headMesh.getWorldPosition(hw); return hw; }, pos: () => cam, k: 9 };
   await anim(1.15, (k, raw) => {
@@ -2081,10 +2086,91 @@ function resetTaster() {
   FLY.forEach(id => { OBJ[id].visible = true; });
   camTrack = null; camRoll = 0; camDrop = 0; hurt = 0; hurtEl.hidden = true; hurtEl.style.opacity = 0; koEl.hidden = true; powsEl.innerHTML = '';
   fists.forEach((f, i) => { f.visible = false; f.position.copy(FIST_HOME[i]); f.scale.setScalar(1); });
-  angerMarks.forEach(m => m.visible = false); taster.position.set(TASTER.x, 0, TASTER.z); headPivot.rotation.set(0, 0, 0); rig.position.set(0, 0, 0);
+  angerMarks.forEach(m => m.visible = false); taster.position.set(WATCH.x, 0, WATCH.z); taster.scale.setScalar(WATCH.s); raging = false; stareT = 0; lookByMouse = false; headPivot.rotation.set(0, 0, 0); rig.position.set(0, 0, 0);
   headMesh.material.color.setRGB(1, 1, 1); bodyMesh.material.color.setRGB(1, 1, 1);
   taster.visible = false; spoon.visible = false; arm.visible = false; eyeFires.forEach(e => e.visible = false);
   faceLight.intensity = 0; headMode = 'off'; flashEl.hidden = true; bubble('');
+}
+
+
+/* ===== Hyuntae watches you cook: staring and food-play both wind him up ===== */
+const WATCH = { x: 0.6, z: -2.8, s: 0.72 };
+let lookByMouse = false, prevView = 'all', stareT = 0, raging = false;
+const STARE_LINES = ['뭐하씹니까? 요리합니따.', '마지막 경고입니따. 요리합니따.', '참을 만큼 참앗습니따 이리 옵니따.'];
+const PRANK_LINES = ['먹는거로 장난치지 안씁니다.', '경고햇씁니다. 장난치지 안씁니다.', '이제 참을 수 업씁니다.'];
+const PRANKS = [
+  ['sesame', () => S.sesame, [2, 4, 6]],
+  ['salt', () => S.panSalt + S.bowl.salt + S.egg.saltAtPour, [4, 7, 10]],
+  ['pepper', () => S.pepper + S.bowl.pepper, [8, 12, 16]],
+  ['soy', () => S.soy, [1.5, 2.5, 3.5]],
+  ['oil', () => S.oil, [4, 6, 8]],
+  ['vinegar', () => S.vinegar, [1, 2, 3]],
+  ['sugar', () => S.sugar + S.bowl.sugar, [3, 6, 9]],
+  ['oyster', () => S.oyster, [3, 5, 7]],
+  ['air', () => S.emptyTosses, [20, 30, 40]],
+];
+let sayTimer = 0;
+function say(t, ms) { bubble(t, true); clearTimeout(sayTimer); sayTimer = setTimeout(() => { if (!raging) bubble(''); }, ms || 2600); }
+function showAnger(lvl) {
+  angerMarks.forEach((m, i) => { m.visible = i < lvl; });
+  const g = lvl >= 2 ? 0.5 : lvl === 1 ? 0.78 : 1;
+  headMesh.material.color.setRGB(1, g, g * 0.95);
+}
+const angerLevel = () => Math.max(S.stareLvl, S.strikes);
+function warnStare() {
+  S.stareLvl++; audio.nope();
+  if (S.stareLvl >= 3) { triggerRage('stare'); return; }
+  say(STARE_LINES[S.stareLvl - 1]); showAnger(angerLevel());
+  headMode = 'rage'; setTimeout(() => { if (!raging && headMode === 'rage') headMode = 'idle'; }, 900);
+}
+function strike() {
+  S.strikes++; audio.nope();
+  if (S.strikes >= 3) { triggerRage('prank'); return; }
+  say(PRANK_LINES[S.strikes - 1]); showAnger(angerLevel());
+  headMode = 'rage'; setTimeout(() => { if (!raging && headMode === 'rage') headMode = 'idle'; }, 900);
+}
+function checkPranks() {
+  for (const [k, get, th] of PRANKS) {
+    let n = S.prankHit[k] || 0;
+    if (n < th.length && get() >= th[n]) { S.prankHit[k] = n + 1; strike(); return; }
+  }
+}
+function updateWatch(dt) {
+  if (!playing || raging || modalOpen) { stareT = 0; return; }
+  if (camName === 'face') {
+    stareT += dt;
+    if (stareT > 5) { stareT = 0; warnStare(); }
+  } else stareT = 0;
+}
+window.addEventListener('pointermove', e => {
+  if (!playing || raging || modalOpen) return;
+  if (e.target.closest && e.target.closest('button')) return;
+  const top = Math.max(26, vh * 0.06);
+  if (e.clientY < top && camName !== 'face') { prevView = camName; lookByMouse = true; camGo('face'); }
+  else if (lookByMouse && e.clientY > vh * 0.16) { lookByMouse = false; camGo(prevView); }
+});
+async function triggerRage(kind) {
+  if (raging) return;
+  raging = true; playing = false; modalOpen = false;
+  if (act) { const a = act; act = null; a.end(); }
+  $('#bottom').hidden = true; $('#panStat').hidden = true; panFloat.hidden = true; tipEl.classList.remove('on');
+  $('#book').hidden = true; $('#confirm').hidden = true;
+  S.heatAtEnd = heat; S.endT = T;
+  const r = evaluate();
+  r.total = 0; r.rageKind = kind;
+  r.bad.unshift(kind === 'stare' ? '요리는 안 하고 현태만 쳐다봤씁니다.' : '먹는 걸로 장난쳤씁니다.');
+  camTrack = null; lookByMouse = false; camGo('face');
+  bubble(kind === 'stare' ? STARE_LINES[2] : PRANK_LINES[2], true);
+  headMode = 'rage'; headT = 0; angerMarks.forEach(m => m.visible = true); camShake = 0.3;
+  const g0 = headMesh.material.color.g;
+  await anim(1.6, k => {
+    headMesh.material.color.setRGB(1, lerp(g0, 0.32, k), lerp(g0, 0.28, k));
+    bodyMesh.material.color.setRGB(1, 1 - 0.25 * k, 1 - 0.25 * k);
+    if (Math.floor(k * 8) !== Math.floor((k - 0.005) * 8)) audio.tone(70 + k * 40, 0.08, 0.12, 'square');
+  }, x => x);
+  await sleep(0.4); bubble('');
+  await flipAndBeat('face');
+  showResult(r);
 }
 
 /* ===== result ===== */
@@ -2117,6 +2203,7 @@ function showResult(r) {
   $('#resultScr').hidden = false; $('#againBtn').focus({ preventScroll: true });
 }
 async function finish() {
+  if (raging) return;
   playing = false; if (act) { const a = act; act = null; a.end(); }
   S.heatAtEnd = heat; S.endT = T;
   const r = evaluate();
@@ -2138,6 +2225,8 @@ async function finish() {
 
 /* ===== achievements (stored per browser) ===== */
 const ACH = [
+  { id: 'staredown', cat: '무현태', name: '눈싸움 패배', desc: '현태를 너무 오래 쳐다보다 맞았씁니다.', test: r => r.rageKind === 'stare' },
+  { id: 'prank', cat: '무현태', name: '음식 장난 금지', desc: '먹는 걸로 장난치다 맞았씁니다.', test: r => r.rageKind === 'prank' },
   { id: 'liberate', cat: '무현태', name: '무현태 해방', desc: '끔찍한 요리 실력으로 무현태를 해방시켰씁니다.', test: (r) => r.total <= 30 },
   { id: 'sandbag', cat: '무현태', name: '인간 샌드백', desc: '무현태의 샌드백이 되었씁니다.', test: (r, P) => P.gameOvers >= 3 },
   { id: 'knee', cat: '무현태', name: '니킥 직전', desc: '무현태가 간신히 참았씁니다.', test: r => r.total >= 31 && r.total <= 60 },
@@ -2220,13 +2309,14 @@ window.addEventListener('keydown', e => {
   if (e.code === 'KeyR' || e.code === 'KeyB') { e.preventDefault(); openBook(); }
   else if (e.code === 'KeyQ' || e.code === 'Escape') { if (!act) putBack(); }
   else if (e.code === 'KeyH') cycleHeat();
-  else if (/^Digit[1-4]$/.test(e.code)) camGo(['all', 'prep', 'stove', 'right'][+e.code[5] - 1]);
+  else if (/^Digit[1-5]$/.test(e.code)) { lookByMouse = false; camGo(['all', 'prep', 'stove', 'right', 'face'][+e.code[5] - 1]); }
 });
 function startGame() {
   audio.unlock();
   titleScr.hidden = true; $('#resultScr').hidden = true; bookEl.hidden = true; modalOpen = false;
   $('#bookBack').textContent = '요리로 돌아가기';
   resetWorld(); playing = true; emitters[1].rate = 4;
+  taster.visible = true; headMode = 'idle'; headT = 0;
   $('#bottom').hidden = false; $('#panStat').hidden = false; updatePanel();
   camGo(vw / vh < 0.9 ? 'prep' : 'all');
   toast('레시피 북부터 확인!');
@@ -2271,6 +2361,7 @@ function loop(ts) {
   frameFns.forEach(f => f(dt));
   if (act) { if (!ptr.down) { const a = act; act = null; a.end(); } else { act.tick(dt); placeGauge(); } }
   if (playing) { simulate(dt); followHand(dt); }
+  updateWatch(dt);
   placeFloat();
   updateHover(dt);
   updateCamera(dt); updateFlame(dt); updateStream();
