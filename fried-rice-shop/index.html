@@ -199,6 +199,8 @@ button:focus-visible{outline:3px dashed var(--red);outline-offset:3px}
 .ing{position:fixed;left:0;top:0;z-index:6;transform:translate(-50%,-50%);pointer-events:none;background:#fff;border:2px solid var(--ink);border-radius:8px;padding:1px 6px;font:900 12px var(--f-b);white-space:nowrap;box-shadow:2px 2px 0 var(--ink)}
 .ing kbd{font:700 10px ui-monospace,monospace;border:1.5px solid currentColor;border-radius:4px;padding:0 3px;margin-left:4px;opacity:.65}
 .ing.need{background:var(--yolk)}
+.ing.give{font-size:13px;padding:3px 8px;background:var(--yolk);animation:bounce .5s infinite steps(2);z-index:7}
+@keyframes bounce{50%{transform:translate(-50%,-62%)}}
 .pbar{position:fixed;left:0;top:0;z-index:6;transform:translate(-50%,-50%);width:70px;height:8px;border:2px solid var(--ink);background:#eee;pointer-events:none;overflow:hidden}
 .pbar i{position:absolute;inset:0;background:var(--green);transform-origin:left}
 .pbar i.low{background:var(--red)}
@@ -597,7 +599,7 @@ const angerMarks = [[0.42, 0.62], [-0.2, 0.95]].map(([x, y]) => { const m = add(
 function setRed(r) { hyHead.material.color.setRGB(1, 1 - r * 0.55, 1 - r * 0.6); }
 function anger(n) { angerMarks.forEach((m, i) => m.visible = i < n); }
 const hyHeadW = () => { hyHead.updateMatrixWorld(); return hyHead.localToWorld(V(0, 0, 0)); };
-const HY_HOME = V(-4.1, 0, -0.1);
+const HY_HOME = V(-3.95, 0, 1.45);
 hy.position.copy(HY_HOME);
 // golden statue uses the same head
 add(plane(1.4, 1.4, new THREE.MeshBasicMaterial({ map: canvasTex(480, 480, (g, w) => drawHy(g, w, 'apron')), transparent: true, alphaTest: 0.45, color: 0xffcc33 })), 0, 1.5, 0, statue);
@@ -845,7 +847,8 @@ function makeCust(type) {
     c.m = add(plane(1.5, 2.25, cut(guestTex(c.key, c.v, 'n'))), 0, 1.95, 0, c.rig);
     c.top = 3.15;
   }
-  c.m.userData = { pick: true, cust: c };
+  c.m.userData = { pick: true, cust: c }; if (c.head) c.head.userData = { pick: true, cust: c };
+  c.rt = document.createElement('div'); c.rt.className = 'ing need give'; c.rt.textContent = '👆 클릭해서 주기'; c.rt.hidden = true; pbarsEl.appendChild(c.rt);
   ANCH[c.id] = () => c.g.position.clone().add(V(0, c.top + 0.1, 0));
   c.pb = document.createElement('div'); c.pb.className = 'pbar'; c.pb.innerHTML = '<i></i>'; c.pb.hidden = true; pbarsEl.appendChild(c.pb);
   custs.push(c); return c;
@@ -855,9 +858,9 @@ function custMood(c, m, sec) {
   if (c.type === 'sw') { const b = m !== 'n'; c.head.material.map = b ? headTexB : headTexA; c.head.material.needsUpdate = true; c.head.scale.set(1, b ? S_SY : 1, 1); }
   else { c.m.material.map = guestTex(c.key, c.v, m); c.m.material.needsUpdate = true; }
 }
-const cSay = (c, t, ms) => { bub(c.id, c.type === 'sw' ? swFmt(t) : t, ms); if (c.type === 'sw') audio.oink(); else audio.tone(260 + (cid % 5) * 40, 0.08, 0.12, 'triangle'); };
+const cSay = (c, t, ms) => { if (G && G.talking && c.type !== 'sw') return; bub(c.id, c.type === 'sw' ? swFmt(t) : t, ms); if (c.type === 'sw') audio.oink(); else audio.tone(260 + (cid % 5) * 40, 0.08, 0.12, 'triangle'); };
 function removeCust(c) {
-  c.gone = true; scene.remove(c.g); dropBub(c.id); c.pb.remove();
+  c.gone = true; scene.remove(c.g); dropBub(c.id); c.pb.remove(); c.rt.remove();
   const i = custs.indexOf(c); if (i >= 0) custs.splice(i, 1);
   if (c.type === 'guest') for (const m of ['n', 'smile', 'angry', 'shock', 'eat', 'down', 'fire']) { const k = c.key + m; if (texCache.has(k)) { texCache.get(k).dispose(); texCache.delete(k); } }
   if (c.ticket) dropTicket(c.ticket);
@@ -874,7 +877,7 @@ function makeTicket(c, menu, p, special) {
   const req = special || { oil: 1, egg: 2 * p, rice: p, chicken: mm.top === 'chicken' ? p : 0, onion: mm.top === 'onion' ? 1 : 0 };
   const t = { c, menu, p, req, price: special ? 0 : mm.price * p, name: special ? '볶음밥 10인분' : `${mm.n} ${p}인분`, el: document.createElement('button') };
   t.el.type = 'button'; t.el.className = 'tk'; t.el.addEventListener('pointerdown', e => { e.preventDefault(); setActive(t); });
-  $('#tickets').appendChild(t.el); tickets.push(t); if (c) { c.ticket = t; c.price = t.price; }
+  $('#tickets').appendChild(t.el); tickets.push(t); if (c) { c.ticket = t; c.price = t.price; c.lastP = p; }
   if (!G.active) setActive(t); renderTickets(); return t;
 }
 function dropTicket(t) { t.el.remove(); const i = tickets.indexOf(t); if (i >= 0) tickets.splice(i, 1); if (t.c) t.c.ticket = null; if (G.active === t) { G.active = null; if (tickets[0]) setActive(tickets[0]); } renderTickets(); }
@@ -922,17 +925,18 @@ function stirOff() { stirring = false; }
 function grade(t) {
   const r = t.req; let pen = 0; const why = [];
   let diff = 0; for (const k of Object.keys(ING_N)) diff += Math.abs((W[k] || 0) - (r[k] || 0));
-  if (diff) { pen += Math.min(2.5, diff * 0.5); why.push(`재료 ${diff}개 틀림`); }
+  if (diff) { pen += Math.min(2.5, diff * 0.75); why.push(`재료 ${diff}개 틀림`); }
   if (W.seq[0] !== 'oil') { pen += 0.5; why.push('기름부터'); }
   const fe = W.seq.indexOf('egg'), fr = W.seq.indexOf('rice');
   if (fr >= 0 && (fe < 0 || fr < fe)) { pen += 1; why.push('밥이 계란보다 먼저'); }
   const d = W.done; if (d < 0.55) { pen += 1.5; why.push('덜 익음'); } else if (d > 0.95) { pen += 2.5; why.push('숯'); } else if (d > 0.8) { pen += 1; why.push('조금 탐'); }
   return { stars: clamp(Math.round(5 - pen), 1, 5), why, kind: d > 0.95 ? 'burnt' : d < 0.55 ? 'raw' : 'friedrice' };
 }
-function serve() {
-  if (bizPause || !G || !G.cooking || !G.active) return;
+function serve() { if (G && G.active) serveTo(G.active); }
+function serveTo(t) {
+  if (bizPause || !G || !G.cooking || !t) return;
   if (W.done < 0.05) { hySay('아직 안 볶앗씁니다.', 1200); return; }
-  const t = G.active, gr = grade(t); stirring = false;
+  const gr = grade(t); stirring = false;
   const dish = spawnFood(gr.kind, WOK.clone().add(V(0, 0.3, 0)), t.p >= 3 ? 1.6 : 1.0); dish.userData.spin = 0;
   const to = t.c ? V(SEATS[t.c.seat], 1.18, 0.75) : V(0, 1.18, 0.75);
   flyAt(dish, to, 0.5, 0.8).then(() => { if (t.c && !t.c.gone) t.c.dish = dish; else dropFood(dish); });
@@ -949,16 +953,17 @@ function dump() { if (bizPause || !G || !G.cooking || !wokUsed()) return; G.wast
 function cookCtl() {
   ctl([{ label: '꾹 볶기', key: 'Space', kname: 'Space', down: stirOn, up: stirOff }, { label: '내기', key: 'Enter', kname: 'Enter', down: serve }, { label: '버리기', cls: 'r', key: 'Backspace', kname: '⌫', down: dump }]);
   ING.forEach(d => { keys[d.key] = { down: () => addIng(d.k), up() {} }; });
-  pickables = [...ING.map(d => d.hit), wokHit, ...custs.map(c => c.m)];
-  onPick = o => { const u = o.userData; if (u.ing) addIng(u.ing); else if (u.wok) stirOn(); else if (u.cust && u.cust.ticket) setActive(u.cust.ticket); };
+  pickables = [...ING.map(d => d.hit), wokHit, ...custs.flatMap(c => c.head ? [c.m, c.head] : [c.m])];
+  onPick = o => { const u = o.userData; if (u.ing) addIng(u.ing); else if (u.wok) stirOn(); else if (u.cust && u.cust.ticket) { if (W.done >= 0.05 && u.cust.state === 'wait') serveTo(u.cust.ticket); else setActive(u.cust.ticket); } };
   onRelease = stirOff;
 }
 // floating labels over ingredients
 const tagEls = ING.map(d => { const e = document.createElement('div'); e.className = 'ing'; e.innerHTML = `${d.n}<kbd>${d.key.slice(-1)}</kbd>`; e.hidden = true; $('#tags').appendChild(e); return e; });
 function updateTags() { const t = G && G.active; ING.forEach((d, i) => { const el = tagEls[i]; el.classList.toggle('need', !!t && (W[d.k] || 0) < (t.req[d.k] || 0)); el.style.opacity = d.k === 'chicken' && !lv('chick') && !(t && t.req.chicken) ? 0.35 : 1; }); }
 function placeTags() {
-  const on = G && G.cooking; ING.forEach((d, i) => { const el = tagEls[i]; el.hidden = !on; if (!on) return; const [x, y] = toScreen(d.g.position.clone().add(V(0, 0.95, 0))); el.style.left = x + 'px'; el.style.top = y + 'px'; });
-  for (const c of custs) { c.pb.hidden = !(c.ticket && on && c.state === 'wait'); if (c.pb.hidden) continue; const [x, y] = toScreen(c.g.position.clone().add(V(0, c.top - 0.1, 0.2))); c.pb.style.left = x + 'px'; c.pb.style.top = y + 'px'; const f = clamp(c.patience / c.pmax, 0, 1), i = c.pb.firstChild; i.style.transform = `scaleX(${f})`; i.classList.toggle('low', f < 0.3); if (c.ticket && c.ticket.bar) { c.ticket.bar.style.transform = `scaleX(${f})`; c.ticket.bar.classList.toggle('low', f < 0.3); } }
+  const on = G && G.cooking && !G.talking, ready = on && W.done >= 0.55 && !bizPause; ING.forEach((d, i) => { const el = tagEls[i]; el.hidden = !on; if (!on) return; const [x, y] = toScreen(d.g.position.clone().add(V(0, 0.95, 0))); el.style.left = x + 'px'; el.style.top = y + 'px'; });
+  for (const c of custs) { c.rt.hidden = !(ready && c.ticket && c.state === 'wait'); if (!c.rt.hidden) { const [rx, ry] = toScreen(c.g.position.clone().add(V(0, c.top + 0.55, 0.2))); c.rt.style.left = rx + 'px'; c.rt.style.top = ry + 'px'; }
+    c.pb.hidden = !(c.ticket && on && c.state === 'wait'); if (c.pb.hidden) continue; const [x, y] = toScreen(c.g.position.clone().add(V(0, c.top - 0.1, 0.2))); c.pb.style.left = x + 'px'; c.pb.style.top = y + 'px'; const f = clamp(c.patience / c.pmax, 0, 1), i = c.pb.firstChild; i.style.transform = `scaleX(${f})`; i.classList.toggle('low', f < 0.3); if (c.ticket && c.ticket.bar) { c.ticket.bar.style.transform = `scaleX(${f})`; c.ticket.bar.classList.toggle('low', f < 0.3); } }
 }
 function nextHint() {
   const t = G.active; if (!t) return '손님을 기다리는 중…';
@@ -969,13 +974,16 @@ function nextHint() {
   if (W.chicken < r.chicken) return `④ 닭가슴살 ${r.chicken - W.chicken}개 더 (4)`;
   if (W.onion < r.onion) return `④ 파 넣기 (5)`;
   if (W.done < 0.55) return '⑤ 웍을 꾹 눌러 볶으세요 (Space)';
-  if (W.done <= 0.8) return '⑥ 노릇노릇! 지금 내세요 (Enter)';
-  return '⑥ 탄다! 빨리 내세요 (Enter)';
+  if (W.done <= 0.8) return '⑥ 노릇노릇! 손님을 클릭해서 주세요 (Enter = 선택한 주문)';
+  return '⑥ 탄다! 빨리 손님을 클릭하세요!';
 }
 
-/* ===== big moments ===== */
-async function angerEvent(c, line) {
-  if (c.gone) return;
+/* ===== big moments (one at a time) ===== */
+let evLock = Promise.resolve();
+function exclusive(fn) { const p = evLock.then(fn); evLock = p.catch(() => {}); return p; }
+function angerEvent(c, line) { return exclusive(() => angerEventNow(c, line)); }
+async function angerEventNow(c, line) {
+  if (c.gone || !G.cooking) return;
   bizPause = true; stirring = false; const prevView = view;
   letterbox(true); closeOn(c.g.position.clone().add(V(0, 2.0, 0)), 3.0, 6); custMood(c, 'angry', 3); cSay(c, line, 2600); await sleep(1.6);
   camOv = { p: hy.position.clone().add(V(0.9, 2.3, 2.8)), l: hy.position.clone().add(V(0, 2.2, 0)), k: 6 }; tremble = 0.8; letterbox(false);
@@ -1010,33 +1018,75 @@ async function punchScene(c) {
   hySay('영업 계속하겟씁니다.', 1600); await sleep(1.2);
 }
 
+
+/* ===== 상욱 visits: everything stops and the two of them talk ===== */
+async function hyGo(to, dur) { const a = hy.position.clone(); await anim(dur, (k, raw) => { hy.position.lerpVectors(a, to, k); hyRig.position.y = Math.floor(raw * dur * 8) % 2 ? 0.08 : 0; }, x => x); hyRig.position.y = 0; }
+function shotSw(c) { const h = c.head.getWorldPosition(V(0, 0, 0)); camOv = { p: h.clone().add(V(0.35, -0.1, 2.3)), l: h.clone().add(V(0, -0.2, 0)), k: 7 }; }
+function shotHy() { const h = hyHeadW(); camOv = { p: h.clone().add(V(1.4, -0.1, 1.7)), l: h.clone().add(V(0, -0.25, 0)), k: 7 }; }
+function shotTwo(c) { const x = SEATS[c.seat]; camOv = { p: V(x + 3.4, 3.0, 2.6), l: V(x - 0.5, 2.5, 0.8), k: 5 }; }
+async function talk(c, seq) {
+  for (const [w, t, ms] of seq) {
+    if (c.gone) return;
+    if (w === 'sw') { shotSw(c); custMood(c, 'smile', ms / 1000); cSay(c, t, ms); }
+    else { shotHy(); hySay(t, ms); }
+    await sleep(ms / 1000 * 0.85 + 0.15);
+  }
+}
+async function swScene(c) {
+  if (c.gone || !G.cooking) return 'leave';
+  bizPause = true; stirring = false; G.talking = true; G.swVisits = (G.swVisits || 0) + 1;
+  $('#tickets').hidden = true; mgEl.hidden = true; ctlEl.innerHTML = ''; keys = {}; hideBubs();
+  letterbox(true);
+  const x = SEATS[c.seat];
+  shotTwo(c); await hyGo(V(x - 1.05, 0, 1.5), Math.min(1.4, Math.abs(hy.position.x - x) * 0.25 + 0.4)); await sleep(0.3);
+  let res = 'sell';
+  if (G.swVisits === 1) await talk(c, [['hy', '어서 오씹시오.', 1400], ['sw', '형 가게 차렸다길래 와 봤어요', 2100], ['hy', '예. 2인분부터 받씁니다.', 1800]]);
+  else if (G.day === 5) await talk(c, [['sw', '제 국밥집 손님이 다 여기 와 있네요', 2300], ['hy', '예.', 1100]]);
+  else await talk(c, [['sw', '또 왔어요', 1500], ['hy', '예.', 1100]]);
+  if (lv('noguk')) {
+    await talk(c, [['sw', '국밥 주세… 어?', 1700]]);
+    camOv = { p: noGuk.position.clone().add(V(-0.8, -0.3, 2.8)), l: noGuk.position.clone(), k: 6 }; audio.drum(); await sleep(1.3);
+    await talk(c, [['sw', '국밥 금지…?', 1700], ['hy', '예. 금지이씁니다.', 1700], ['sw', '그럼 볶음밥 2인분이요', 1900], ['hy', '예.', 1100]]);
+    G.ach.nogukbap = true;
+  } else {
+    await talk(c, [['sw', G.swVisits === 1 ? '국밥 주세요' : '오늘은 국밥 되죠?', 2100], ['hy', '……', 1300]]);
+    shotTwo(c);
+    mg('상욱이가 국밥을 찾습니다!', '현태에게 뭐라고 하라고 할까요?');
+    const opts = shuffle([{ t: '볶음밥 2인분 드린다고 해!', k: 'sell' }, { t: '국밥 사 오라고 해!', k: 'buy' }, { t: '나가라고 해!', k: 'out' }]);
+    const ci = await choose(opts.map(o => o.t), 7); mgOff();
+    res = ci >= 0 ? opts[ci].k : 'sell';
+    if (res === 'sell') { await talk(c, [['hy', '국밥은 없씁니다. 볶음밥 2인분 드리겟씁니다.', 2300], ['sw', '2인분이면 국밥 두 그릇 값인데', 2100], ['hy', '예.', 1100], ['sw', '…그럼 그거요', 1600]]); G.ach.nogukbap = true; }
+    else if (res === 'buy') {
+      await talk(c, [['hy', '…사 오겟씁니다.', 1700]]);
+      await fade(true, 0.35); hy.visible = false; await sleep(0.4); addMoney(-9000); hy.visible = true;
+      const gb = spawnFood('gukbap', V(x, 1.18, 0.75), 1.1); gb.userData.spin = 0;
+      await fade(false, 0.35); pop('국밥 사 옴 (-9,000원)', hyHeadW(), '');
+      await talk(c, [['sw', '역시 형', 1500]]);
+      for (let i = 0; i < 3; i++) { custMood(c, 'smile'); audio.chomp(); burst(V(x, 1.4, 0.7), 0xe0612a, 5, 1); await sleep(0.3); }
+      dropFood(gb); await talk(c, [['sw', '잘 먹었어요. 계산은 형이 했죠', 2200], ['hy', '…예.', 1200]]);
+    } else { await talk(c, [['hy', '나가씹시오.', 1400], ['sw', '치사해요', 1500]]); addRep(-0.1); }
+  }
+  camOv = null; letterbox(false); G.talking = false;
+  hyGo(HY_HOME, 0.9);
+  $('#tickets').hidden = false; resumeCook();
+  if (res === 'buy' || res === 'out') { await leave(c, 0); return 'leave'; }
+  return 'order';
+}
+
 /* ===== one customer's life ===== */
 async function runCust(c) {
   const s = c.seat;
   c.g.position.copy(DOOR); c.state = 'walk'; doorSwing();
   await walkC(c, V(SEATS[s], 0, -2.0), 1.4); await walkC(c, seatPos(s), 0.6);
   if (c.gone) return;
-  hySay(pick(['어서 오씹시오.', '어서 오씹시오. 2인분부터 받씁니다.', '예.']), 1400);
+  if (c.type !== 'sw') hySay(pick(['어서 오씹시오.', '어서 오씹시오. 2인분부터 받씁니다.', '예.']), 1400);
   c.state = 'order';
   const menus = ['egg', 'onion']; if (lv('chick')) menus.push('chick');
   let menu = pick(menus), p = rand() < 0.7 ? 2 : 1;
   if (c.type === 'sw') {
-    if (lv('noguk')) { cSay(c, '국밥 금지래요… 볶음밥 2인분이요', 2200); menu = 'egg'; p = 2; G.ach.nogukbap = true; }
-    else {
-      custMood(c, 'smile', 2); cSay(c, '국밥 주세요', 2400);
-      bizPause = true; stirring = false; await sleep(0.8);
-      mg('상욱이가 국밥을 찾습니다!', '현태에게 뭐라고 할지 고르세요!');
-      const opts = shuffle([{ t: '볶음밥 2인분 드린다고 해!', k: 'sell' }, { t: '국밥 사 오라고 해!', k: 'buy' }, { t: '나가라고 해!', k: 'out' }]);
-      const ci = await choose(opts.map(o => o.t), 6); mgOff();
-      const k = ci >= 0 ? opts[ci].k : 'sell';
-      if (k === 'sell') { hySay('국밥은 없씁니다. 볶음밥 2인분 드리겟씁니다.', 2200); await sleep(1.6); cSay(c, '그럼 그거요', 1600); menu = 'egg'; p = 2; G.ach.nogukbap = true; resumeCook(); }
-      else if (k === 'buy') {
-        hySay('…사 오겟씁니다.', 1600); await sleep(1.2); addMoney(-9000, hyHeadW());
-        const gb = spawnFood('gukbap', V(SEATS[s], 1.18, 0.75), 1.1); gb.userData.spin = 0; custMood(c, 'smile', 3); cSay(c, '역시 국밥', 1600);
-        for (let i = 0; i < 3; i++) { audio.chomp(); await sleep(0.3); }
-        dropFood(gb); resumeCook(); await leave(c, 0); return;
-      } else { hySay('나가씹시오.', 1400); await sleep(1); cSay(c, '치사해요', 1400); addRep(-0.1); resumeCook(); await leave(c, 0); return; }
-    }
+    const r = await exclusive(() => swScene(c));
+    if (r === 'leave' || c.gone) return;
+    menu = 'egg'; p = 2; c.talked = true;
   }
   if (c.type === 'jin') { menu = 'egg'; p = 2; }
   if (c.type === 'reviewer') { menu = 'egg'; p = 1; }
@@ -1062,7 +1112,7 @@ async function runCust(c) {
   const st = c.served.stars; G.served++; G.ds.n++; G.ds.stars += st; G.starsSum += st;
   G.ach.first = true; if (st === 5) G.ach.five = true;
   let pay = (c.price || 0), line = '', mood = 'n';
-  if (st >= 5) { line = pick(['정말 맛있다!', '인생 볶음밥!', '2인분이 순삭이에요!']); mood = 'fire'; }
+  if (st >= 5) { line = pick(['정말 맛있다!', '인생 볶음밥!', c.lastP === 1 ? '한 그릇 순삭이에요!' : '2인분이 순삭이에요!']); mood = 'fire'; }
   else if (st === 4) { line = pick(['맛있네요.', '또 올게요.', '괜찮네요!']); mood = 'smile'; }
   else if (st === 3) { line = pick(['먹을 만하네요.', '평범해요.']); }
   else { line = pick(['…음.', '이게 볶음밥이에요?', '계란이 어디 갔죠?']); mood = 'angry'; pay *= 0.5; }
@@ -1086,7 +1136,7 @@ async function leave(c, st) {
 function spawn(type) {
   const s = freeSeat(); if (s == null) return null;
   const c = makeCust(type); c.seat = s; c.price = 0;
-  if (G.cooking && pickables) pickables.push(c.m);
+  if (G.cooking && pickables) { pickables.push(c.m); if (c.head) pickables.push(c.head); }
   runCust(c).catch(e => console.error(e));
   if (custs.filter(x => x.seat >= 0).length >= 4) G.ach.full = true;
   return c;
@@ -1283,6 +1333,7 @@ async function finale(id) {
 /* ===== flow ===== */
 let running = false;
 function resetWorld() {
+  evLock = Promise.resolve();
   foods.slice().forEach(dropFood); clearParts(); mgOff(); hideBubs(); $('#coach').hidden = true; for (const c of custs.slice()) removeCust(c); for (const t of tickets.slice()) dropTicket(t);
   onPick = pickables = onRelease = onDrag = onCanvasTap = null; timeScale = 1; letterbox(false); $('#fade').style.opacity = 0; $('#race').hidden = true; bizPause = false;
   scene.background.set(0x2a2118); hemi.intensity = 1; camOv = null; camRoll = 0; tremble = 0;
@@ -1308,6 +1359,13 @@ $('#startBtn').addEventListener('click', startGame);
 $('#againBtn').addEventListener('click', startGame);
 
 /* ===== frame ===== */
+let hoverXY = null;
+canvas.addEventListener('pointermove', e => { hoverXY = [e.clientX, e.clientY]; });
+function updateCursor() {
+  if (!hoverXY || !pickables || !G || !G.cooking) { canvas.style.cursor = ''; return; }
+  ndc.set(hoverXY[0] / vw * 2 - 1, -(hoverXY[1] / vh) * 2 + 1); ray.setFromCamera(ndc, camera);
+  canvas.style.cursor = ray.intersectObjects(pickables, true).length ? 'pointer' : '';
+}
 let hyT = 0, hyTalk = 0;
 function updateChars(dt) {
   hyT += dt; hyTalk = Math.max(0, hyTalk - dt);
@@ -1328,7 +1386,7 @@ function loop(ts) {
   const raw = ts - last; last = ts;
   const dt = Math.min(0.05, raw / 1000) * SPEED * timeScale; T += dt;
   frameFns.forEach(f => f(dt));
-  updateChars(dt); updateCamera(dt); placeBubbles(); placeTags();
+  updateChars(dt); updateCamera(dt); placeBubbles(); placeTags(); if ((perfN & 3) === 0) updateCursor();
   if (titleScr.hidden && splash.hidden) renderer.render(scene, camera);
   if (raw > 0 && raw < 250) { perfAcc += raw; perfN++; }
   if (perfN >= 90) { const a = perfAcc / perfN; perfAcc = 0; perfN = 0; if (a > 21 && pr > 0.75) { pr = Math.max(0.75, pr - 0.2); resize(); } else if (a < 17.5 && pr < MAX_PR) { pr = Math.min(MAX_PR, pr + 0.1); resize(); } }
