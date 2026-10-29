@@ -220,6 +220,16 @@ button:focus-visible{outline:3px dashed var(--red);outline-offset:3px}
 .lb-on .ctl{bottom:calc(11vh + 14px)}
 .lb-on .mg:not(.low){top:calc(11vh + 14px)}
 .ing.punch{background:#ff5a3a;color:#fff}
+.chip.tr{min-width:118px}.chip .tb{height:7px;border:2px solid var(--ink);background:#eee;margin-top:3px;position:relative;overflow:hidden}.chip .tb i{position:absolute;inset:0;background:var(--blue);transform-origin:left;transform:scaleX(0);transition:transform .3s}
+.chip.tr.up{animation:shake .12s 6 steps(2);background:var(--yolk)}
+.sc3{position:fixed;left:0;top:0;z-index:9;transform:translate(-50%,-100%);pointer-events:none;background:#fff;border:4px solid var(--ink);box-shadow:5px 5px 0 var(--ink);padding:2px 14px;font:900 46px/1.1 var(--f-b);text-align:center;animation:mpop .3s cubic-bezier(.2,1.8,.4,1) both}
+.sc3 small{display:block;font:900 12px var(--f-b);color:var(--muted)}
+.sc3.hi{color:var(--red);background:var(--yolk)}
+@keyframes mpop{from{transform:translate(-50%,-100%) scale(0)}}
+.tot{position:fixed;left:50%;top:calc(80px + env(safe-area-inset-top,0px));transform:translateX(-50%);z-index:9;display:flex;gap:16px;pointer-events:none}
+.tot div{background:#fff;border:4px solid var(--ink);box-shadow:5px 5px 0 var(--ink);padding:6px 14px;font:900 18px var(--f-b);text-align:center;min-width:150px}
+.tot b{display:block;font:400 40px var(--f-display)}
+.tot .me{background:var(--yolk)}.tot .sw{background:#f7c9a8}
 .ob{position:fixed;left:0;top:0;z-index:6;transform:translate(-50%,-100%);pointer-events:none;background:#fff;border:3px solid var(--ink);border-radius:12px;padding:3px 9px;font:900 13px/1.3 var(--f-b);white-space:nowrap;box-shadow:3px 3px 0 var(--ink);text-align:center}
 .ob::after{content:"";position:absolute;left:50%;bottom:-11px;margin-left:-6px;border:6px solid transparent;border-top:7px solid var(--ink)}
 .ob b{color:var(--red);display:block;font-size:14px}
@@ -239,6 +249,7 @@ button:focus-visible{outline:3px dashed var(--red);outline-offset:3px}
   <div class="chip"><small>시각</small><span id="hClock">11:00</span></div>
   <div class="chip w"><small>돈</small><b id="hMoney">0원</b></div>
   <div class="chip"><small>평판</small><span id="hRep">★3.0</span></div>
+  <div class="chip tr"><small>현태 신뢰</small><span id="hTrust">Lv1 수습 알바</span><div class="tb"><i id="hTrustB"></i></div></div>
   <div class="gauge r" id="gRg"><span>현태 분노</span><div class="bar"><i id="gRgB"></i></div></div>
   <button class="mute" id="mute" type="button">소리 켬</button>
 </header>
@@ -249,6 +260,8 @@ button:focus-visible{outline:3px dashed var(--red);outline-offset:3px}
 <div id="pops"></div>
 <section class="mg" id="mg" hidden aria-live="polite"><h3 id="mgT"></h3><p id="mgD"></p><div class="pb" id="mgPB" hidden><b id="mgZone" hidden></b><i id="mgBar"></i><em id="mgMark" hidden></em></div><div class="tm"><i id="mgTm"></i></div></section>
 <div class="race" id="race" hidden>현태 볶음밥 10인분<div class="rb me"><i id="raceMe"></i></div>상욱 국밥 10그릇<div class="rb sw"><i id="raceSw"></i></div></div>
+<div class="tot" id="tot" hidden><div class="sw">진상욱 국밥<b id="totSw">0</b></div><div class="me">김현태 볶음밥<b id="totMe">0</b></div></div>
+<div id="scs"></div>
 <div class="ctl" id="ctl"></div>
 <div class="banner" id="banner" hidden><span id="bannerT"></span></div>
 <div class="lb" id="lb"></div>
@@ -277,7 +290,7 @@ button:focus-visible{outline:3px dashed var(--red);outline-offset:3px}
       <dt>상호</dt><dd>김현태 볶음밥</dd><dt>사장</dt><dd>김현태</dd>
       <dt>총매출</dt><dd class="r" id="c1"></dd><dt>판매 그릇</dt><dd id="c2"></dd><dt>2인분 비율</dt><dd id="c3"></dd>
       <dt>쓴 계란</dt><dd id="c4"></dd><dt>평균 별점</dt><dd id="c5"></dd><dt>최종 평판</dt><dd id="c6"></dd>
-      <dt>펀찌로 내보낸 손님</dt><dd id="c7"></dd><dt>엔딩</dt><dd class="r" id="cEnd"></dd>
+      <dt>펀찌로 내보낸 손님</dt><dd id="c7"></dd><dt>현태 신뢰</dt><dd id="c8"></dd><dt>요리 대결</dt><dd id="c9"></dd><dt>엔딩</dt><dd class="r" id="cEnd"></dd>
     </dl>
     <p class="say" id="cSay"></p>
     <div class="new" id="cNew" hidden></div>
@@ -298,11 +311,11 @@ button:focus-visible{outline:3px dashed var(--red);outline-offset:3px}
     <div class="tbtns"><button class="bbtn y" id="startBtn" type="button">개업하기</button><button class="bbtn" id="dexBtn" type="button">엔딩 도감</button></div>
     <p class="best" id="best"></p>
     <details class="how"><summary>하는 법</summary><dl>
-      <dt>목표</dt><dd>5일 동안 현태의 볶음밥 가게를 운영합니다. 마지막 날에는 맞은편 국밥집과 대결합니다.</dd>
+      <dt>목표</dt><dd>현태 가게의 신입 알바생이 되어 5일 동안 일합니다. 현태에게 인정받으면 비법을 배우고, 마지막 날엔 맞은편 국밥집과 요리 대결을 합니다.</dd>
       <dt>레시피</dt><dd>1인분 = 기름 1 → 계란 2 → 밥 1 (+토핑). 웍을 꾹 눌러 볶다가 노릇할 때 떼고 내세요.</dd>
-      <dt>조작</dt><dd>조리대 위 재료 클릭(숫자 키 1~5), 웍 꾹 누르기(스페이스), 내기(엔터), 버리기(백스페이스).</dd>
+      <dt>조작</dt><dd>재료 클릭(숫자 키 1~5), 웍 꾹 누르기(스페이스), 불쇼는 웍을 누른 채 위로 쓱(↑ 키), 손님 클릭으로 서빙(엔터), 버리기(백스페이스).</dd>
       <dt>손님</dt><dd>기다림 막대가 떨어지기 전에 내세요. 주문표를 눌러 순서를 바꿀 수 있습니다.</dd>
-      <dt>엔딩</dt><dd>매출과 평판, 대결 결과에 따라 7가지로 갈립니다.</dd>
+      <dt>엔딩</dt><dd>현태와의 신뢰, 단골과의 관계, 대결 결과에 따라 9가지로 갈립니다.</dd>
     </dl></details>
     <div class="peek" aria-hidden="true"><span>🐽 국밥은 없나요ㄲㄲ 🐽</span><img id="tPeek" alt=""></div>
   </div>
@@ -608,8 +621,8 @@ const angerTex = canvasTex(256, 256, (g) => {
 const angerMarks = [[0.42, 0.62], [-0.2, 0.95]].map(([x, y]) => { const m = add(plane(0.55, 0.55, new THREE.MeshBasicMaterial({ map: angerTex, transparent: true, alphaTest: 0.3, depthWrite: false })), x, y, 0.06, hyHead); m.visible = false; return m; });
 function setRed(r) { hyHead.material.color.setRGB(1, 1 - r * 0.55, 1 - r * 0.6); }
 function anger(n) { angerMarks.forEach((m, i) => m.visible = i < n); }
-const hyHeadW = () => { hyHead.updateMatrixWorld(); return hyHead.localToWorld(V(0, 0, 0)); };
-const HY_HOME = V(-3.95, 0, 1.45);
+const hyHeadW = () => { hy.updateMatrixWorld(true); return hyHead.localToWorld(V(0, 0, 0)); };
+const HY_HOME = V(-2.5, 0, 1.6);
 hy.position.copy(HY_HOME);
 // golden statue uses the same head
 add(plane(1.4, 1.4, new THREE.MeshBasicMaterial({ map: canvasTex(480, 480, (g, w) => drawHy(g, w, 'apron')), transparent: true, alphaTest: 0.45, color: 0xffcc33 })), 0, 1.5, 0, statue);
@@ -641,12 +654,12 @@ const foods = [];
 function spawnFood(kind, pos, size) { const o = new THREE.Group(); FOOD[kind](o); o.scale.setScalar((size || 1) * 1.5); o.position.copy(pos); o.rotation.y = rand() * PI * 2; o.userData.spin = 0.6 + rand() * 0.8; scene.add(o); foods.push(o); return o; }
 function dropFood(m) { if (!m || !m.parent) return; m.parent.remove(m); const i = foods.indexOf(m); if (i >= 0) foods.splice(i, 1); }
 // particles (sparkles / crumbs / sweat)
-const PN = 140;
+const PN = 220;
 const parts = new THREE.InstancedMesh(new THREE.BoxGeometry(0.06, 0.06, 0.06), basic({ color: 0xffffff }), PN); parts.frustumCulled = false; scene.add(parts);
-const pP = [], pV = [], pL = [], ZM = new THREE.Matrix4().makeScale(0, 0, 0), _m4 = new THREE.Matrix4(); let pI = 0;
-for (let i = 0; i < PN; i++) { pP.push(V(0, -9, 0)); pV.push(V(0, 0, 0)); pL.push(0); parts.setMatrixAt(i, ZM); parts.setColorAt(i, new THREE.Color(0xffffff)); }
-function burst(pos, color, n, spd, life) { const c = new THREE.Color(color); for (let k = 0; k < (n || 10); k++) { const i = pI = (pI + 1) % PN; pP[i].copy(pos); const s = spd || 2.4; pV[i].set((rand() - .5) * s, rand() * s * 0.8 + 0.4, (rand() - .5) * s + 0.4); pL[i] = life || 1.2; parts.setColorAt(i, c); } parts.instanceColor.needsUpdate = true; }
-function updateParts(dt) { let any = false; for (let i = 0; i < PN; i++) { if (pL[i] <= 0) continue; any = true; pL[i] -= dt; const p = pP[i], v = pV[i]; v.y -= 6 * dt; p.addScaledVector(v, dt); if (p.y < 0.03) { p.y = 0.03; v.multiplyScalar(0.3); } const s = clamp(pL[i] * 1.5, 0, 1); _m4.makeScale(s, s, s).setPosition(p); parts.setMatrixAt(i, pL[i] > 0 ? _m4 : ZM); } if (any) parts.instanceMatrix.needsUpdate = true; }
+const pP = [], pV = [], pL = [], pGr = [], ZM = new THREE.Matrix4().makeScale(0, 0, 0), _m4 = new THREE.Matrix4(); let pI = 0;
+for (let i = 0; i < PN; i++) { pP.push(V(0, -9, 0)); pV.push(V(0, 0, 0)); pL.push(0); pGr.push(6); parts.setMatrixAt(i, ZM); parts.setColorAt(i, new THREE.Color(0xffffff)); }
+function burst(pos, color, n, spd, life, grav) { const c = new THREE.Color(color); for (let k = 0; k < (n || 10); k++) { const i = pI = (pI + 1) % PN; pP[i].copy(pos); const s = spd || 2.4; pV[i].set((rand() - .5) * s, rand() * s * 0.8 + 0.4, (rand() - .5) * s + 0.4); if (grav != null && grav < 0) pV[i].set((rand() - .5) * 0.3, 0.3 + rand() * 0.4, (rand() - .5) * 0.3); pL[i] = life || 1.2; pGr[i] = grav == null ? 6 : grav; parts.setColorAt(i, c); } parts.instanceColor.needsUpdate = true; }
+function updateParts(dt) { let any = false; for (let i = 0; i < PN; i++) { if (pL[i] <= 0) continue; any = true; pL[i] -= dt; const p = pP[i], v = pV[i]; v.y -= pGr[i] * dt; p.addScaledVector(v, dt); if (pGr[i] > 0 && p.y < 0.03) { p.y = 0.03; v.multiplyScalar(0.3); } const s = clamp(pL[i] * 1.5, 0, 1); _m4.makeScale(s, s, s).setPosition(p); parts.setMatrixAt(i, pL[i] > 0 ? _m4 : ZM); } if (any) parts.instanceMatrix.needsUpdate = true; }
 function clearParts() { for (let i = 0; i < PN; i++) { pL[i] = 0; parts.setMatrixAt(i, ZM); } parts.instanceMatrix.needsUpdate = true; }
 
 const audio = {
@@ -671,6 +684,11 @@ const audio = {
   drum() { this.tone(70, 0.5, 0.9, 'sine', 40); this.burst(150, 0.6, 0.4, 0.8); },
   alarm() { [0, 160, 320, 640, 800, 960].forEach(d => setTimeout(() => this.tone(1500, 0.1, 0.18, 'square'), d)); },
   sms() { this.tone(1046, 0.12, 0.2, 'triangle'); setTimeout(() => this.tone(1568, 0.25, 0.2, 'triangle'), 130); },
+  sizzle: null,
+  sizzleSet(v) { if (!this.ctx) return; if (!this.sizzle) { const c = this.ctx, s = c.createBufferSource(); s.buffer = this.noise; s.loop = true; const f = c.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = 4200; f.Q.value = 0.7; const g = c.createGain(); g.gain.value = 0; s.connect(f); f.connect(g); g.connect(this.master); s.start(); this.sizzle = g; } this.sizzle.gain.setTargetAtTime(v, this.ctx.currentTime, 0.08); },
+  crack() { this.burst(2800, 3, 0.04, 0.7); setTimeout(() => this.burst(1800, 2, 0.05, 0.5), 40); },
+  plop() { this.tone(180, 0.12, 0.3, 'sine', 90); this.burst(600, 1, 0.08, 0.3); },
+  fwoosh() { this.burst(400, 0.5, 0.6, 0.9); this.tone(90, 0.5, 0.4, 'sawtooth', 40); },
   set(m) { this.muted = m; if (this.master) this.master.gain.value = m ? 0 : 0.8; }
 };
 $('#mute').addEventListener('click', e => { audio.unlock(); audio.set(!audio.muted); e.currentTarget.textContent = audio.muted ? '소리 끔' : '소리 켬'; });
@@ -796,12 +814,64 @@ addEventListener('pointermove', e => {
 addEventListener('pointerup', () => { dragXY = null; if (onRelease) onRelease(); });
 
 
+/* ===== extra scene bits for the deep version ===== */
+VIEWS.cook = { p: [-0.55, 3.15, 5.6], l: [-0.35, 1.45, 1.2] };
+// tighter station around the wok so the close-up holds everything
+const ING_X = { oil: -1.95, egg: -1.35, rice: -0.78, chicken: 0.82, onion: 1.38 };
+ING.forEach(d => { d.g.position.x = ING_X[d.k]; }); eggMachine.position.x = ING_X.egg; plates.visible = false;
+// rice grains that actually toss in the wok
+const GRN = 260, grains = new THREE.InstancedMesh(new THREE.BoxGeometry(0.045, 0.028, 0.03), lam(0xffffff), GRN); fill.add(grains);
+const gHome = [], gPos = [], gVel = [], gEgg = [], gRot = [];
+for (let i = 0; i < GRN; i++) { const a = rand() * PI * 2, r = Math.sqrt(rand()) * 0.36; gHome.push(V(Math.cos(a) * r, 0.1 + (0.36 - r) * 0.25 + rand() * 0.05, Math.sin(a) * r)); gPos.push(gHome[i].clone()); gVel.push(V(0, 0, 0)); gEgg.push(rand()); gRot.push(rand() * PI); grains.setColorAt(i, new THREE.Color(0xffffff)); }
+riceM.visible = false; grains.count = 0;
+const _gm = new THREE.Matrix4(), _gq = new THREE.Quaternion(), _gs = V(1, 1, 1), _ge = new THREE.Euler();
+let grainsFlying = false;
+function grainColors() {
+  const d = W.done, base = new THREE.Color(0xf4f1ea), gold = new THREE.Color(0xf0c35a), brown = new THREE.Color(0x9a5a1a), coal = new THREE.Color(0x2a1a0a), egg = new THREE.Color(0xffd21f), tmp = new THREE.Color();
+  const eggShare = W.rice ? clamp(W.egg / (W.rice * 2) * 0.32, 0, 0.45) * clamp(W.done * 3, 0, 1) : 0;
+  for (let i = 0; i < GRN; i++) {
+    if (d < 0.6) tmp.copy(base).lerp(gold, d / 0.6); else if (d < 0.9) tmp.copy(gold).lerp(brown, (d - 0.6) / 0.3); else tmp.copy(brown).lerp(coal, clamp((d - 0.9) / 0.1, 0, 1));
+    if (gEgg[i] < eggShare) tmp.lerp(egg, 0.75);
+    grains.setColorAt(i, tmp);
+  }
+  grains.instanceColor.needsUpdate = true;
+}
+function updateGrains(dt) {
+  const n = Math.min(GRN, W.rice * 95); grains.count = n; if (!n) return;
+  let fly = false;
+  for (let i = 0; i < n; i++) {
+    const p = gPos[i], v = gVel[i], h = gHome[i];
+    if (v.lengthSq() > 0 || p.y > h.y + 0.001) { fly = true; v.y -= 9 * dt; p.addScaledVector(v, dt); gRot[i] += dt * 9; if (p.y <= h.y && v.y < 0) { p.copy(h); v.set(0, 0, 0); } }
+    else if (stirring) { p.x = h.x + (rand() - .5) * 0.03; p.z = h.z + (rand() - .5) * 0.03; p.y = h.y + rand() * 0.02; }
+    _ge.set(0, gRot[i], 0.3); _gq.setFromEuler(_ge); _gm.compose(p, _gq, _gs); grains.setMatrixAt(i, _gm);
+  }
+  grainsFlying = fly; grains.instanceMatrix.needsUpdate = true;
+}
+// a big flame for the 불쇼
+const flameTex = canvasTex(128, 192, (g) => { const gr = g.createRadialGradient(64, 150, 8, 64, 120, 100); gr.addColorStop(0, 'rgba(255,255,200,1)'); gr.addColorStop(0.35, 'rgba(255,170,40,.95)'); gr.addColorStop(0.7, 'rgba(255,60,10,.6)'); gr.addColorStop(1, 'rgba(255,0,0,0)'); g.fillStyle = gr; g.beginPath(); g.moveTo(64, 4); g.quadraticCurveTo(128, 120, 96, 186); g.lineTo(32, 186); g.quadraticCurveTo(0, 120, 64, 4); g.fill(); });
+const bigFlame = add(plane(1.4, 2.1, new THREE.MeshBasicMaterial({ map: flameTex, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending })), 0, 1.9, 2.85); bigFlame.visible = false;
+// eye fire on 현태 (same trick as the first game)
+const eyeFireTex = canvasTex(128, 128, (g) => {
+  const spikes = 9; g.beginPath();
+  for (let i = 0; i <= spikes * 2; i++) { const a = i / (spikes * 2) * PI * 2 - PI / 2, r = i % 2 ? 26 : 60; g.lineTo(64 + Math.cos(a) * r, 70 + Math.sin(a) * r * (Math.sin(a) < 0 ? 1.1 : 0.6)); }
+  g.closePath(); g.fillStyle = '#ff3b00'; g.fill(); g.lineWidth = 5; g.strokeStyle = '#111'; g.stroke();
+  g.beginPath(); g.arc(64, 74, 22, 0, PI * 2); g.fillStyle = '#ffe600'; g.fill(); g.beginPath(); g.arc(64, 78, 9, 0, PI * 2); g.fillStyle = '#fff'; g.fill();
+});
+const eyeFires = [[0.19, 0.45], [0.49, 0.44]].map(([u, v]) => { const m = add(plane(0.42, 0.42, new THREE.MeshBasicMaterial({ map: eyeFireTex, transparent: true, depthWrite: false })), (u - 0.5) * HW, (0.5 - v) * HH + 0.05, 0.07, hyHead); m.visible = false; return m; });
+const faceLight = new THREE.PointLight(0xff5a1a, 0, 4, 2); scene.add(faceLight);
+let eyeT = 0;
+function eyeFire(sec) { eyeT = sec; eyeFires.forEach(e => e.visible = true); audio.fwoosh(); }
+// sabotage flyers
+const flyerTex = label(220, 300, '국밥\n반값!\n맞은편', { bg: '#f5c518', border: 12, fg: '#7a3b1f', font: '900 62px "Malgun Gothic",sans-serif', lh: 78 });
+const FLYER_POS = [[-6.95, 2.5, -1.6, PI / 2], [-2.1, 3.4, -4.46, 0], [6.95, 2.6, -1.0, -PI / 2], [5.3, 1.6, -4.46, 0]];
+const flyers = FLYER_POS.map(([x, y, z, r]) => { const m = add(plane(0.9, 1.22, basic({ map: flyerTex, side: THREE.DoubleSide })), x, y, z); m.rotation.y = r; m.visible = false; add(new THREE.Mesh(new THREE.SphereGeometry(0.8, 8, 6), basic({ visible: false })), 0, 0, 0, m).userData = { pick: true, flyer: m }; return m; });
+
 /* ===== state ===== */
 let G = null, playing = false, tremble = 0, bizPause = false;
 const IV_NAME = ['깐깐 부장', '면접위원장', '친절 과장'];
 async function flyAt(o, to, dur, arc) { const a = o.position.clone(); await anim(dur, (k) => { o.position.lerpVectors(a, to, k); o.position.y += Math.sin(k * PI) * (arc || 0); }); }
-function resumeCook() { bizPause = false; if (!G.cooking) return; cookCtl(); mg(G.racing ? '10인분 대결!' : '주방', '', true); }
-const DAYS = 5, DAY_LEN = [55, 66, 72, 74, 70];
+function resumeCook() { bizPause = false; G.talking = false; if (!G.cooking) return; cookCtl(); mg(G.duel ? '결승 · 한 그릇 승부' : '주방', '', true); $('#tickets').hidden = false; }
+const DAYS = 5, DAY_LEN = [52, 60, 66, 68, 54];
 const MENU = { egg: { n: '계란 볶음밥', price: 6000, top: null }, onion: { n: '파 계란 볶음밥', price: 6500, top: 'onion' }, chick: { n: '닭가슴살 볶음밥', price: 8000, top: 'chicken' } };
 const UPG = [
   { id: 'fire', name: '화력 강화', d: '웍이 더 빨리 볶아집니다.', cost: [30000, 45000], max: 2 },
@@ -812,17 +882,26 @@ const UPG = [
   { id: 'noguk', name: '"국밥 금지" 표지판', d: '상욱이가 국밥을 안 찾습니다. 아마도.', cost: [15000], max: 1 },
   { id: 'statue', name: '현태 황금 동상', d: '평판이 오르고 진상 손님이 덜 옵니다.', cost: [60000], max: 1 },
 ];
-function fresh() { return { day: 1, money: 50000, rep: 3.0, rage: 0, up: {}, served: 0, two: 0, eggs: 0, waste: 0, starsSum: 0, punches: 0, revenue: 0, finalWin: false, calm: 0, ach: {}, clock: 0, ds: null }; }
+const TRUST_LV = [0, 12, 32, 58, 85], TRUST_NAME = ['수습 알바', '알바', '주방 보조', '부주방장', '주방장'];
+function fresh() { return { day: 1, money: 50000, rep: 3.0, rage: 0, up: {}, served: 0, two: 0, eggs: 0, waste: 0, starsSum: 0, punches: 0, revenue: 0, duelWin: false, calm: 0, ach: {}, clock: 0, ds: null, trust: 0, tlv: 1, skill: {}, aff: { sw: 0, iv: 0, jin: 0, rev: 0 }, street: 0, lessons: [], warn: 0, jinReformed: false, flyers: 0 }; }
 const lv = id => G.up[id] || 0;
 const won = n => Math.round(n).toLocaleString('ko-KR') + '원';
 function hud() {
   $('#hDay').textContent = `DAY ${Math.min(G.day, DAYS)} / ${DAYS}`; $('#hMoney').textContent = won(G.money); $('#hRep').textContent = '★' + G.rep.toFixed(1);
   const t = G.clock, h = 11 + Math.floor(t * 9), m = Math.floor((t * 9 % 1) * 60 / 10) * 10; $('#hClock').textContent = `${Math.min(h, 20)}:${String(h >= 20 ? 0 : m).padStart(2, '0')}`;
   $('#gRgB').style.transform = `scaleX(${clamp(G.rage / 100, 0, 1)})`; $('#gRg').classList.toggle('hot', G.rage >= 70);
+  const l = G.tlv, lo = TRUST_LV[l - 1], hi = TRUST_LV[l] || 100; $('#hTrust').textContent = `Lv${l} ${TRUST_NAME[l - 1]}`; $('#hTrustB').style.transform = `scaleX(${l >= 5 ? 1 : clamp((G.trust - lo) / (hi - lo), 0, 1)})`;
 }
 const addRage = n => { G.rage = clamp(G.rage + n, 0, 100); hud(); setRed(G.rage / 100); anger(G.rage >= 70 ? 2 : G.rage >= 35 ? 1 : 0); };
 const addRep = n => { G.rep = clamp(G.rep + n, 1, 5); hud(); };
 const addMoney = (n, pos) => { G.money += n; if (n > 0) { G.revenue += n; G.ds.rev += n; } hud(); if (pos && n) pop((n > 0 ? '+' : '') + won(n), pos, n > 0 ? 'good' : ''); };
+function addTrust(n) {
+  G.trust = clamp(G.trust + n, 0, 100);
+  let l = 1; while (l < 5 && G.trust >= TRUST_LV[l]) l++;
+  if (l > G.tlv) { for (let k = G.tlv + 1; k <= l; k++) G.lessons.push(k); G.tlv = l; $('.chip.tr').classList.remove('up'); void $('.chip.tr').offsetWidth; $('.chip.tr').classList.add('up'); }
+  if (n) pop((n > 0 ? '신뢰 +' : '신뢰 ') + n, hyHeadW().add(V(0, 0.9, 0)), n > 0 ? 'good' : '');
+  hud();
+}
 function drawMenu() {
   const c = menuTex.image, g = c.getContext('2d'); g.fillStyle = '#1f3a2a'; g.fillRect(0, 0, 400, 400); g.strokeStyle = '#a0703f'; g.lineWidth = 18; g.strokeRect(9, 9, 382, 382);
   g.fillStyle = '#fff'; g.font = '900 44px "Malgun Gothic",sans-serif'; g.textAlign = 'center'; g.fillText('메 뉴', 200, 70);
@@ -833,13 +912,29 @@ function drawMenu() {
   menuTex.needsUpdate = true;
 }
 function applyUpgrades() {
-  const seats = 3 + lv('seat'); stools.forEach((s, i) => { s.visible = seatOpen(i); });
+  stools.forEach((s, i) => { s.visible = seatOpen(i); });
   neon.visible = !!lv('neon'); neonLight.intensity = lv('neon') ? 1.2 : 0; noGuk.visible = !!lv('noguk'); statue.visible = !!lv('statue'); eggMachine.visible = !!lv('eggm');
   flame.material.color.setHex(lv('fire') >= 2 ? 0xff3a1a : lv('fire') ? 0xff8a1a : 0x3a8cff); flame.scale.setScalar(1 + lv('fire') * 0.25);
-  drawMenu(); return seats;
+  drawMenu();
 }
 const SEAT_ORDER = [1, 2, 3, 0, 4];
 const seatOpen = i => SEAT_ORDER.indexOf(i) < 3 + lv('seat');
+// the street across the window: empty → construction → opening soon → open → queue
+function setStreet(stage) {
+  G.street = stage;
+  const c = streetTex.image, g = c.getContext('2d'), w = c.width, h = c.height;
+  const gr = g.createLinearGradient(0, 0, 0, h); gr.addColorStop(0, '#9fd6ff'); gr.addColorStop(1, '#e6f4ff'); g.fillStyle = gr; g.fillRect(0, 0, w, h);
+  g.fillStyle = '#8a8f96'; g.fillRect(0, h - 40, w, 40); g.fillStyle = '#fff'; for (let x = 10; x < w; x += 60) g.fillRect(x, h - 22, 30, 5);
+  g.textAlign = 'center'; g.strokeStyle = '#111'; g.lineWidth = 6;
+  if (stage === 0) { g.fillStyle = '#c9b38a'; g.fillRect(40, 40, 240, 120); g.strokeRect(40, 40, 240, 120); g.fillStyle = '#fff'; g.fillRect(60, 60, 200, 40); g.fillStyle = '#555'; g.font = '900 26px "Malgun Gothic",sans-serif'; g.fillText('임대 문의', 160, 90); }
+  else if (stage === 1) { g.fillStyle = '#c9b38a'; g.fillRect(40, 40, 240, 120); g.strokeRect(40, 40, 240, 120); g.strokeStyle = '#f5c518'; g.lineWidth = 8; for (let x = 40; x < 290; x += 30) { g.beginPath(); g.moveTo(x, 40); g.lineTo(x + 30, 160); g.stroke(); } g.fillStyle = '#111'; g.fillRect(70, 70, 180, 34); g.fillStyle = '#f5c518'; g.font = '900 24px "Malgun Gothic",sans-serif'; g.fillText('공사 중 🚧', 160, 96); }
+  else {
+    g.fillStyle = '#7a3b1f'; g.fillRect(40, 40, 240, 120); g.strokeRect(40, 40, 240, 120); g.fillStyle = '#f5c518'; g.fillRect(52, 52, 216, 46); g.fillStyle = '#111'; g.font = '900 32px "Malgun Gothic",sans-serif'; g.fillText('진상욱 국밥', 160, 88);
+    g.fillStyle = '#fff'; g.font = '900 20px "Malgun Gothic",sans-serif'; g.fillText(stage === 2 ? '개업 예정 ㄲㄲ' : stage === 3 ? '오늘 개업 ㄲㄲ' : '줄 서는 집 ㄲㄲ', 160, 140);
+    if (stage >= 3) { const n = stage === 3 ? 2 : 6; for (let i = 0; i < n; i++) { const x = 270 - i * 26; g.fillStyle = pick(['#2a6dd8', '#1fc21f', '#ff7fa8', '#f5c518']); g.fillRect(x, h - 70, 16, 30); g.beginPath(); g.arc(x + 8, h - 78, 9, 0, PI * 2); g.fillStyle = '#f1c9a3'; g.fill(); } }
+  }
+  streetTex.needsUpdate = true;
+}
 
 /* ===== customers ===== */
 let cid = 0; const custs = [];
@@ -866,11 +961,11 @@ function makeCust(type) {
   custs.push(c); return c;
 }
 function custMood(c, m, sec) {
-  c.mood = m; c.moodT = sec || 0;
+  if (c.gone) return; c.mood = m; c.moodT = sec || 0;
   if (c.type === 'sw') { const b = m !== 'n'; c.head.material.map = b ? headTexB : headTexA; c.head.material.needsUpdate = true; c.head.scale.set(1, b ? S_SY : 1, 1); }
   else { c.m.material.map = guestTex(c.key, c.v, m); c.m.material.needsUpdate = true; }
 }
-const cSay = (c, t, ms) => { if (G && G.talking && c.type !== 'sw') return; bub(c.id, c.type === 'sw' ? swFmt(t) : t, ms); if (c.type === 'sw') audio.oink(); else audio.tone(260 + (cid % 5) * 40, 0.08, 0.12, 'triangle'); };
+const cSay = (c, t, ms, force) => { if (c.gone || (G && G.talking && !force)) return; bub(c.id, c.type === 'sw' ? swFmt(t) : t, ms); if (c.type === 'sw') audio.oink(); else audio.tone(260 + (cid % 5) * 40, 0.08, 0.12, 'triangle'); };
 function removeCust(c) {
   c.gone = true; scene.remove(c.g); dropBub(c.id); c.pb.remove(); c.rt.remove(); c.ob.remove(); if (c.pt) c.pt.remove();
   const i = custs.indexOf(c); if (i >= 0) custs.splice(i, 1);
@@ -884,20 +979,20 @@ function doorSwing() { anim(0.3, k => { doorPiv.rotation.y = -1.1 * k; }).then((
 
 /* ===== tickets ===== */
 const tickets = [];
-function makeTicket(c, menu, p, special) {
+function makeTicket(c, menu, p, special, name) {
   const mm = MENU[menu] || MENU.egg;
   const req = special || { oil: 1, egg: 2 * p, rice: p, chicken: mm.top === 'chicken' ? p : 0, onion: mm.top === 'onion' ? 1 : 0 };
-  const t = { c, menu, p, req, price: special ? 0 : mm.price * p, name: special ? '볶음밥 10인분' : `${mm.n} ${p}인분`, el: document.createElement('button') };
+  const t = { c, menu, p, req, price: special ? 0 : mm.price * p, name: name || `${mm.n} ${p}인분`, el: document.createElement('button') };
   t.el.type = 'button'; t.el.className = 'tk'; t.el.addEventListener('pointerdown', e => { e.preventDefault(); setActive(t); });
   $('#tickets').appendChild(t.el); tickets.push(t); if (c) { c.ticket = t; c.price = t.price; c.lastP = p; }
   if (!G.active) setActive(t); renderTickets(); return t;
 }
-function dropTicket(t) { t.el.remove(); const i = tickets.indexOf(t); if (i >= 0) tickets.splice(i, 1); if (t.c) t.c.ticket = null; if (G.active === t) { G.active = null; if (tickets[0]) setActive(tickets[0]); } renderTickets(); }
+function dropTicket(t) { t.el.remove(); const i = tickets.indexOf(t); if (i >= 0) tickets.splice(i, 1); if (t.c) t.c.ticket = null; if (G.active === t) { G.active = null; const nx = tickets.find(x => x.menu === t.menu && x.p === t.p) || tickets[0]; if (nx) { G.active = nx; } } renderTickets(); }
 function setActive(t) { if (G.active === t) return; if (G.active && wokUsed()) { pop('웍부터 비우세요', WOK.clone().add(V(0, 0.8, 0))); return; } G.active = t; renderTickets(); }
 const ING_N = { oil: '기름', egg: '계란', rice: '밥', chicken: '닭', onion: '파' };
 function renderTickets() {
   for (const t of tickets) {
-    const who = t.c ? (t.c.type === 'sw' ? '상욱' : t.c.type === 'reviewer' ? '리뷰어' : t.c.type === 'jin' ? '진상 손님' : t.c.type.startsWith('iv') ? IV_NAME[+t.c.type[2]] : '손님') : '단체';
+    const who = t.c ? (t.c.type === 'sw' ? '상욱' : t.c.type === 'reviewer' ? '리뷰어' : t.c.type === 'jin' ? '진상 손님' : t.c.type.startsWith('iv') ? IV_NAME[+t.c.type[2]] : '손님') : '심사위원';
     const items = Object.keys(ING_N).filter(k => t.req[k]).map(k => { const have = G.active === t ? (W[k] || 0) : 0; return `<li class="${have === t.req[k] ? 'ok' : have > t.req[k] ? 'over' : ''}">${ING_N[k]} ${have}/${t.req[k]}</li>`; }).join('');
     t.el.className = 'tk' + (G.active === t ? ' on' : '');
     t.el.innerHTML = `<small>${who}</small><b>${t.name}</b><ul>${items}</ul><div class="pt"><i></i></div>`;
@@ -907,67 +1002,148 @@ function renderTickets() {
 }
 
 /* ===== the wok ===== */
-const W = { oil: 0, egg: 0, rice: 0, chicken: 0, onion: 0, seq: [], done: 0 };
+const W = { oil: 0, egg: 0, rice: 0, chicken: 0, onion: 0, seq: [], done: 0, fire: 0, scallion: false, burnWarned: false };
 let stirring = false;
 const wokUsed = () => W.seq.length > 0;
-function resetWok() { W.oil = W.egg = W.rice = W.chicken = W.onion = 0; W.seq = []; W.done = 0; stirring = false; updateFill(); renderTickets(); }
+function resetWok() { W.oil = W.egg = W.rice = W.chicken = W.onion = 0; W.seq = []; W.done = 0; W.fire = 0; W.scallion = false; W.burnWarned = false; G && (G.warn = 0); stirring = false; for (let i = 0; i < GRN; i++) { gPos[i].copy(gHome[i]); gVel[i].set(0, 0, 0); } updateFill(); grainColors(); renderTickets(); }
 function updateFill() {
   oilM.visible = W.oil > 0;
-  const e = Math.min(W.egg, 8), shrink = clamp(1 - W.done * 1.2, 0.25, 1);
-  eggMs.forEach((m, i) => { m.visible = i < e; m.scale.set(shrink, 0.4 * shrink, shrink); });
-  riceM.visible = W.rice > 0; const r = Math.min(W.rice, 10); riceM.scale.set(0.7 + r * 0.15, (0.7 + r * 0.15) * 0.45, 0.7 + r * 0.15);
-  const d = W.done, col = new THREE.Color(0xf4f1ea);
-  if (d < 0.6) col.lerp(new THREE.Color(0xf0c35a), d / 0.6); else if (d < 0.9) col.set(0xf0c35a).lerp(new THREE.Color(0x9a5a1a), (d - 0.6) / 0.3); else col.set(0x9a5a1a).lerp(new THREE.Color(0x2a1a0a), clamp((d - 0.9) / 0.1, 0, 1));
-  riceMat.color.copy(col);
+  const e = Math.min(W.egg, 8), shrink = clamp(1 - W.done * 1.6, 0, 1);
+  eggMs.forEach((m, i) => { m.visible = i < e && shrink > 0.05; m.scale.set(shrink, 0.4 * shrink, shrink); });
   chickMs.forEach((m, i) => m.visible = i < Math.min(W.chicken * 2, 6)); onionMs.forEach((m, i) => m.visible = i < Math.min(W.onion * 4, 6));
+}
+// ingredient motions
+async function pourOil() {
+  const b = ingG.oil, home = b.position.clone(), tip = WOK.clone().add(V(-0.5, 0.75, 0));
+  await anim(0.22, k => { b.position.lerpVectors(home, tip, k); b.rotation.z = -k * 1.9; });
+  const stream = add(new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.03, 0.55, 6), lam(0xf2c14e, { transparent: true, opacity: 0.85 })), WOK.x - 0.15, WOK.y + 0.45, WOK.z); audio.burst(5000, 1, 0.4, 0.3);
+  await sleep(0.35); scene.remove(stream); stream.geometry.dispose();
+  updateFill(); burst(WOK.clone().add(V(0, 0.25, 0)), 0xffe08a, 6, 1.2, 0.5);
+  await anim(0.22, k => { b.position.lerpVectors(tip, home, k); b.rotation.z = -(1 - k) * 1.9; }); b.rotation.z = 0; b.position.copy(home);
+}
+async function crackEgg(from, delay) {
+  if (delay) await sleep(delay);
+  const rim = WOK.clone().add(V(-0.25 + rand() * 0.2, 0.42, 0.05)), egg = new THREE.Mesh(new THREE.SphereGeometry(0.085, 10, 8), lam(0xfff5e6)); egg.scale.y = 1.25; egg.position.copy(from); scene.add(egg);
+  await anim(0.22, k => { egg.position.lerpVectors(from, rim, k); egg.position.y += Math.sin(k * PI) * 0.35; egg.rotation.z += 0.3; });
+  scene.remove(egg); audio.crack();
+  const halves = [-1, 1].map(s => { const h = new THREE.Mesh(new THREE.SphereGeometry(0.085, 10, 6, 0, PI * 2, 0, PI / 2), lam(0xfff5e6, { side: THREE.DoubleSide })); h.position.copy(rim); h.rotation.z = s * 2.4; scene.add(h); return { h, s }; });
+  const yolk = new THREE.Mesh(new THREE.SphereGeometry(0.07, 10, 6), lam(0xffc21f)); yolk.position.copy(rim); scene.add(yolk);
+  await anim(0.3, k => { halves.forEach(({ h, s }) => { h.position.set(rim.x + s * k * 0.25, rim.y + Math.sin(k * PI) * 0.2 - k * 0.1, rim.z + k * 0.1); h.rotation.z += s * 0.2; }); yolk.position.lerpVectors(rim, WOK.clone().add(V(0, 0.18, 0)), k); });
+  halves.forEach(({ h }) => { scene.remove(h); h.geometry.dispose(); }); scene.remove(yolk); yolk.geometry.dispose();
+  burst(WOK.clone().add(V(0, 0.25, 0)), 0xffd21f, 4, 1, 0.5); audio.burst(4200, 1, 0.15, 0.25); updateFill();
+}
+async function scoopRice() {
+  const from = ingG.rice.position.clone().add(V(0, 0.55, 0)), m = new THREE.Mesh(new THREE.IcosahedronGeometry(0.17, 1), lam(0xf7f5f0)); m.scale.y = 0.7; m.position.copy(from); scene.add(m);
+  await anim(0.3, k => { m.position.lerpVectors(from, WOK.clone().add(V(0, 0.25, 0)), k); m.position.y += Math.sin(k * PI) * 0.5; });
+  scene.remove(m); m.geometry.dispose(); audio.plop(); burst(WOK.clone().add(V(0, 0.25, 0)), 0xffffff, 6, 1.2, 0.5);
+  const n = Math.min(GRN, W.rice * 95); for (let i = Math.max(0, n - 95); i < n; i++) { gPos[i].copy(gHome[i]).add(V(0, 0.25 + rand() * 0.2, 0)); gVel[i].set(0, -0.5, 0); }
+  grainColors();
+}
+async function tossBits(k) {
+  const col = k === 'onion' ? 0x3fae3a : 0xe8d2b0, from = ingG[k].position.clone().add(V(0, 0.4, 0));
+  const bits = []; for (let i = 0; i < 6; i++) { const b = add(box(0.06, 0.04, 0.06, col), from.x, from.y, from.z); bits.push(b); }
+  await anim(0.3, kk => bits.forEach((b, i) => { b.position.lerpVectors(from, WOK.clone().add(V((i % 3 - 1) * 0.12, 0.25, ((i / 3) | 0) * 0.1)), kk); b.position.y += Math.sin(kk * PI) * 0.4; }));
+  bits.forEach(b => { scene.remove(b); b.geometry.dispose(); }); audio.burst(900, 1, 0.12, 0.3); updateFill();
+  if (k === 'onion' && W.scallion) { pop('파기름!', WOK.clone().add(V(0, 0.9, 0)), 'good'); audio.ding(); burst(WOK.clone().add(V(0, 0.4, 0)), 0x9be07a, 10, 1.5, 0.8); }
 }
 function addIng(k) {
   if (bizPause || !G || !G.cooking) return;
   if (!G.active) { hySay('주문이 없씁니다.', 1200); return; }
-  const n = k === 'egg' && lv('eggm') ? 2 : 1;
+  const t = G.active, r = t.req;
+  let n = k === 'egg' && lv('eggm') ? 2 : 1;
+  if (k === 'egg' && G.skill.eggHelp) n = Math.max(n, r.egg - W.egg);
+  if (k === 'onion' && W.oil && !W.egg && !W.rice && G.skill.scallion) W.scallion = true;
   W[k] += n; W.seq.push(k); if (k === 'egg') G.eggs += n;
-  const from = ingG[k].position.clone().add(V(0, 0.5, 0)), o = new THREE.Mesh(k === 'egg' ? new THREE.SphereGeometry(0.08, 8, 6) : new THREE.BoxGeometry(0.12, 0.12, 0.12), lam({ oil: 0xf2c14e, egg: 0xfff5e6, rice: 0xffffff, chicken: 0xe8d2b0, onion: 0x3fae3a }[k]));
-  o.position.copy(from); scene.add(o);
-  anim(0.25, kk => { o.position.lerpVectors(from, WOK.clone().add(V(0, 0.3, 0)), kk); o.position.y += Math.sin(kk * PI) * 0.4; }).then(() => { scene.remove(o); o.geometry.dispose(); updateFill(); });
-  if (k === 'egg') { audio.burst(3000, 2, 0.05, 0.4); burst(WOK.clone().add(V(0, 0.35, 0)), 0xffd21f, 4, 1); } else if (k === 'oil') audio.burst(5000, 1, 0.3, 0.25); else audio.burst(900, 1, 0.12, 0.3);
+  if (k === 'oil') pourOil();
+  else if (k === 'egg') { const from = G.skill.eggHelp ? hyHeadW().add(V(0.3, -1.0, 0.3)) : ingG.egg.position.clone().add(V(0, 0.3, 0)); for (let i = 0; i < Math.min(n, 6); i++) crackEgg(from, i * 0.12); if (G.skill.eggHelp && n > 1) hySay('계란은 제가 깨겟씁니다.', 1200); }
+  else if (k === 'rice') scoopRice();
+  else tossBits(k);
+  watchIng(k);
   renderTickets();
+}
+// 현태 watches every move, like the first game
+const WARN_LINES = ['{x} 많씁니다.', '경고햇씁니다. {x} 많씁니다.', '이제 참을 수 업씁니다.'];
+function watchIng(k) {
+  const t = G.active, r = t.req, scallionOk = k === 'onion' && G.skill.scallion && W.onion <= 1;
+  if (W[k] > (r[k] || 0) && !scallionOk) {
+    G.warn++; const name = { oil: '기름이', egg: '계란이', rice: '밥이', chicken: '닭가슴살이', onion: '파가' }[k];
+    hySay(WARN_LINES[Math.min(G.warn, 3) - 1].replace('{x}', name), 1600); addTrust(-2); tremble = 0.6; setTimeout(() => tremble = 0, 500 / SPEED);
+    if (G.warn >= 3) { addRage(35); camShake = 0.4; pop('빠직', hyHeadW().add(V(0.5, 0.4, 0)), 'big'); }
+    return;
+  }
+  if (k === 'rice' && !W.egg) { hySay('계란이 먼저이씁니다.', 1500); addTrust(-1); return; }
+  if (k !== 'oil' && !W.oil) { hySay('기름부터이씁니다.', 1400); return; }
+  if (rand() < 0.25) hySay(pick(['예.', '좋씁니다.', '음.']), 900);
 }
 function stirOn() { if (bizPause || !G || !G.cooking) return; if (!W.rice) { hySay('밥부터 넣으씹시오.', 1200); return; } stirring = true; }
 function stirOff() { stirring = false; }
+let tossCd = 0;
+function toss() {
+  if (bizPause || !G || !G.cooking || !W.rice || tossCd > 0) return;
+  if (!G.skill.show) { hySay('불쇼는 아직 안 알려 드렷씁니다.', 1400); tossCd = 1.5; return; }
+  tossCd = 0.7;
+  const n = Math.min(GRN, W.rice * 95); for (let i = 0; i < n; i++) { gVel[i].set((rand() - .5) * 0.6, 2.2 + rand() * 1.8, (rand() - .5) * 0.6); }
+  anim(0.35, (k, raw) => { wokG.rotation.x = -Math.sin(raw * PI) * 0.35; wokG.position.y = WOK.y + 0.1 + Math.sin(raw * PI) * 0.18; }, x => x);
+  bigFlame.visible = true; fireLight.intensity = 6; audio.fwoosh(); camShake = 0.25;
+  anim(0.55, (k, raw) => { bigFlame.scale.set(0.6 + raw * 0.6, 0.4 + Math.sin(raw * PI) * 1.1, 1); bigFlame.material.opacity = 1 - raw; }, x => x).then(() => { bigFlame.visible = false; });
+  for (let i = 0; i < 3; i++) burst(WOK.clone().add(V((rand() - .5) * 0.5, 0.6, 0)), pick([0xff8a1a, 0xffd21f]), 5, 2.4, 0.5);
+  W.done = Math.min(1.05, W.done + 0.04);
+  if (W.done >= 0.3 && W.done <= 0.85 && W.fire < 3) { W.fire++; pop('불향 +' + W.fire, WOK.clone().add(V(0.6, 1.1, 0)), 'good'); if (W.fire === 3) { hySay('이야...!!!!!!', 1600); eyeFire(1.0); } }
+}
+// a quick upward flick while holding the wok = 불쇼
+let flick = [];
+addEventListener('pointermove', e => { if (!stirring) { flick.length = 0; return; } const now = performance.now(); flick.push([now, e.clientY]); while (flick.length && now - flick[0][0] > 220) flick.shift(); if (flick.length > 1 && flick[0][1] - e.clientY > 70) { flick.length = 0; toss(); } });
 function grade(t) {
   const r = t.req; let pen = 0; const why = [];
-  let diff = 0; for (const k of Object.keys(ING_N)) diff += Math.abs((W[k] || 0) - (r[k] || 0));
+  let diff = 0; for (const k of Object.keys(ING_N)) { let d = Math.abs((W[k] || 0) - (r[k] || 0)); if (k === 'onion' && W.scallion && W.onion === 1 && !r.onion) d = 0; diff += d; }
   if (diff) { pen += Math.min(2.5, diff * 0.75); why.push(`재료 ${diff}개 틀림`); }
   if (W.seq[0] !== 'oil') { pen += 0.5; why.push('기름부터'); }
   const fe = W.seq.indexOf('egg'), fr = W.seq.indexOf('rice');
   if (fr >= 0 && (fe < 0 || fr < fe)) { pen += 1; why.push('밥이 계란보다 먼저'); }
   const d = W.done; if (d < 0.55) { pen += 1.5; why.push('덜 익음'); } else if (d > 0.95) { pen += 2.5; why.push('숯'); } else if (d > 0.8) { pen += 1; why.push('조금 탐'); }
-  return { stars: clamp(Math.round(5 - pen), 1, 5), why, kind: d > 0.95 ? 'burnt' : d < 0.55 ? 'raw' : 'friedrice' };
+  return { stars: clamp(Math.round(5 - pen), 1, 5), why, kind: d > 0.95 ? 'burnt' : d < 0.55 ? 'raw' : 'friedrice', fire: W.fire, scallion: W.scallion };
 }
 function serve() { if (G && G.active) serveTo(G.active); }
 function serveTo(t) {
   if (bizPause || !G || !G.cooking || !t) return;
   if (W.done < 0.05) { hySay('아직 안 볶앗씁니다.', 1200); return; }
   const gr = grade(t); stirring = false;
-  const dish = spawnFood(gr.kind, WOK.clone().add(V(0, 0.3, 0)), t.p >= 3 ? 1.6 : 1.0); dish.userData.spin = 0;
+  const dish = spawnFood(gr.kind, WOK.clone().add(V(0, 0.3, 0)), 1.0); dish.userData.spin = 0;
   const to = t.c ? V(SEATS[t.c.seat], 1.18, 0.75) : V(0, 1.18, 0.75);
-  flyAt(dish, to, 0.5, 0.8).then(() => { if (t.c && !t.c.gone) t.c.dish = dish; else dropFood(dish); });
-  audio.whoosh(); pop('★'.repeat(gr.stars), WOK.clone().add(V(0, 1.0, 0)), gr.stars >= 4 ? 'good' : '');
+  // the plate slides along the counter, bar style
+  const mid = V(to.x, 1.18, 1.35);
+  flyAt(dish, mid, 0.3, 0.5).then(() => { audio.whoosh(); return flyAt(dish, to, 0.35, 0); }).then(() => { if (t.c && !t.c.gone) t.c.dish = dish; else if (!t.judge) dropFood(dish); else G.duelDish = dish; });
+  pop('★'.repeat(gr.stars), WOK.clone().add(V(0, 1.0, 0)), gr.stars >= 4 ? 'good' : '');
   if (gr.why.length) setTimeout(() => pop(gr.why[0], WOK.clone().add(V(0, 0.6, 0))), 300 / SPEED);
   if (t.p === 2) G.two++;
   G.waste += Math.max(0, W.egg - t.req.egg);
   G.ds.cost += 1500 * Math.max(1, t.p); G.money -= 1500 * Math.max(1, t.p);
-  if (t.c) t.c.served = gr; else G.finalGrade = gr;
-  hySay(pick(['맛잇게 드씹시오.', '2인분 나왓씁니다.', '예.']), 1200);
+  if (gr.fire >= 3) G.ach.show = true; if (gr.scallion) G.ach.scallion = true;
+  // 현태's verdict
+  let dt = 0;
+  if (gr.stars >= 5) { dt = 2 + gr.fire * 0.6 + (gr.scallion ? 0.6 : 0); hySay(pick(['이야...!!!!!!', '예. 잘 볶앗씁니다.', '이야...!!!!!! 예.']), 1800); eyeFire(1.3); }
+  else if (gr.stars === 4) { dt = 1.5 + gr.fire * 0.5; hySay(pick(['예.', '좋씁니다.']), 1200); }
+  else if (gr.stars === 3) hySay('…예.', 1200);
+  else { dt = -5; hySay(gr.kind === 'burnt' ? '이건 줘도 안 먹씁니다.' : '…다시 하씹시오.', 1600); anger(1); setTimeout(() => anger(G.rage >= 35 ? 1 : 0), 1500 / SPEED); }
+  if (dt) addTrust(Math.round(dt));
+  if (t.judge) G.duelGrade = gr; else if (t.c) t.c.served = gr; else G.duelGrade = gr;
   dropTicket(t); resetWok();
 }
-function dump() { if (bizPause || !G || !G.cooking || !wokUsed()) return; G.waste += W.egg; addMoney(-1000, WOK.clone().add(V(0, 0.8, 0))); burst(WOK.clone().add(V(0, 0.4, 0)), 0xe8c26a, 12, 2); audio.slam(); hySay('아깝씁니다.', 1200); resetWok(); }
+function dump() { if (bizPause || !G || !G.cooking || !wokUsed()) return; G.waste += W.egg; addMoney(-1000, WOK.clone().add(V(0, 0.8, 0))); burst(WOK.clone().add(V(0, 0.4, 0)), 0xe8c26a, 12, 2); audio.slam(); hySay('아깝씁니다.', 1200); addTrust(-1); resetWok(); }
 function cookCtl() {
-  ctl([{ label: '꾹 볶기', key: 'Space', kname: 'Space', down: stirOn, up: stirOff }, { label: '내기', key: 'Enter', kname: 'Enter', down: serve }, { label: '버리기', cls: 'r', key: 'Backspace', kname: '⌫', down: dump }]);
+  ctl([{ label: '꾹 볶기', key: 'Space', kname: 'Space', down: stirOn, up: stirOff }, { label: '불쇼', key: 'ArrowUp', kname: '↑', down: () => { if (!stirring && W.rice) stirOn(); toss(); } }, { label: '내기', key: 'Enter', kname: 'Enter', down: serve }, { label: '버리기', cls: 'r', key: 'Backspace', kname: '⌫', down: dump }]);
   ING.forEach(d => { keys[d.key] = { down: () => addIng(d.k), up() {} }; });
-  pickables = [...ING.map(d => d.hit), wokHit, ...custs.flatMap(c => c.head ? [c.m, c.head] : [c.m])];
-  onPick = o => { const u = o.userData; if (u.ing) addIng(u.ing); else if (u.wok) stirOn(); else if (u.cust && u.cust.type === 'jin' && !bizPause && !u.cust.gone && u.cust.state !== 'walk' && u.cust.state !== 'leave') { const c = u.cust; exclusive(() => freePunch(c)); }
-    else if (u.cust && u.cust.ticket) { if (W.done >= 0.05 && u.cust.state === 'wait') serveTo(u.cust.ticket); else setActive(u.cust.ticket); } };
+  keys.KeyW = { down: toss, up() {} };
+  pickables = [...ING.map(d => d.hit), wokHit, ...custs.flatMap(c => c.head ? [c.m, c.head] : [c.m]), ...flyers.filter(f => f.visible).map(f => f.children[0])];
+  if (G.lurer) pickables.push(G.lurer.m, G.lurer.head);
+  onPick = o => {
+    const u = o.userData;
+    if (u.ing) addIng(u.ing); else if (u.wok) stirOn();
+    else if (u.flyer) tearFlyer(u.flyer);
+    else if (u.cust && u.cust === G.lurer) chaseLurer();
+    else if (u.cust && u.cust.type === 'jin' && !bizPause && !u.cust.gone && u.cust.state !== 'walk' && u.cust.state !== 'leave') { const c = u.cust; exclusive(() => freePunch(c)); }
+    else if (u.cust && u.cust.ticket) { if (W.done >= 0.05 && (u.cust.state === 'wait' || u.cust.state === 'judge')) serveTo(u.cust.ticket); else setActive(u.cust.ticket); }
+  };
   onRelease = stirOff;
 }
 // floating labels over ingredients
@@ -976,23 +1152,25 @@ function updateTags() { const t = G && G.active; ING.forEach((d, i) => { const e
 function placeTags() {
   const on = G && G.cooking && !G.talking, ready = on && W.done >= 0.55 && !bizPause; ING.forEach((d, i) => { const el = tagEls[i]; el.hidden = !on; if (!on) return; const [x, y] = toScreen(d.g.position.clone().add(V(0, 0.95, 0))); el.style.left = x + 'px'; el.style.top = y + 'px'; });
   for (const c of custs) {
-    const waiting = on && c.ticket && c.state === 'wait', talking = bubEls[c.id] && !bubEls[c.id].hidden;
-    c.ob.hidden = !waiting || talking;
+    const waiting = on && c.ticket && (c.state === 'wait' || c.state === 'judge'), talking = bubEls[c.id] && !bubEls[c.id].hidden;
+    c.ob.hidden = !waiting || talking || c.state === 'judge';
     if (!c.ob.hidden) { const t = c.ticket, key = (G.active === t) + t.name; if (c.ob.dataset.k !== key) { c.ob.dataset.k = key; c.ob.className = 'ob' + (G.active === t ? ' on' : ''); c.ob.innerHTML = `${{ egg: '🥚 계란', onion: '🌱 파', chick: '🍗 닭가슴살' }[t.menu]}<b>${t.p}인분</b>`; } const [ox, oy] = toScreen(c.g.position.clone().add(V(0, c.top + 0.45, 0.2))); c.ob.style.left = ox + 'px'; c.ob.style.top = oy + 'px'; }
     if (c.pt) { c.pt.hidden = !(on && !bizPause && ['order', 'wait', 'eat'].includes(c.state)); if (!c.pt.hidden) { const [px, py] = toScreen(c.g.position.clone().add(V(0, 1.55, 0.3))); c.pt.style.left = px + 'px'; c.pt.style.top = py + 'px'; } }
     c.rt.hidden = !(ready && waiting) || !!c.pt; if (!c.rt.hidden) { const [rx, ry] = toScreen(c.g.position.clone().add(V(0, c.top + 1.05, 0.2))); c.rt.style.left = rx + 'px'; c.rt.style.top = ry + 'px'; }
-    c.pb.hidden = !(c.ticket && on && c.state === 'wait'); if (c.pb.hidden) continue; const [x, y] = toScreen(c.g.position.clone().add(V(0, c.top - 0.1, 0.2))); c.pb.style.left = x + 'px'; c.pb.style.top = y + 'px'; const f = clamp(c.patience / c.pmax, 0, 1), i = c.pb.firstChild; i.style.transform = `scaleX(${f})`; i.classList.toggle('low', f < 0.3); if (c.ticket && c.ticket.bar) { c.ticket.bar.style.transform = `scaleX(${f})`; c.ticket.bar.classList.toggle('low', f < 0.3); } }
+    c.pb.hidden = !(c.ticket && on && c.state === 'wait'); if (c.pb.hidden) continue; const [x, y] = toScreen(c.g.position.clone().add(V(0, c.top - 0.1, 0.2))); c.pb.style.left = x + 'px'; c.pb.style.top = y + 'px'; const f = clamp(c.patience / c.pmax, 0, 1), i = c.pb.firstChild; i.style.transform = `scaleX(${f})`; i.classList.toggle('low', f < 0.3); if (c.ticket && c.ticket.bar) { c.ticket.bar.style.transform = `scaleX(${f})`; c.ticket.bar.classList.toggle('low', f < 0.3); }
+  }
 }
 function nextHint() {
   const t = G.active; if (!t) return '손님을 기다리는 중…';
   const r = t.req;
   if (W.oil < r.oil) return `① 기름을 넣으세요 (1)`;
+  if (G.skill.scallion && !W.egg && !W.onion) return '② 파를 먼저 넣으면 파기름! (5) · 계란 (2)';
   if (W.egg < r.egg) return `② 계란 ${r.egg - W.egg}개 더 (2)`;
   if (W.rice < r.rice) return `③ 밥 ${r.rice - W.rice}공기 더 (3)`;
   if (W.chicken < r.chicken) return `④ 닭가슴살 ${r.chicken - W.chicken}개 더 (4)`;
   if (W.onion < r.onion) return `④ 파 넣기 (5)`;
-  if (W.done < 0.55) return '⑤ 웍을 꾹 눌러 볶으세요 (Space)';
-  if (W.done <= 0.8) return '⑥ 노릇노릇! 손님을 클릭해서 주세요 (Enter = 선택한 주문)';
+  if (W.done < 0.55) return G.skill.show ? `⑤ 꾹 볶다가 위로 튕겨 불쇼! (↑) 불향 ${W.fire}/3` : '⑤ 웍을 꾹 눌러 볶으세요 (Space)';
+  if (W.done <= 0.8) return '⑥ 노릇노릇! 손님을 클릭해서 주세요 (Enter)';
   return '⑥ 탄다! 빨리 손님을 클릭하세요!';
 }
 
@@ -1002,29 +1180,29 @@ function exclusive(fn) { const p = evLock.then(fn); evLock = p.catch(() => {}); 
 function angerEvent(c, line) { return exclusive(() => angerEventNow(c, line)); }
 async function angerEventNow(c, line) {
   if (c.gone || !G.cooking) return;
-  bizPause = true; stirring = false; const prevView = view;
-  letterbox(true); closeOn(c.g.position.clone().add(V(0, 2.0, 0)), 3.0, 6); custMood(c, 'angry', 3); cSay(c, line, 2600); await sleep(1.6);
-  camOv = { p: hy.position.clone().add(V(0.9, 2.3, 2.8)), l: hy.position.clone().add(V(0, 2.2, 0)), k: 6 }; tremble = 0.8; letterbox(false);
+  bizPause = true; stirring = false;
+  letterbox(true); closeOn(c.g.position.clone().add(V(0, 2.0, 0)), 3.0, 6); custMood(c, 'angry', 3); cSay(c, line, 2600, true); await sleep(1.6);
+  shotHy(); tremble = 0.8;
   whisper('참아!!', 1200);
   mg('참아라!', '빨간 표시가 노란 구간에 올 때 눌러서 화를 참으세요!');
   const ok = await timing([0.35, 0.65], 2.6, 5);
   mgOff(); tremble = 0;
-  if (ok) { G.calm++; addRage(-5); hySay('…예.', 1400); audio.good(); await sleep(1.2); }
+  if (ok) { G.calm++; addRage(-5); hySay('…예.', 1400); audio.good(); addTrust(1); await sleep(1.2); }
   else { addRage(45); camShake = 0.5; audio.bad(); pop('빠직', hyHeadW().add(V(0.5, 0.4, 0)), 'big'); hySay('…참겟씁니다.', 1400); await sleep(1.4); }
-  camOv = null; view = prevView;
+  camOv = null; letterbox(false);
   if (G.rage >= 100 && !c.gone) await punchScene(c);
   resumeCook();
 }
 async function freePunch(c) {
   if (c.gone || !G.cooking) return;
   bizPause = true; stirring = false; G.talking = true;
-  custMood(c, 'shock'); closeOn(hyHeadW(), 2.4, 7, 0.9); letterbox(true);
+  custMood(c, 'shock'); shotHy(); letterbox(true);
   pop('무현태 해방!', null, 'big'); audio.drum(); camShake = 0.6; anger(2); setRed(1);
   await punchScene(c, true);
-  setRed(G.rage / 100); anger(0); G.talking = false; resumeCook();
+  setRed(G.rage / 100); anger(0); resumeCook();
 }
 async function punchScene(c, free) {
-  letterbox(true); hySay(free ? '참을 필요 없씁니다.' : '참을 만큼 참앗씁니다.', 2000); tremble = 2; await sleep(1.6); tremble = 0;
+  letterbox(true); hySay(c.reformed ? '…아직도 진상이씁니까?' : free ? '참을 필요 없씁니다.' : '참을 만큼 참앗씁니다.', 2000); tremble = 2; await sleep(1.6); tremble = 0;
   hy.visible = false; bigHy.visible = true; bigHy.position.copy(hy.position); bigHy.scale.setScalar(0.6); flash(0.8); audio.boom(); camShake = 1;
   camOv = { p: V(0, 3.4, 6.4), l: c.g.position.clone().add(V(0, 1.8, 0)), k: 5 };
   const from = bigHy.position.clone(), to = c.g.position.clone().add(V(0.8, 0.6, 1.2));
@@ -1044,91 +1222,166 @@ async function punchScene(c, free) {
   hySay('영업 계속하겟씁니다.', 1600); await sleep(1.2);
 }
 
-
-/* ===== 상욱 visits: everything stops and the two of them talk ===== */
+/* ===== conversations: everything stops and the camera cuts between speakers ===== */
 async function hyGo(to, dur) { const a = hy.position.clone(); await anim(dur, (k, raw) => { hy.position.lerpVectors(a, to, k); hyRig.position.y = Math.floor(raw * dur * 8) % 2 ? 0.08 : 0; }, x => x); hyRig.position.y = 0; }
-function shotSw(c) { const h = c.head.getWorldPosition(V(0, 0, 0)); camOv = { p: h.clone().add(V(0.35, -0.1, 2.3)), l: h.clone().add(V(0, -0.2, 0)), k: 7 }; }
-function shotHy() { const h = hyHeadW(); camOv = { p: h.clone().add(V(1.4, -0.1, 1.7)), l: h.clone().add(V(0, -0.25, 0)), k: 7 }; }
-function shotTwo(c) { const x = SEATS[c.seat]; camOv = { p: V(x + 3.4, 3.0, 2.6), l: V(x - 0.5, 2.5, 0.8), k: 5 }; }
-async function talk(c, seq) {
-  for (const [w, t, ms] of seq) {
-    if (c.gone) return;
-    if (w === 'sw') { shotSw(c); custMood(c, 'smile', ms / 1000); cSay(c, t, ms); }
-    else { shotHy(); hySay(t, ms); }
+function headOf(c) { return c.head ? c.head.getWorldPosition(V(0, 0, 0)) : c.g.position.clone().add(V(0, 2.55, 0)); }
+function shotC(c) { const h = headOf(c); camOv = { p: h.clone().add(V(0.35, -0.1, 2.4)), l: h.clone().add(V(0, -0.25, 0)), k: 7 }; }
+function shotHy() { const h = hyHeadW(); camOv = { p: h.clone().add(V(1.3, -0.1, 1.8)), l: h.clone().add(V(0, -0.25, 0)), k: 7 }; }
+function shotTwo(c) { const x = c.g.position.x; camOv = { p: V(x + 3.4, 3.0, 2.6), l: V(x - 0.5, 2.5, 0.8), k: 5 }; }
+async function talk(seq) {
+  for (const [who, t, ms] of seq) {
+    if (who !== 'hy' && who.gone) continue;
+    if (who === 'hy') { shotHy(); hySay(t, ms); }
+    else if (who === 'cam') { camOv = t; await sleep(ms / 1000); continue; }
+    else { shotC(who); custMood(who, who.type === 'sw' ? 'smile' : 'n', ms / 1000); cSay(who, t, ms, true); }
     await sleep(ms / 1000 * 0.85 + 0.15);
   }
 }
-async function swScene(c) {
-  if (c.gone || !G.cooking) return 'leave';
-  bizPause = true; stirring = false; G.talking = true; G.swVisits = (G.swVisits || 0) + 1;
-  $('#tickets').hidden = true; mgEl.hidden = true; ctlEl.innerHTML = ''; keys = {}; hideBubs();
-  letterbox(true);
-  const x = SEATS[c.seat];
-  shotTwo(c); await hyGo(V(x - 1.05, 0, 1.5), Math.min(1.4, Math.abs(hy.position.x - x) * 0.25 + 0.4)); await sleep(0.3);
-  let res = 'sell';
-  if (G.swVisits === 1) await talk(c, [['hy', '어서 오씹시오.', 1400], ['sw', '형 가게 차렸다길래 와 봤어요', 2100], ['hy', '예. 2인분부터 받씁니다.', 1800]]);
-  else if (G.day === 5) await talk(c, [['sw', '제 국밥집 손님이 다 여기 와 있네요', 2300], ['hy', '예.', 1100]]);
-  else await talk(c, [['sw', '또 왔어요', 1500], ['hy', '예.', 1100]]);
-  if (lv('noguk')) {
-    await talk(c, [['sw', '국밥 주세… 어?', 1700]]);
-    camOv = { p: noGuk.position.clone().add(V(-0.8, -0.3, 2.8)), l: noGuk.position.clone(), k: 6 }; audio.drum(); await sleep(1.3);
-    await talk(c, [['sw', '국밥 금지…?', 1700], ['hy', '예. 금지이씁니다.', 1700], ['sw', '그럼 볶음밥 2인분이요', 1900], ['hy', '예.', 1100]]);
-    G.ach.nogukbap = true;
-  } else {
-    await talk(c, [['sw', G.swVisits === 1 ? '국밥 주세요' : '오늘은 국밥 되죠?', 2100], ['hy', '……', 1300]]);
-    shotTwo(c);
-    mg('상욱이가 국밥을 찾습니다!', '현태에게 뭐라고 하라고 할까요?');
-    const opts = shuffle([{ t: '볶음밥 2인분 드린다고 해!', k: 'sell' }, { t: '국밥 사 오라고 해!', k: 'buy' }, { t: '나가라고 해!', k: 'out' }]);
-    const ci = await choose(opts.map(o => o.t), 7); mgOff();
-    res = ci >= 0 ? opts[ci].k : 'sell';
-    if (res === 'sell') { await talk(c, [['hy', '국밥은 없씁니다. 볶음밥 2인분 드리겟씁니다.', 2300], ['sw', '2인분이면 국밥 두 그릇 값인데', 2100], ['hy', '예.', 1100], ['sw', '…그럼 그거요', 1600]]); G.ach.nogukbap = true; }
-    else if (res === 'buy') {
-      await talk(c, [['hy', '…사 오겟씁니다.', 1700]]);
-      await fade(true, 0.35); hy.visible = false; await sleep(0.4); addMoney(-9000); hy.visible = true;
-      const gb = spawnFood('gukbap', V(x, 1.18, 0.75), 1.1); gb.userData.spin = 0;
-      await fade(false, 0.35); pop('국밥 사 옴 (-9,000원)', hyHeadW(), '');
-      await talk(c, [['sw', '역시 형', 1500]]);
-      for (let i = 0; i < 3; i++) { custMood(c, 'smile'); audio.chomp(); burst(V(x, 1.4, 0.7), 0xe0612a, 5, 1); await sleep(0.3); }
-      dropFood(gb); await talk(c, [['sw', '잘 먹었어요. 계산은 형이 했죠', 2200], ['hy', '…예.', 1200]]);
-    } else { await talk(c, [['hy', '나가씹시오.', 1400], ['sw', '치사해요', 1500]]); addRep(-0.1); }
+async function scene0(c, body) {
+  bizPause = true; stirring = false; G.talking = true;
+  $('#tickets').hidden = true; mgEl.hidden = true; ctlEl.innerHTML = ''; keys = {}; hideBubs(); letterbox(true);
+  if (c) { shotTwo(c); await hyGo(V(c.g.position.x - 1.05, 0, 1.5), Math.min(1.4, Math.abs(hy.position.x - c.g.position.x) * 0.25 + 0.4)); await sleep(0.2); }
+  let r; try { r = await body(); } finally { camOv = null; letterbox(false); hyGo(HY_HOME, 0.9); resumeCook(); }
+  return r;
+}
+
+/* ===== 단골 stories ===== */
+const SW = { 1: '1', 2: '2', 3: '3', 4: '4', 5: '5' };
+async function swStory(c) {
+  return scene0(c, async () => {
+    const d = G.day; let res = 'order';
+    if (d === 1) await talk([['hy', '어서 오씹시오.', 1400], [c, '형 가게 차렸다길래 와 봤어요', 2100], ['hy', '예. 알바도 구햇씁니다.', 1700], [c, '오 알바님 안녕하세요', 1700], [c, '저 다이어트 중이라 1인분만요', 2100], ['hy', '2인분부터 받씁니다.', 1700], [c, '…그럼 2인분이요', 1600]]);
+    else if (d === 2) {
+      if (lv('noguk')) {
+        await talk([[c, '국밥 주세… 어?', 1700], ['cam', { p: noGuk.position.clone().add(V(-0.8, -0.3, 2.8)), l: noGuk.position.clone(), k: 6 }, 1200], [c, '국밥 금지…?', 1700], ['hy', '예. 금지이씁니다.', 1700], [c, '그럼 볶음밥 2인분이요', 1900]]);
+        G.ach.nogukbap = true; G.aff.sw++;
+      } else {
+        await talk([[c, '또 왔어요', 1500], ['hy', '예.', 1100], [c, '오늘은 국밥 되죠?', 2000], ['hy', '……', 1300]]);
+        shotTwo(c); mg('상욱이가 국밥을 찾습니다!', '현태에게 뭐라고 하라고 할까요?');
+        const opts = shuffle([{ t: '볶음밥 2인분 드린다고 해!', k: 'sell' }, { t: '국밥 사 오라고 해!', k: 'buy' }, { t: '나가라고 해!', k: 'out' }]);
+        const ci = await choose(opts.map(o => o.t), 7); mgOff();
+        const k = ci >= 0 ? opts[ci].k : 'sell';
+        if (k === 'sell') { await talk([['hy', '국밥은 없씁니다. 볶음밥 2인분 드리겟씁니다.', 2300], [c, '2인분이면 국밥 두 그릇 값인데', 2100], ['hy', '예.', 1100], [c, '…그럼 그거요', 1600]]); G.ach.nogukbap = true; G.aff.sw++; }
+        else if (k === 'buy') {
+          await talk([['hy', '…사 오겟씁니다.', 1700]]);
+          await fade(true, 0.35); hy.visible = false; await sleep(0.4); addMoney(-9000); hy.visible = true;
+          const gb = spawnFood('gukbap', V(c.g.position.x, 1.18, 0.75), 1.1); gb.userData.spin = 0;
+          await fade(false, 0.35);
+          await talk([[c, '역시 형', 1500]]);
+          for (let i = 0; i < 3; i++) { custMood(c, 'smile'); audio.chomp(); burst(V(c.g.position.x, 1.4, 0.7), 0xe0612a, 5, 1); await sleep(0.3); }
+          dropFood(gb); await talk([[c, '잘 먹었어요. 계산은 형이 했죠', 2200], ['hy', '…예.', 1200]]); G.aff.sw++; res = 'leave';
+        } else { await talk([['hy', '나가씹시오.', 1400], [c, '치사해요', 1500]]); addRep(-0.1); G.aff.sw--; res = 'leave'; }
+      }
+    }
+    else if (d === 3) await talk([[c, '트레이너님이 볶음밥은 탄수화물 덩어리래요', 2300], ['hy', '예.', 1100], [c, '그래서 오늘은…', 1500], [c, '2인분이요', 1500], ['hy', '예.', 1000]]);
+    else if (d === 4) {
+      await talk([[c, '형… 할 말 있어요', 1800], ['hy', '예.', 1100], [c, '저 사실 맞은편 가게 계약했어요', 2300], ['hy', '……예?', 1400], [c, '국밥집이요', 1600]]);
+      await talk([['cam', { p: V(-2.4, 2.8, 0.4), l: V(-3.2, 2.6, -4.5), k: 5 }, 600]]); setStreet(3); audio.drum(); camShake = 0.4; await sleep(1.6);
+      await talk([['hy', '……', 1400], [c, '그래도 오늘은 형 볶음밥 먹을래요', 2300], ['hy', '…2인분이씁니까.', 1600], [c, '네', 1100]]);
+    }
+    else await talk([[c, '형, 오늘 끝나고 대결해요', 2100], ['hy', '예.', 1100], [c, '심사위원도 불렀어요. 면접관님들이요', 2300], ['hy', '……예?', 1400], [c, '그 전에 한 그릇만요', 1700]]);
+    return res;
+  });
+}
+async function ivGroupStory(c0, c1, c2) {
+  return scene0(c1, async () => {
+    await talk([[c1, '…김현태 씨 아닙니까?', 2000], ['hy', '예.', 1100], [c0, '면접 때 볶음밥 얘기만 하던…', 2200], [c2, '그 볶음밥 먹으러 왔어요!', 2000], ['hy', '2인분부터 받씁니다.', 1700], [c1, '…예.', 1200]]);
+  });
+}
+async function ivSoloStory(c) {
+  return scene0(c, async () => {
+    await talk([[c, '…혼자 왔습니다.', 1700], ['hy', '예.', 1000], [c, '사실 저 볶음밥 좋아합니다.', 2100], [c, '회사엔 비밀입니다.', 1800], ['hy', '…예.', 1200]]);
+  });
+}
+async function jinReformStory(c) {
+  return scene0(c, async () => {
+    c.reformed = true; G.jinReformed = true; G.aff.jin++;
+    await talk([[c, '…지난번엔 제가 잘못했어요.', 2000], [c, '혹시 체육관 하세요?', 1800], ['hy', '…예?', 1200], [c, '관장님이라고 불러도 돼요?', 2000], ['hy', '……', 1200]]);
+  });
+}
+async function hireIntro() {
+  G.talking = true; letterbox(true);
+  hyPlace(V(-1.2, 0, 1.6));
+  await talk([['hy', '알바 지원하셧씁니까?', 1800], ['hy', '예. 합격이씁니다.', 1700], ['hy', '볶음밥은 1인분에 계란 2개이씁니다.', 2200], ['hy', '기름, 계란, 밥. 순서 틀리면…', 2100], ['hy', '압니까?', 1300]]);
+  camOv = null; letterbox(false); G.talking = false; hyGo(HY_HOME, 0.8); await sleep(0.4);
+}
+function hyPlace(v) { hy.position.copy(v); hy.updateMatrixWorld(true); }
+// 현태 teaches a secret when trust levels up
+const LESSONS = {
+  2: { name: '불쇼', lines: ['알바님.', '이제 불쇼를 알려 드리겟씁니다.'], demo: true, coach: '볶는 중에 웍을 누른 채 위로 쓱 끌어 올리거나 ↑ 키! 노릇해지기 전에 하면 불향이 붙습니다. 불향 3이면 현태가 감동합니다.', key: 'show' },
+  3: { name: '파기름', lines: ['기름 다음에 파를 먼저 넣으씹시오.', '파기름이씁니다.'], coach: '기름 → 파 → 계란 순서면 파기름 보너스! 파 1개는 어느 메뉴에 넣어도 감점이 없습니다.', key: 'scallion' },
+  4: { name: '계란 보조', lines: ['계란은 이제 제가 깨겟씁니다.', '알바님은 볶기만 하씹시오.'], coach: '계란을 한 번만 눌러도 현태가 필요한 만큼 깨 줍니다.', key: 'eggHelp' },
+  5: { name: '주방장', lines: ['알바님.', '이제 알바님이 아니씁니다.', '…주방장님이씁니다.'], coach: '칭호 "주방장". 마지막 대결에서 현태가 웍을 맡깁니다.', key: 'chef' },
+};
+async function lessonScene(lvN) {
+  const L = LESSONS[lvN]; if (!L) return;
+  bizPause = true; stirring = false; G.talking = true; ctlEl.innerHTML = ''; keys = {}; mgEl.hidden = true; letterbox(true); hideBubs();
+  audio.ding(); await talk(L.lines.map(t => ['hy', t, 1800]));
+  if (L.demo) {
+    camOv = { p: V(-0.3, 2.4, 4.6), l: WOK.clone().add(V(0, 0.4, 0)), k: 6 }; await sleep(0.6);
+    bigFlame.visible = true; fireLight.intensity = 6; audio.fwoosh(); camShake = 0.3; burst(WOK.clone().add(V(0, 0.6, 0)), 0xff8a1a, 20, 3, 0.7);
+    await anim(0.7, (k, raw) => { bigFlame.scale.set(0.6 + raw * 0.8, 0.4 + Math.sin(raw * PI) * 1.4, 1); bigFlame.material.opacity = 1 - raw; wokG.rotation.x = -Math.sin(raw * PI) * 0.4; }, x => x);
+    bigFlame.visible = false; wokG.rotation.x = 0; hySay('이렇게이씁니다.', 1400); await sleep(1.4);
   }
-  camOv = null; letterbox(false); G.talking = false;
-  hyGo(HY_HOME, 0.9);
-  $('#tickets').hidden = false; resumeCook();
-  if (res === 'buy' || res === 'out') { await leave(c, 0); return 'leave'; }
-  return 'order';
+  G.skill[L.key] = true; if (lvN === 5) G.ach.heir = true;
+  await banner('비법 전수', L.name); whisper(L.coach, 4200);
+  camOv = null; letterbox(false); resumeCook();
+}
+
+/* ===== sabotage ===== */
+function startFlyers() {
+  flyers.forEach(f => { f.visible = true; f.scale.setScalar(1); }); G.flyers = flyers.length; cookCtl();
+  whisper('상욱이가 몰래 국밥 전단을 붙였습니다! 클릭해서 떼세요. 붙어 있는 동안 손님이 덜 옵니다.', 3200);
+  ANCH.win = () => V(-3.2, 3.2, -4.4); bub('win', swFmt(''), 1500); audio.oink(); setTimeout(() => dropBub('win'), 1600 / SPEED);
+}
+function tearFlyer(f) {
+  if (!f.visible) return; audio.burst(3000, 1, 0.25, 0.5); burst(f.getWorldPosition(V(0, 0, 0)), 0xf5c518, 12, 2.4, 0.9);
+  anim(0.25, k => { f.scale.set(1 - k, 1 - k * 0.4, 1); f.rotation.z = k * 1.2; }).then(() => { f.visible = false; f.rotation.z = 0; });
+  G.flyers--; addTrust(1); if (G.flyers <= 0) { G.ach.flyer = true; hySay('잘 떼셧씁니다.', 1400); }
+  if (pickables) { const i = pickables.indexOf(f.children[0]); if (i >= 0) pickables.splice(i, 1); }
+}
+function startLure() {
+  const c = makeCust('sw'); c.state = 'lure'; c.g.position.copy(DOOR).add(V(-0.4, 0, 0.9)); G.lurer = c; doorSwing(); cookCtl();
+  custMood(c, 'smile'); bub(c.id, swFmt('국밥 반값이에요'), 2600); audio.oink();
+  whisper('상욱이가 문 앞에서 손님을 빼가고 있습니다! 상욱이를 클릭해서 쫓아내세요.', 3000);
+  c.lureT = 0;
+}
+function chaseLurer() {
+  const c = G.lurer; if (!c || c.gone) return; G.lurer = null; G.ach.chase = true;
+  hySay('나가씹시오.', 1400); custMood(c, 'smile'); bub(c.id, swFmt('들켰다'), 1200); audio.whoosh(); addTrust(1);
+  walkC(c, DOOR.clone().add(V(0, 0, -1)), 0.6).then(() => removeCust(c)); doorSwing();
 }
 
 /* ===== one customer's life ===== */
-async function runCust(c) {
+async function runCust(c, beat) {
   const s = c.seat;
   c.g.position.copy(DOOR); c.state = 'walk'; doorSwing();
   await walkC(c, V(SEATS[s], 0, -2.0), 1.4); await walkC(c, seatPos(s), 0.6);
   if (c.gone) return;
-  if (c.type !== 'sw') hySay(pick(['어서 오씹시오.', '어서 오씹시오. 2인분부터 받씁니다.', '예.']), 1400);
+  if (c.type !== 'sw' && !beat) hySay(pick(['어서 오씹시오.', '어서 오씹시오. 2인분부터 받씁니다.', '예.']), 1400);
   c.state = 'order';
   const menus = ['egg', 'onion']; if (lv('chick')) menus.push('chick');
   let menu = pick(menus), p = rand() < 0.7 ? 2 : 1;
-  if (c.type === 'sw') {
-    const r = await exclusive(() => swScene(c));
-    if (r === 'leave' || c.gone) return;
-    menu = 'egg'; p = 2; c.talked = true;
-  }
+  if (c.type === 'sw') { const r = await exclusive(() => swStory(c)); if (r === 'leave' || c.gone) { if (!c.gone) await leave(c, 0); return; } menu = 'egg'; p = 2; c.talked = true; }
+  if (beat === 'ivsolo') { await exclusive(() => ivSoloStory(c)); if (c.gone) return; menu = 'egg'; p = 1; c.talked = true; c.solo = true; }
+  if (beat === 'ivgroup') { const others = custs.filter(x => x.type === 'iv0' || x.type === 'iv1'); await until(() => c.gone || others.every(o => o.gone || o.state === 'wait' || o.state === 'order')); const c0 = custs.find(x => x.type === 'iv0'), c1 = custs.find(x => x.type === 'iv1'); if (c0 && c1) await exclusive(() => ivGroupStory(c0, c1, c)); }
+  if (c.type === 'jin' && G.punches > 0 && !G.jinReformed) { await exclusive(() => jinReformStory(c)); c.talked = true; }
   if (c.type === 'jin') { menu = 'egg'; p = 2; }
   if (c.type === 'reviewer') { menu = 'egg'; p = 1; }
+  if (c.gone) return;
   makeTicket(c, menu, p);
   if (!c.talked) cSay(c, c.type === 'jin' ? `${MENU[menu].n} ${p}인분. 빨리요.` : c.type === 'reviewer' ? '대표 메뉴 1인분 주세요. 리뷰 쓸 거예요.' : c.type === 'iv1' ? '…계란 볶음밥 2인분.' : `${MENU[menu].n} ${p}인분 주세요.`, 2200);
-  c.state = 'wait'; c.pmax = c.patience = (c.type === 'reviewer' ? 30 : 36) - G.day * 1.6 + p * 2;
-  let jinT = 0, jinDone = false;
+  c.state = 'wait'; c.pmax = c.patience = (c.type === 'reviewer' ? 32 : 38) - G.day * 1.5 + p * 2;
+  let jinT = 0, jinDone = !!c.reformed;
   await until(dt => {
     if (c.gone) return true;
-    if (!bizPause) { c.patience -= dt; jinT += dt; }
-    if (c.type === 'jin' && !jinDone && jinT > 7 && !bizPause) { jinDone = true; angerEvent(c, pick(['아저씨 빨리 좀요.', '여기 서비스 없어요?', '사장님 근육 가짜죠?'])); }
+    if (!bizPause) { c.patience -= dt * (G.flyers > 0 ? 1.3 : 1); jinT += dt; }
+    if (c.type === 'jin' && !jinDone && jinT > 8 && !bizPause) { jinDone = true; angerEvent(c, pick(['아저씨 빨리 좀요.', '여기 서비스 없어요?', '사장님 근육 가짜죠?'])); }
     return c.served || c.patience <= 0;
   });
   if (c.gone) return;
   if (!c.served) {
-    c.state = 'leave'; custMood(c, 'angry'); cSay(c, pick(['너무 늦어요.', '다른 데 갈래요.', '국밥 먹으러 갈래요.']), 1800); addRep(-0.15); G.ds.left++;
+    c.state = 'leave'; custMood(c, 'angry'); cSay(c, pick(['너무 늦어요.', '다른 데 갈래요.', '국밥 먹으러 갈래요.']), 1800); addRep(-0.15); G.ds.left++; addTrust(-2);
     if (c.ticket) dropTicket(c.ticket); await sleep(1.0); await leave(c, 0); return;
   }
   c.state = 'eat';
@@ -1136,131 +1389,214 @@ async function runCust(c) {
   for (let i = 0; i < 3; i++) { custMood(c, 'eat'); audio.chomp(); if (c.dish) { c.dish.scale.multiplyScalar(0.85); burst(c.dish.position, 0xe8c26a, 4, 1); } await sleep(0.28); custMood(c, 'n'); await sleep(0.18); }
   if (c.gone) { dropFood(c.dish); return; }
   dropFood(c.dish); c.dish = null;
-  const st = c.served.stars; G.served++; G.ds.n++; G.ds.stars += st; G.starsSum += st;
+  const gr = c.served, st = gr.stars; G.served++; G.ds.n++; G.ds.stars += st; G.starsSum += st;
   G.ach.first = true; if (st === 5) G.ach.five = true;
   let pay = (c.price || 0), line = '', mood = 'n';
-  if (st >= 5) { line = pick(['정말 맛있다!', '인생 볶음밥!', c.lastP === 1 ? '한 그릇 순삭이에요!' : '2인분이 순삭이에요!']); mood = 'fire'; }
+  if (st >= 5) { line = gr.fire >= 2 ? pick(['불향이 미쳤어요!', '이 불맛 뭐예요?!']) : gr.scallion ? '파 향이 끝내줘요!' : pick(['정말 맛있다!', '인생 볶음밥!', c.lastP === 1 ? '한 그릇 순삭이에요!' : '2인분이 순삭이에요!']); mood = 'fire'; }
   else if (st === 4) { line = pick(['맛있네요.', '또 올게요.', '괜찮네요!']); mood = 'smile'; }
   else if (st === 3) { line = pick(['먹을 만하네요.', '평범해요.']); }
   else { line = pick(['…음.', '이게 볶음밥이에요?', '계란이 어디 갔죠?']); mood = 'angry'; pay *= 0.5; }
-  if (c.type === 'iv0' && st < 4) { custMood(c, 'angry'); await angerEvent(c, '간이 안 맞는데요?'); if (c.gone) return; }
-  else if (c.type === 'iv1') { line = '…예.'; mood = 'smile'; }
+  pay += gr.fire * 700 + (gr.scallion ? 1000 : 0);
+  if (c.type === 'iv0' && c.solo) { if (st >= 5) { line = '…맛있군.'; mood = 'smile'; G.aff.iv += 2; } else { line = '…회사엔 비밀입니다.'; } }
+  else if (c.type === 'iv0' && st < 4) { custMood(c, 'angry'); await angerEvent(c, '간이 안 맞는데요?'); if (c.gone) return; }
+  else if (c.type === 'iv1') { line = '…예.'; mood = 'smile'; if (st >= 4) G.aff.iv++; }
   else if (c.type === 'iv2' && st >= 3) { line = '맛있어요! 팁이에요.'; pay += 3000; }
-  else if (c.type === 'sw') { line = st >= 4 ? '국밥만큼 맛있어요' : '국밥이 낫네요'; }
-  else if (c.type === 'reviewer') { if (st === 5) { line = '인생 볶음밥입니다! 별 다섯 개!'; addRep(0.6); G.ach.reviewer = true; } else { line = `음… 별 ${st}개 드릴게요.`; addRep(-0.3); } }
+  else if (c.type === 'sw') { line = st >= 4 ? '국밥만큼 맛있어요' : '국밥이 낫네요'; if (st >= 4) G.aff.sw++; }
+  else if (c.type === 'reviewer') { if (st === 5) { line = '인생 볶음밥입니다! 별 다섯 개!'; addRep(0.6); G.ach.reviewer = true; G.aff.rev++; } else { line = `음… 별 ${st}개 드릴게요.`; addRep(-0.3); } }
+  else if (c.type === 'jin' && c.reformed) { line = st >= 4 ? '관장님 볶음밥 최고예요!' : '…관장님도 실수하시네요.'; if (st >= 4) G.aff.jin++; }
   else if (c.type === 'jin' && st < 5) { custMood(c, 'angry'); await angerEvent(c, '이걸 돈 받고 팔아요? 돈 못 내요.'); if (c.gone) return; pay = 0; line = '흥.'; }
+  else if (c.type === 'jin') { line = '…맛은 있네요.'; G.aff.jin++; }
   custMood(c, mood, 2); cSay(c, line, 1800);
   const sp = document.createElement('div'); sp.className = 'stars'; sp.textContent = '★'.repeat(st) + '☆'.repeat(5 - st); const [sx, sy] = toScreen(c.g.position.clone().add(V(0, c.top + 0.8, 0))); sp.style.left = sx + 'px'; sp.style.top = sy + 'px'; $('#pops').appendChild(sp); setTimeout(() => sp.remove(), 1600);
   addRep((st - 3) * 0.06);
   await sleep(0.9); if (c.gone) return;
-  if (pay > 0) { addMoney(pay, c.g.position.clone().add(V(0, 2.4, 0.5))); audio.ding(); burst(c.g.position.clone().add(V(0, 1.6, 0.6)), 0xffcc33, 8, 2); }
+  if (pay > 0) { addMoney(pay, c.g.position.clone().add(V(0, 2.4, 0.5))); audio.ding(); for (let i = 0; i < Math.min(5, Math.ceil(pay / 4000)); i++) burst(c.g.position.clone().add(V(0, 1.6, 0.6)), 0xffcc33, 6, 2.2); }
   await sleep(0.6); await leave(c, st);
 }
 async function leave(c, st) {
   if (c.gone) return; c.state = 'leave'; if (st >= 4 && rand() < 0.5) hySay('또 오씹시오.', 1200);
   await walkC(c, V(SEATS[c.seat], 0, -2.0), 0.6); doorSwing(); await walkC(c, DOOR, 1.3); removeCust(c);
 }
-function spawn(type) {
+function spawn(type, beat) {
   const s = freeSeat(); if (s == null) return null;
   const c = makeCust(type); c.seat = s; c.price = 0;
   if (G.cooking && pickables) { pickables.push(c.m); if (c.head) pickables.push(c.head); }
-  runCust(c).catch(e => console.error(e));
+  runCust(c, beat).catch(e => console.error(e));
   if (custs.filter(x => x.seat >= 0).length >= 4) G.ach.full = true;
   return c;
 }
 
 /* ===== a business day ===== */
+function wokFrame(dt, rate) {
+  tossCd = Math.max(0, tossCd - dt);
+  if (stirring && W.rice) {
+    W.done = Math.min(1.05, W.done + dt * rate * (1 + lv('fire') * 0.35));
+    wokG.rotation.z = Math.sin(T * 22) * 0.12; fill.position.y = Math.abs(Math.sin(T * 11)) * 0.05; fireLight.intensity = Math.max(fireLight.intensity * 0.9, 1.6);
+    if (rand() < 0.3) burst(WOK.clone().add(V((rand() - .5) * 0.4, 0.35, 0)), W.done > 0.9 ? 0x333333 : 0xf0c35a, 2, 1.4, 0.6);
+    if (W.done > 0.9 && !W.burnWarned) { W.burnWarned = true; hySay('…탑니따.', 1300); tremble = 0.5; setTimeout(() => tremble = 0, 600 / SPEED); addTrust(-1); }
+    if (Math.floor(T * 6) !== Math.floor((T - dt) * 6)) grainColors();
+  } else { wokG.rotation.z *= 0.8; fill.position.y *= 0.8; fireLight.intensity = Math.max(0.4, fireLight.intensity * 0.92); }
+  if (W.rice && W.done > 0.35 && rand() < 0.12) burst(WOK.clone().add(V((rand() - .5) * 0.5, 0.45, 0)), 0xffffff, 1, 0.4, 1.4, -0.8);
+  if (W.done > 0.95 && rand() < 0.3) burst(WOK.clone().add(V(0, 0.5, 0)), 0x222222, 2, 0.8, 1.0, -0.6);
+  audio.sizzleSet(!wokUsed() ? 0 : stirring ? 0.16 : 0.05);
+  updateGrains(dt);
+  bar(Math.min(W.done, 1), [0.55, 0.8], true); mgDesc(nextHint());
+  // camera: close on the wok while something is cooking
+  if (!camOv && !G.talking && G.cooking) view = wokUsed() ? 'cook' : 'shop';
+}
 async function business() {
   G.cooking = true; G.clock = 0; G.ds = { n: 0, stars: 0, rev: 0, cost: 0, left: 0, rep0: G.rep };
   cookCtl(); mg('주방', '손님을 기다리는 중…', true); $('#tickets').hidden = false;
   const len = DAY_LEN[G.day - 1];
   const sched = {
-    1: [[20, 'jin']], 2: [[8, 'jin'], [14, 'sw'], [44, 'jin']], 3: [[6, 'iv0'], [6.5, 'iv1'], [7, 'iv2'], [28, 'jin'], [40, 'sw']], 4: [[9, 'jin'], [26, 'reviewer'], [40, 'jin'], [55, lv('statue') ? null : 'jin']], 5: [[12, 'jin'], [35, 'sw']],
+    1: [[18, 'jin'], [30, 'sw']],
+    2: [[8, 'jin'], [16, 'sw'], [46, 'jin']],
+    3: [[6, 'group'], [30, 'jin'], [42, 'sw'], [52, 'flyer']],
+    4: [[9, 'jin'], [18, 'iv0', 'ivsolo'], [28, 'reviewer'], [36, 'sw'], [48, lv('statue') ? null : 'jin'], [56, 'lure']],
+    5: [[10, 'jin'], [24, 'sw']],
   }[G.day].filter(e => e[1]);
   let t = 0, nextSpawn = G.day === 1 ? 1.5 : 2.5, autoT = 0, first = G.day === 1;
   await until(dt => {
     if (bizPause) return false;
-    t += dt; G.clock = clamp(t / len, 0, 1); hud();
-    // specials
-    while (sched.length && t >= sched[0][0]) { const [, ty] = sched[0]; if (spawn(ty)) sched.shift(); else break; }
-    // regular guests
+    if (G.lessons.length) { const l = G.lessons.shift(); exclusive(() => lessonScene(l)); return false; }
+    t += dt; G.clock = clamp(t / len, 0, 1); hud(); $('#mgT').textContent = G.active ? `주방 · ${G.active.name}` : '주방'; tm(1 - G.clock);
+    while (sched.length && t >= sched[0][0]) {
+      const [, ty, beat] = sched[0];
+      if (ty === 'flyer') { startFlyers(); sched.shift(); continue; }
+      if (ty === 'lure') { startLure(); sched.shift(); continue; }
+      if (ty === 'group') { const used = new Set(custs.filter(c => c.seat >= 0).map(c => c.seat)), free = SEAT_ORDER.filter(i => seatOpen(i) && !used.has(i)).length; if (free >= 3) { G.holdSeats = false; spawn('iv0'); spawn('iv1'); spawn('iv2', 'ivgroup'); sched.shift(); continue; } G.holdSeats = true; break; }
+      if (spawn(ty, beat)) sched.shift(); else break;
+    }
     nextSpawn -= dt;
-    if (nextSpawn <= 0 && t < len - 6) {
-      const rate = (1 + (G.rep - 3) * 0.18 + lv('neon') * 0.3) * (G.day === 5 ? 0.8 : 1);
-      if (!first || custs.length === 0) { if (spawn('guest')) nextSpawn = clamp(10.5 / rate, 4.5, 14) * (0.8 + rand() * 0.4); else nextSpawn = 1; }
+    if (nextSpawn <= 0 && t < len - 6 && !G.holdSeats) {
+      const rate = (1 + (G.rep - 3) * 0.18 + lv('neon') * 0.3) * (G.day === 5 ? 0.8 : 1) * (G.flyers > 0 ? 0.5 : 1);
+      if (!first || custs.length === 0) { if (spawn('guest')) nextSpawn = clamp(10.5 / rate, 4.5, 16) * (0.8 + rand() * 0.4); else nextSpawn = 1; }
       if (first && G.served > 0) first = false;
       if (first) nextSpawn = 3;
     }
-    // the wok
-    if (stirring && W.rice) {
-      W.done = Math.min(1.05, W.done + dt * 0.26 * (1 + lv('fire') * 0.35));
-      wokG.rotation.z = Math.sin(T * 22) * 0.12; fill.position.y = Math.abs(Math.sin(T * 11)) * 0.09; fireLight.intensity = 1.6;
-      if (rand() < 0.35) burst(WOK.clone().add(V((rand() - .5) * 0.4, 0.35, 0)), W.done > 0.9 ? 0x333333 : 0xf0c35a, 2, 1.4, 0.6);
-      if (rand() < 0.2) audio.burst(4500, 0.8, 0.12, 0.15);
-      updateFill();
-    } else { wokG.rotation.z *= 0.8; fill.position.y *= 0.8; fireLight.intensity = 0.4; }
-    if (W.done > 0.95 && rand() < 0.3) burst(WOK.clone().add(V(0, 0.5, 0)), 0x222222, 2, 0.8, 1.0);
-    bar(Math.min(W.done, 1), [0.55, 0.8], true); mgDesc(nextHint()); tm(1 - G.clock); $('#mgT').textContent = G.active ? `주방 · ${G.active.name}` : '주방';
-    // autoplay (tests)
+    if (G.lurer && !G.lurer.gone) { const c = G.lurer; c.lureT += dt; if (Math.floor(c.lureT / 3.5) !== Math.floor((c.lureT - dt) / 3.5)) { const v = custs.find(x => x.state === 'wait' && x.type === 'guest'); if (v) { v.patience *= 0.45; bub(c.id, swFmt('국밥 반값'), 1400); cSay(v, '반값…?', 1200); } } if (c.lureT > 16) { G.lurer = null; walkC(c, DOOR.clone().add(V(0, 0, -1)), 0.6).then(() => removeCust(c)); } }
+    wokFrame(dt, 0.26);
     if (AUTO) { autoT -= dt; if (autoT <= 0) { autoT = 0.22 * (AUTO.slow || 1); autoCook(); } }
-    return t >= len && !custs.some(c => c.state === 'eat' || (c.served && c.state !== 'leave'));
+    return t >= len && !custs.some(c => c.state === 'eat' || (c.served && c.state !== 'leave') || c.state === 'order');
   });
-  G.cooking = false; stirring = false;
+  G.cooking = false; stirring = false; audio.sizzleSet(0); flyers.forEach(f => f.visible = false); G.flyers = 0;
+  if (G.lurer) { removeCust(G.lurer); G.lurer = null; }
   for (const c of custs.slice()) { if (c.state === 'wait' || c.state === 'order') { cSay(c, '영업 끝났어요? 다음에 올게요.', 1500); if (c.ticket) dropTicket(c.ticket); leave(c, 0); } }
-  mgOff(); onPick = null; pickables = null; onRelease = null; $('#tickets').hidden = true; resetWok();
+  mgOff(); onPick = null; pickables = null; onRelease = null; $('#tickets').hidden = true; resetWok(); view = 'shop';
   await sleep(1.6);
   for (const c of custs.slice()) removeCust(c);
 }
 function autoCook() {
+  if (bizPause) return;
+  if (G.flyers > 0 && rand() < 0.3) { const f = flyers.find(x => x.visible); if (f) tearFlyer(f); }
+  if (G.lurer && rand() < 0.2) chaseLurer();
   const t = G.active; if (!t) return;
   const r = t.req;
-  for (const k of ['oil', 'egg', 'rice', 'chicken', 'onion']) if ((W[k] || 0) < r[k]) { addIng(k); return; }
+  if (W.oil < r.oil) { addIng('oil'); return; }
+  if (G.skill.scallion && !W.egg && !W.onion) { addIng('onion'); return; }
+  for (const k of ['egg', 'rice', 'chicken', 'onion']) if ((W[k] || 0) < r[k]) { addIng(k); return; }
+  if (G.skill.show && W.fire < 3 && W.done > 0.32 && W.done < 0.8) { toss(); return; }
   if (W.done < 0.66) stirOn(); else { stirOff(); serve(); }
 }
 
 /* ===== days ===== */
 async function dayIntro() {
-  const d = G.day; G.clock = 0; hud();
-  goView('shop');
-  if (d === 1) { await banner('DAY 1', '개업'); burst(V(0.6, 4.3, -4.2), 0xffe600, 30, 3); audio.ding(); hySay('김현태 볶음밥, 개업햇씁니다.', 2200); await sleep(2.2); whisper('주문표를 보고 재료를 순서대로 넣으세요. 화면 위에 다음 할 일이 나옵니다.', 3400); hySay('2인분부터 받씁니다.', 1800); await sleep(1.8); }
-  else if (d === 2) { await banner('DAY 2', '단골이 생길지도'); hySay('오늘도 2인분부터 받씁니다.', 1800); await sleep(1.8); }
-  else if (d === 3) { await banner('DAY 3', '단체 손님 예약'); hySay('단체 손님 예약이 잇씁니다.', 1800); await sleep(1.6); whisper('깐깐 부장은 별 4개 미만이면 화를 냅니다.', 2400); await sleep(1.2); }
+  const d = G.day; G.clock = 0; G.holdSeats = false; hud(); goView('shop');
+  setStreet([0, 1, 2, 2, 4][d - 1]);
+  if (d === 1) { await banner('DAY 1', '첫 출근'); await hireIntro(); burst(V(0.6, 4.3, -4.2), 0xffe600, 30, 3); audio.ding(); whisper('주문표대로 재료를 넣고, 웍을 꾹 눌러 볶은 뒤 손님을 클릭해서 주세요. 현태가 지켜봅니다.', 3600); await sleep(1.2); }
+  else if (d === 2) { await banner('DAY 2', '단골이 생길지도'); hySay('오늘도 2인분부터 받씁니다.', 1800); await sleep(1.4); await peekStreet('맞은편이 공사 중이씁니다.'); }
+  else if (d === 3) { await banner('DAY 3', '단체 손님 예약'); hySay('단체 손님 예약이 잇씁니다.', 1800); await sleep(1.6); whisper('깐깐 부장은 별 4개 미만이면 화를 냅니다.', 2400); await peekStreet('…국밥집이씁니까?'); }
   else if (d === 4) { await banner('DAY 4', '맛집 리뷰어 출몰'); whisper('오늘 맛집 리뷰어가 온다는 소문! 별 5개면 평판이 크게 오릅니다.', 3000); hySay('긴장됩니따.', 1600); await sleep(2.0); }
-  else {
-    await banner('DAY 5', '국밥집 개업'); goView('window'); await sleep(1.0); drawStreet(true, false); audio.boom(); camShake = 0.6; burst(V(-3.2, 2.6, -4.3), 0xf5c518, 20, 2);
-    ANCH.win = () => V(-3.2, 3.2, -4.4); bub('win', swFmt('맞은편에 국밥집 차렸어요'), 2600); audio.oink(); await sleep(2.6); dropBub('win');
-    goView('shop'); hySay('…예.', 1400); await sleep(1.2); whisper('영업이 끝나면 국밥집과 10인분 대결이 있습니다!', 2600); await sleep(1.0);
-  }
+  else { await banner('DAY 5', '결전의 날'); await peekStreet('줄이 길씁니다.'); whisper('영업이 끝나면 진상욱 국밥과 요리 대결! 심사위원은 면접관 3명입니다.', 3000); await sleep(1.0); }
 }
-async function finalRace() {
-  await banner('최종 대결', '볶음밥 10인분 vs 국밥 10그릇');
-  hySay('예.', 1200); await sleep(0.8);
-  G.cooking = true; G.racing = true; G.finalGrade = null; resetWok();
-  makeTicket(null, 'egg', 10, { oil: 1, egg: 20, rice: 10, chicken: 0, onion: 0 });
-  cookCtl(); $('#tickets').hidden = false; $('#race').hidden = false; goView('wok');
-  mg('10인분 대결!', '계란 20개, 밥 10공기! 상욱이보다 먼저 내세요!', true);
-  let sw = 0, t = 0, autoT = 0; const SWT = 34 - lv('statue') * 3;
+async function peekStreet(line) { await fade(true, 0.2); goView('window', true); await fade(false, 0.2); await sleep(0.6); hySay(line, 1600); await sleep(1.6); await fade(true, 0.2); goView('shop', true); await fade(false, 0.2); await sleep(0.3); }
+
+/* ===== the final cooking duel ===== */
+function scoreCard(c, n, label, hi) {
+  const el = document.createElement('div'); el.className = 'sc3' + (hi ? ' hi' : ''); el.innerHTML = `<small>${label}</small>${n}`; $('#scs').appendChild(el);
+  const place = () => { if (!el.isConnected) return; const [x, y] = toScreen(c.g.position.clone().add(V(0, c.top + 0.3, 0))); el.style.left = x + 'px'; el.style.top = y + 'px'; requestAnimationFrame(place); }; place();
+  audio.tone(660 + n * 30, 0.1, 0.2, 'square'); return el;
+}
+async function duel() {
+  await banner('최종 대결', '진상욱 국밥 vs 김현태 볶음밥');
+  G.duel = true; G.talking = true; letterbox(true);
+  const judges = [['iv0', 1], ['iv1', 2], ['iv2', 3]].map(([ty, s]) => { const c = makeCust(ty); c.seat = s; c.g.position.copy(seatPos(s)); c.state = 'judge'; return c; });
+  const sw = makeCust('sw'); sw.seat = -1; sw.g.position.set(3.6, 0, 1.2); sw.state = 'rival';
+  const pot = spawnFood('gukbap', V(3.0, 1.18, 0.9), 1.4); pot.userData.spin = 0;
+  hyPlace(HY_HOME);
+  await talk([[sw, '형, 정정당당하게 해요', 2000], ['hy', '예.', 1000], [judges[1], '심사는 저희가 맡겠습니다.', 2000], [judges[0], '…공정하게.', 1500], [judges[2], '배고파요!', 1400]]);
+  // cheers from the regulars you won over
+  let cheer = 0; const cheers = [];
+  if (G.aff.jin >= 1) cheers.push(['진상 손님', G.jinReformed ? '관장님 파이팅!' : '…볶음밥 파이팅.']);
+  if (G.aff.rev >= 1) cheers.push(['맛집 리뷰어', '실시간 방송 중입니다! 볶음밥 응원!']);
+  if (G.aff.iv >= 2) cheers.push(['깐깐 부장', '(…속으로 응원 중)']);
+  for (const [who, line] of cheers) { cheer++; whisper(`${who}: ${line}`, 1800); pop('응원 +1', null, 'good'); audio.ding(); await sleep(1.6); }
+  if (G.skill.chef) { await talk([['hy', '오늘은 주방장님이 볶씹시오.', 2000], ['hy', '믿씁니다.', 1400]]); }
+  else await talk([['hy', '같이 볶겟씁니다. 예.', 1700]]);
+  camOv = null; letterbox(false); G.talking = false;
+  // cook one perfect plate
+  G.cooking = true; G.duelGrade = null; resetWok();
+  const t = makeTicket(judges[1], 'egg', 2, null, '결승 · 계란 볶음밥 2인분'); t.judge = true; judges[1].ticket = t;
+  cookCtl(); mg('결승 · 한 그릇 승부', '', true); $('#tickets').hidden = false;
+  let tt = 0, autoT = 0; const LIM = 50;
   await until(dt => {
-    t += dt; sw = clamp(t / SWT, 0, 1); $('#raceSw').style.transform = `scaleX(${sw})`;
-    const t0 = G.active; const prog = t0 ? (Math.min(W.egg, 20) / 20 * 0.4 + Math.min(W.rice, 10) / 10 * 0.3 + Math.min(W.done / 0.6, 1) * 0.3) : 1; $('#raceMe').style.transform = `scaleX(${prog})`;
-    if (stirring && W.rice) { W.done = Math.min(1.05, W.done + dt * 0.2 * (1 + lv('fire') * 0.35)); wokG.rotation.z = Math.sin(T * 22) * 0.14; if (rand() < 0.4) burst(WOK.clone().add(V((rand() - .5) * 0.5, 0.4, 0)), 0xf0c35a, 3, 1.6, 0.6); updateFill(); } else wokG.rotation.z *= 0.8;
-    bar(Math.min(W.done, 1), [0.55, 0.8], true); mgDesc(nextHint()); tm(1 - sw);
-    if (AUTO) { autoT -= dt; if (autoT <= 0) { autoT = 0.12; autoCook(); } }
-    return G.finalGrade || sw >= 1;
+    if (bizPause) return false;
+    if (G.lessons.length) { const l = G.lessons.shift(); exclusive(() => lessonScene(l)); return false; }
+    tt += dt; tm(1 - tt / LIM); wokFrame(dt, 0.24);
+    if (AUTO) { autoT -= dt; if (autoT <= 0) { autoT = 0.2; autoCook(); } }
+    return G.duelGrade || tt >= LIM;
   });
-  G.cooking = false; G.racing = false; stirring = false; mgOff(); onPick = null; pickables = null; onRelease = null; $('#tickets').hidden = true;
-  for (const t2 of tickets.slice()) dropTicket(t2);
-  const win = !!G.finalGrade && G.finalGrade.stars >= 3 && sw < 1;
-  $('#race').hidden = true; resetWok(); goView('shop');
-  if (win) { G.finalWin = true; G.ach.ten = true; letterbox(true); audio.ding(); burst(V(0, 2, 1), 0xffe600, 40, 4); hySay('이겻씁니다. 예.', 2000); await sleep(2.2); drawStreet(false, false); whisper('국밥집이 문을 닫았습니다…', 2000); await sleep(1.8); letterbox(false); }
-  else { audio.bad(); hySay(G.finalGrade ? '…맛이 부족햇씁니다.' : '…늦엇씁니다.', 2000); await sleep(2.2); }
+  G.cooking = false; stirring = false; audio.sizzleSet(0); mgOff(); onPick = null; pickables = null; onRelease = null; $('#tickets').hidden = true;
+  for (const x of tickets.slice()) dropTicket(x);
+  const gr = G.duelGrade || { stars: 1, fire: 0, scallion: false, kind: 'raw' }; resetWok(); view = 'shop';
+  // tasting: 국밥 first
+  letterbox(true); G.talking = true; await sleep(0.6);
+  camOv = { p: V(0, 3.5, 6.4), l: V(0, 2.5, -0.2), k: 5 };
+  await talk([[sw, '제 국밥부터요', 1600]]);
+  camOv = { p: V(0, 3.5, 6.4), l: V(0, 2.5, -0.2), k: 5 };
+  const bowls = judges.map(j => { const b = spawnFood('gukbap', V(j.g.position.x, 1.18, 0.75), 1.0); b.userData.spin = 0; return b; });
+  for (let i = 0; i < 3; i++) { judges.forEach(j => custMood(j, 'shock')); audio.chomp(); await sleep(0.35); judges.forEach(j => custMood(j, 'n')); await sleep(0.2); }
+  bowls.forEach(dropFood);
+  const swS = [7 + (rand() < 0.5 ? 1 : 0), 8, 7 + (rand() < 0.5 ? 1 : 0)];
+  const cardsEls = []; let swT = 0;
+  for (let i = 0; i < 3; i++) { cardsEls.push(scoreCard(judges[i], swS[i], '국밥')); swT += swS[i]; await sleep(0.45); }
+  $('#tot').hidden = false; $('#totSw').textContent = swT; $('#totMe').textContent = '?';
+  await talk([[judges[1], '…진한 국물입니다.', 1700]]); camOv = { p: V(0, 3.5, 6.4), l: V(0, 2.5, -0.2), k: 5 };
+  await sleep(0.8); cardsEls.forEach(e => e.remove()); cardsEls.length = 0;
+  // then the 볶음밥
+  await talk([['hy', '볶음밥 나왓씁니다.', 1500]]); camOv = { p: V(0, 3.5, 6.4), l: V(0, 2.5, -0.2), k: 5 };
+  const plates3 = judges.map(j => { const b = spawnFood(gr.kind, V(j.g.position.x, 1.18, 0.75), 1.0); b.userData.spin = 0; return b; });
+  if (G.duelDish) { dropFood(G.duelDish); G.duelDish = null; } judges.forEach(j => { if (j.dish) { dropFood(j.dish); j.dish = null; } });
+  for (let i = 0; i < 3; i++) { judges.forEach(j => custMood(j, 'eat')); audio.chomp(); await sleep(0.35); judges.forEach(j => custMood(j, 'n')); await sleep(0.2); }
+  plates3.forEach(dropFood);
+  const base = gr.stars * 1.5 + gr.fire * 0.4 + (gr.scallion ? 0.5 : 0) + (G.skill.chef ? 0.5 : 0) + cheer * 0.35;
+  const bias = [G.aff.iv >= 2 ? 0.6 : -0.4, 0, 0.8];
+  const myS = bias.map(b => clamp(Math.round(base + b), 1, 10));
+  let myT = 0;
+  for (let i = 0; i < 3; i++) {
+    myT += myS[i]; if (myS[i] >= 9) { custMood(judges[i], 'fire', 3); audio.fwoosh(); } else if (myS[i] <= 4) custMood(judges[i], 'angry', 3); else custMood(judges[i], 'smile', 3);
+    cardsEls.push(scoreCard(judges[i], myS[i], '볶음밥', myS[i] >= 9)); $('#totMe').textContent = myT; await sleep(0.7);
+  }
+  await sleep(0.8);
+  const win = myT > swT; G.duelWin = win; G.duelScore = [myT, swT];
+  if (win) {
+    audio.ding(); burst(V(0, 2.5, 1), 0xffe600, 40, 4); G.ach.duel = true;
+    await talk([[judges[1], '…볶음밥의 승리입니다.', 2000], [sw, '…졌어요', 1500], ['hy', '예.', 1000], [sw, '형 볶음밥, 진짜 맛있어요', 2000]]);
+    if (G.aff.sw >= 3) await talk([[sw, '형… 저랑 같이 하실래요?', 2000], [sw, '국밥볶음밥이요', 1700], ['hy', '……예.', 1400]]);
+  } else {
+    audio.bad();
+    await talk([[judges[1], '…국밥의 승리입니다.', 2000], [sw, '이겼어요', 1500], ['hy', '……예.', 1300]]);
+  }
+  cardsEls.forEach(e => e.remove()); $('#tot').hidden = true;
+  camOv = null; letterbox(false); G.talking = false; G.duel = false;
+  dropFood(pot); for (const c of [...judges, sw]) removeCust(c);
 }
 async function settle() {
   const s = G.ds, avg = s.n ? s.stars / s.n : 0;
   $('#sT').textContent = `${G.day}일차 정산`; $('#s1').textContent = (s.n + s.left) + '명'; $('#s2').textContent = s.n + '그릇'; $('#s3').textContent = won(s.rev); $('#s4').textContent = '-' + won(s.cost);
   $('#s5').textContent = won(s.rev - s.cost); $('#s6').textContent = avg ? '★' + avg.toFixed(1) : '-'; $('#s7').textContent = s.left + '명';
   const dr = G.rep - s.rep0; $('#s8').textContent = `★${G.rep.toFixed(1)} (${dr >= 0 ? '+' : ''}${dr.toFixed(1)})`;
-  $('#sSay').textContent = '현태: ' + (avg >= 4.5 ? '오늘 장사 잘햇씁니다. 예.' : avg >= 3.5 ? '내일은 더 잘하겟씁니다.' : s.n ? '…계란이 부족햇씁니다.' : '손님이 없엇씁니다.');
+  $('#sSay').textContent = '현태: ' + (avg >= 4.5 ? '오늘 잘 볶앗씁니다. 예.' : avg >= 3.5 ? '내일은 더 잘하씹시오.' : s.n ? '…계란이 울고 잇씁니다.' : '손님이 없엇씁니다.') + ` (신뢰 Lv${G.tlv} ${TRUST_NAME[G.tlv - 1]})`;
   $('#settleScr').hidden = false; audio.ding();
   await new Promise(res => { $('#sNext').onclick = res; if (AUTO) setTimeout(res, 400); });
   $('#settleScr').hidden = true;
@@ -1301,46 +1637,55 @@ async function shop() {
 
 /* ===== endings ===== */
 const ENDINGS = [
+  { id: 'heir', name: '후계자', d: '현태가 앞치마를 넘겨줬습니다. 알바생은 "김현태 볶음밥 2호점"의 주방장이 되었습니다.', q: '주방장님, 2인분부터 받으씹시오.', stamp: '후계자' },
+  { id: 'fusion', name: '국밥볶음밥', d: '대결이 끝나고 상욱이와 화해했습니다. 두 가게를 합쳐 "국밥볶음밥"을 차렸습니다.', q: '국밥도 볶으면 맛잇씁니다.', stamp: '합병' },
   { id: 'chain', name: '볶음밥 재벌', d: '국밥집을 이기고 전국에 "김현태 볶음밥" 체인점을 냈습니다. 모든 지점이 2인분부터 받습니다.', q: '예. 2인분부터 받씁니다.', stamp: '대박' },
   { id: 'local', name: '동네 맛집', d: '국밥집을 이기고 동네에서 줄 서는 맛집이 되었습니다.', q: '줄 서서 드씹시오.', stamp: '맛집' },
-  { id: 'normal', name: '그럭저럭 장사', d: '망하지도 대박 나지도 않았습니다. 현태는 오늘도 2인분을 볶습니다.', q: '예.', stamp: '영업중' },
+  { id: 'normal', name: '그럭저럭 장사', d: '대결은 이겼지만 평판은 그저 그랬습니다. 현태는 오늘도 2인분을 볶습니다.', q: '예.', stamp: '영업중' },
   { id: 'egg', name: '계란 품절 사태', d: '계란을 너무 많이 넣고 버려서 동네 마트 계란이 전부 동났습니다.', q: '계란은 1인분에 2개씩이씁니다.', stamp: '품절' },
-  { id: 'gukbap', name: '국밥집에 인수됨', d: '국밥집과의 대결에서 졌습니다. 가게는 "진상욱 국밥 2호점"이 되었습니다.', q: '국밥도 맛잇씁니다.', stamp: '인수' },
+  { id: 'gukbap', name: '국밥집에 인수됨', d: '요리 대결에서 졌습니다. 가게는 "진상욱 국밥 2호점"이 되었습니다.', q: '국밥도 맛잇씁니다.', stamp: '인수' },
   { id: 'gym', name: '무에타이 체육관 전업', d: '진상 손님을 세 명이나 날려 보냈습니다. 가게는 무에타이 체육관이 되었습니다.', q: '펀찌도 2인분이씁니다.', stamp: '전업' },
   { id: 'close', name: '폐업', d: '평판이 바닥을 쳤습니다. 현태는 문을 닫고 혼자 볶음밥 2인분을 먹었습니다.', q: '…예.', stamp: '폐업' },
 ];
 const ACHS = [
   { id: 'first', name: '첫 손님', d: '첫 그릇을 팔았습니다.' },
-  { id: 'five', name: '별 다섯 개', d: '별 5개짜리 볶음밥을 만들었습니다.' },
-  { id: 'two', name: '2인분 장인', d: '2인분을 20그릇 넘게 팔았습니다.' },
-  { id: 'egg100', name: '계란 100개', d: '계란을 100개 넘게 썼습니다.' },
+  { id: 'five', name: '이야...!!!!!!', d: '별 5개 볶음밥으로 현태 눈에 불을 켰습니다.' },
+  { id: 'show', name: '불쇼 장인', d: '한 그릇에 불향 3을 냈습니다.' },
+  { id: 'scallion', name: '파기름', d: '파기름 볶음밥을 만들었습니다.' },
+  { id: 'heir', name: '주방장', d: '현태 신뢰도 Lv5를 달성했습니다.' },
   { id: 'nogukbap', name: '국밥 대신 볶음밥', d: '상욱이에게 볶음밥을 팔았습니다.' },
-  { id: 'zen', name: '참을 인 세 번', d: '진상 앞에서 세 번 참았습니다.' },
+  { id: 'flyer', name: '전단 철거반', d: '국밥 전단을 전부 뗐습니다.' },
+  { id: 'chase', name: '호객 금지', d: '문 앞에서 호객하는 상욱이를 쫓아냈습니다.' },
   { id: 'punch', name: '펀찌 영업', d: '진상 손님을 펀찌로 내보냈습니다.' },
   { id: 'reviewer', name: '리뷰 맛집', d: '맛집 리뷰어에게 별 5개를 받았습니다.' },
-  { id: 'full', name: '만석', d: '네 자리 이상이 한꺼번에 찼습니다.' },
-  { id: 'ten', name: '10인분 승리', d: '국밥집과의 대결에서 이겼습니다.' },
+  { id: 'two', name: '2인분 장인', d: '2인분을 20그릇 넘게 팔았습니다.' },
+  { id: 'duel', name: '요리 대결 승리', d: '진상욱 국밥을 이겼습니다.' },
 ];
 function decideEnding() {
   if (G.punches >= 3) return 'gym';
   if (G.rep < 2.0) return 'close';
-  if (!G.finalWin) return 'gukbap';
+  if (!G.duelWin) return 'gukbap';
   if (G.waste >= 16) return 'egg';
+  if (G.tlv >= 5) return 'heir';
+  if (G.aff.sw >= 3) return 'fusion';
   if (G.revenue >= 400000 && G.rep >= 4.3) return 'chain';
   if (G.rep >= 3.4) return 'local';
   return 'normal';
 }
+function setSign(t, bg, fg, size) { sign.material.map = label(1100, 180, t, { bg, fg, border: 10, font: `900 ${size}px "Malgun Gothic",sans-serif` }); sign.material.needsUpdate = true; }
 async function endingScene(id) {
   await fade(true, 0.5); goView('shop', true); hy.position.copy(HY_HOME); await fade(false, 0.5);
-  if (id === 'chain') { sign.material.map = label(1100, 180, '김현태 볶음밥 본점 (전국 100호점)', { bg: '#d62a2a', fg: '#ffe600', border: 10, font: '900 70px "Malgun Gothic",sans-serif' }); sign.material.needsUpdate = true; burst(V(0, 3, 0), 0xffe600, 40, 4); hySay('전국 2인분이씁니다.', 2200); }
-  else if (id === 'gukbap') { sign.material.map = label(1100, 180, '진상욱 국밥 2호점', { bg: '#7a3b1f', fg: '#fff', border: 10, font: '900 90px "Malgun Gothic",sans-serif' }); sign.material.needsUpdate = true; hySay('…국밥 나왓씁니다.', 2200); }
-  else if (id === 'gym') { sign.material.map = label(1100, 180, '무현태 무에타이 (2인분 체육관)', { bg: '#111', fg: '#ff3b3b', border: 10, font: '900 74px "Malgun Gothic",sans-serif' }); sign.material.needsUpdate = true; hy.visible = false; bigHy.visible = true; bigHy.position.copy(HY_HOME); bigHy.scale.setScalar(0.6); hySay('관원 모집합니따.', 2200); }
+  if (id === 'heir') { setSign('김현태 볶음밥 2호점 (주방장: 알바님)', '#d62a2a', '#ffe600', 64); burst(V(0, 3, 0), 0xffe600, 40, 4); hySay('주방장님. 2인분부터 받으씹시오.', 2400); eyeFire(2); }
+  else if (id === 'fusion') { setSign('국밥볶음밥 (현태 & 상욱)', '#7a3b1f', '#f5c518', 80); hySay('국밥도 볶으면 맛잇씁니다.', 2200); }
+  else if (id === 'chain') { setSign('김현태 볶음밥 본점 (전국 100호점)', '#d62a2a', '#ffe600', 70); burst(V(0, 3, 0), 0xffe600, 40, 4); hySay('전국 2인분이씁니다.', 2200); }
+  else if (id === 'gukbap') { setSign('진상욱 국밥 2호점', '#7a3b1f', '#fff', 90); hySay('…국밥 나왓씁니다.', 2200); }
+  else if (id === 'gym') { setSign('무현태 무에타이 (2인분 체육관)', '#111', '#ff3b3b', 74); hy.visible = false; bigHy.visible = true; bigHy.position.copy(HY_HOME); bigHy.scale.setScalar(0.6); hySay('관원 모집합니따.', 2200); }
   else if (id === 'close') { scene.background.set(0x07080f); hemi.intensity = 0.35; hySay('…예.', 2000); }
-  else if (id === 'egg') { burst(V(-2, 2, 2.75), 0xfff5e6, 40, 3); hySay('계란이 없씁니다.', 2000); }
+  else if (id === 'egg') { burst(V(-1.35, 2, 2.75), 0xfff5e6, 40, 3); hySay('계란이 없씁니다.', 2000); }
   else hySay(id === 'local' ? '줄 서서 드씹시오.' : '내일도 2인분 볶겟씁니다.', 2200);
-  audio.drum(); await sleep(2.6);
+  audio.drum(); await sleep(2.8);
 }
-const DEX_KEY = 'kht-shop-dex';
+const DEX_KEY = 'kht-shop-dex2';
 let dexMem = null;
 function dexLoad() { if (dexMem) return dexMem; try { const v = JSON.parse(localStorage.getItem(DEX_KEY) || '{}'); return { end: v.end || {}, ach: v.ach || {}, best: v.best || 0 }; } catch (e) { return { end: {}, ach: {}, best: 0 }; } }
 function dexSave(D) { dexMem = D; try { localStorage.setItem(DEX_KEY, JSON.stringify(D)); } catch (e) {} }
@@ -1356,7 +1701,7 @@ $('#dexBtn').addEventListener('click', openDex); $('#dexBtn2').addEventListener(
 $('#dexClose').addEventListener('click', () => { $('#dexScr').hidden = true; });
 async function finale(id) {
   const E = ENDINGS.find(e => e.id === id);
-  if (G.two >= 20) G.ach.two = true; if (G.eggs >= 100) G.ach.egg100 = true; if (G.calm >= 3) G.ach.zen = true;
+  if (G.two >= 20) G.ach.two = true;
   $('#endNo').textContent = `${ENDINGS.indexOf(E) + 1} / ${ENDINGS.length}`; $('#endT').textContent = E.name; $('#endD').textContent = E.d; $('#endQ').textContent = E.q;
   $('#endScr').hidden = false; audio.ding();
   await new Promise(res => { $('#endNext').onclick = res; if (AUTO) setTimeout(res, 500); });
@@ -1366,8 +1711,10 @@ async function finale(id) {
   ACHS.forEach(a => { if (G.ach[a.id] && !D.ach[a.id]) { D.ach[a.id] = Date.now(); news.push('업적: ' + a.name); } });
   D.best = Math.max(D.best, G.revenue); dexSave(D);
   $('#c1').textContent = won(G.revenue); $('#c2').textContent = G.served + '그릇'; $('#c3').textContent = G.served ? Math.round(G.two / G.served * 100) + '%' : '-';
-  $('#c4').textContent = G.eggs + '개'; $('#c5').textContent = G.served ? '★' + (G.starsSum / G.served).toFixed(1) : '-'; $('#c6').textContent = '★' + G.rep.toFixed(1); $('#c7').textContent = G.punches + '명'; $('#cEnd').textContent = E.name; $('#cStamp').textContent = E.stamp;
-  $('#cSay').textContent = '현태: ' + pick(['예.', '다음에도 2인분 볶겟씁니다.', '알바님 덕분이씁니다.', '국밥은 안 팝니다.']);
+  $('#c4').textContent = G.eggs + '개'; $('#c5').textContent = G.served ? '★' + (G.starsSum / G.served).toFixed(1) : '-'; $('#c6').textContent = '★' + G.rep.toFixed(1); $('#c7').textContent = G.punches + '명';
+  $('#c8').textContent = `Lv${G.tlv} ${TRUST_NAME[G.tlv - 1]}`; $('#c9').textContent = G.duelScore ? `${G.duelScore[0]} : ${G.duelScore[1]} ${G.duelWin ? '승' : '패'}` : '-';
+  $('#cEnd').textContent = E.name; $('#cStamp').textContent = E.stamp;
+  $('#cSay').textContent = '현태: ' + (G.tlv >= 5 ? '주방장님 덕분이씁니다.' : G.tlv >= 3 ? '알바님 덕분이씁니다. 예.' : pick(['예.', '…계란은 2개이씁니다.', '다음엔 더 잘하씹시오.']));
   const nw = $('#cNew'); nw.hidden = !news.length; nw.innerHTML = news.map(f => `<b>새로 달성</b> ${f}`).join('<br>');
   $('#certScr').hidden = false; $('#againBtn').focus({ preventScroll: true });
   playing = false; $('#hud').hidden = true; showBest();
@@ -1378,20 +1725,20 @@ let running = false;
 function resetWorld() {
   evLock = Promise.resolve();
   foods.slice().forEach(dropFood); clearParts(); mgOff(); hideBubs(); $('#coach').hidden = true; for (const c of custs.slice()) removeCust(c); for (const t of tickets.slice()) dropTicket(t);
-  onPick = pickables = onRelease = onDrag = onCanvasTap = null; timeScale = 1; letterbox(false); $('#fade').style.opacity = 0; $('#race').hidden = true; bizPause = false;
-  scene.background.set(0x2a2118); hemi.intensity = 1; camOv = null; camRoll = 0; tremble = 0;
-  hy.visible = true; bigHy.visible = false; hy.position.copy(HY_HOME); setRed(0); anger(0);
-  sign.material.map = signTex; sign.material.needsUpdate = true; drawStreet(false, false); resetWok();
+  onPick = pickables = onRelease = onDrag = onCanvasTap = null; timeScale = 1; letterbox(false); $('#fade').style.opacity = 0; $('#race').hidden = true; $('#tot').hidden = true; $('#scs').innerHTML = ''; bizPause = false;
+  scene.background.set(0x2a2118); hemi.intensity = 1; camOv = null; camRoll = 0; tremble = 0; bigFlame.visible = false; eyeT = 0; eyeFires.forEach(e => e.visible = false);
+  hy.visible = true; bigHy.visible = false; hy.position.copy(HY_HOME); setRed(0); anger(0); flyers.forEach(f => f.visible = false);
+  sign.material.map = signTex; sign.material.needsUpdate = true; resetWok(); audio.sizzleSet(0);
 }
 async function startGame() {
   if (running) return; running = true; audio.unlock();
   titleScr.hidden = true; $('#certScr').hidden = true; $('#dexScr').hidden = true;
-  G = fresh(); playing = true; resetWorld(); applyUpgrades(); $('#hud').hidden = false; hud(); goView('shop', true);
+  G = fresh(); playing = true; resetWorld(); setStreet(0); applyUpgrades(); $('#hud').hidden = false; hud(); goView('shop', true);
   try {
     for (G.day = 1; G.day <= DAYS; G.day++) {
       hud(); await dayIntro(); await business();
       await banner('영업 종료', `${G.day}일차`);
-      if (G.day === DAYS) await finalRace();
+      if (G.day === DAYS) await duel();
       await settle();
       if (G.day < DAYS) await shop();
     }
@@ -1415,11 +1762,13 @@ function updateChars(dt) {
   const f = Math.floor(hyT * (hyTalk > 0 ? 6 : 2.2)) % 2;
   hyHeadPiv.rotation.z = (f ? 0.06 : -0.06) * (hyTalk > 0 ? 1.6 : 1);
   if (tremble > 0) { hyRig.position.x = (rand() - .5) * 0.06 * tremble; hyHeadPiv.rotation.z += (rand() - .5) * 0.1 * tremble; } else hyRig.position.x = 0;
+  if (eyeT > 0) { eyeT -= dt; const s = Math.floor(hyT / 0.08) % 2 ? 1.25 : 0.9; eyeFires.forEach(e => e.scale.set(s, s * 1.15, 1)); faceLight.position.copy(hyHeadW()).add(V(0, 0, 0.6)); faceLight.intensity = 3 + (s > 1 ? 2 : 0); if (eyeT <= 0) { eyeFires.forEach(e => e.visible = false); faceLight.intensity = 0; } }
   const face = o => { o.rotation.y = Math.atan2(camera.position.x - o.position.x, camera.position.z - o.position.z); };
   face(hy); face(bigHy); face(statue);
-  for (const c of custs) { face(c.g); if (c.moodT > 0) { c.moodT -= dt; if (c.moodT <= 0 && c.mood !== 'n') custMood(c, 'n'); } if (c.state === 'wait' || c.state === 'order') c.rig.position.y = Math.sin(hyT * 1.5 + c.seat) * 0.02; }
+  for (const c of custs) { face(c.g); if (c.moodT > 0) { c.moodT -= dt; if (c.moodT <= 0 && c.mood !== 'n') custMood(c, 'n'); } if (c.state === 'wait' || c.state === 'order' || c.state === 'judge') c.rig.position.y = Math.sin(hyT * 1.5 + c.seat) * 0.02; }
   for (const m of foods) if (m.userData.spin) m.rotation.y += dt * m.userData.spin;
   flame.scale.y = (1 + lv0('fire') * 0.25) * (1 + Math.sin(T * 30) * 0.08);
+  bigFlame.rotation.y = Math.atan2(camera.position.x - bigFlame.position.x, camera.position.z - bigFlame.position.z);
   updateParts(dt);
 }
 const lv0 = id => (G ? G.up[id] || 0 : 0);
