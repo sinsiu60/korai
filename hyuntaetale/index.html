@@ -283,8 +283,10 @@ function buildHead() {
   hg.save(); hg.globalCompositeOperation = 'source-atop';
   const f = hy.face;
   if (f === 'shadow' || f === 'glow' || f === 'hollow') {
-    const vg = hg.createRadialGradient(66, 154, 6, 66, 154, 72); vg.addColorStop(0, 'rgba(0,0,0,.32)'); vg.addColorStop(1, 'rgba(0,0,0,0)'); hg.fillStyle = vg; hg.fillRect(0, 60, 240, 190);
-    pxEllipse(hg, EYE_N, '#000', 0.6); pxEllipse(hg, EYE_F, '#000', 0.5);
+    // a band of shadow over the eyes (same treatment as 계란 볶음밥 만들기) — the eyes stay, just in shade
+    const gr = hg.createLinearGradient(0, 342 * 0.30, 0, 342 * 0.58);
+    gr.addColorStop(0, 'rgba(0,0,0,0)'); gr.addColorStop(0.3, 'rgba(0,0,0,0.88)'); gr.addColorStop(0.62, 'rgba(0,0,0,0.88)'); gr.addColorStop(1, 'rgba(0,0,0,0)');
+    hg.fillStyle = gr; hg.fillRect(0, 0, 240, 342);
   }
   if (f === 'glow') {
     // the right eye (screen right) burns blue/yellow like a stove flame
