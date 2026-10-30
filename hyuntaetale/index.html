@@ -3287,6 +3287,8 @@ function drawPanel() {
     // a hand holding up an order slip: "1인분"
     rect(40, 250, 220, 120, '#000'); pline(40, 250, 260, 250, '#fff', 3); pline(40, 370, 260, 370, '#fff', 3);
     rect(150, 200, 120, 80, '#ffffff'); text('주문서', 210, 222, { size: 13, weight: 900, color: '#000000', align: 'c' }); text('1인분', 210, 252, { size: 22, weight: 900, color: '#e3120b', align: 'c' });
+  } else if (k === 'feet') {
+    for (const [x, y] of [[250, 300], [380, 250]]) { rect(x, 80, 40, y - 80, '#000'); pline(x, 80, x, y, '#fff', 3); pline(x + 40, 80, x + 40, y, '#fff', 3); rect(x - 10, y, 64, 30, '#000'); pline(x - 10, y, x + 54, y, '#fff', 3); pline(x - 10, y + 30, x + 54, y + 30, '#fff', 3); pline(x - 10, y, x - 10, y + 30, '#fff', 3); pline(x + 54, y, x + 54, y + 30, '#fff', 3); }
   } else if (k === 'alba') {
     ctx.drawImage(ALBA[0], 320 - 108, 70, 216, 360);
   } else if (k === 'eyes') {
@@ -3316,201 +3318,410 @@ async function talk(lines) {
 const flashTo = async (col, d = 0.25) => { G.tint = { col }; flashA = 1; audio.big(); await wait(d); };
 const glitchCut = async () => { G.glitch = 0.18; audio.noise(0.15, 0.2, 3000); shake = Math.max(shake, 4); await wait(0.15); };
 
-/* ---- act 1: the counter, the comic ---- */
-async function spAct1() {
-  hy.face = 'normal';
-  await hySay(['…예.', '솔직히, 여기까지 올 줄은 몰랏씁니다.', '…2인분만 시켯어도 이렇게까진 안 햇씁니다.']);
-  const a = await playerTurn(P2_FL);
-  if (a.t === 'fight') {
-    await fightBar(); audio.slash(); fx.push({ k: 'slash', x: hy.x, y: hy.feet - 100, t: 0, life: 0.5 });
-    await tween(0.15, k => hy.dx = -60 * k);
-    // the counter: barbells burst up all across the screen
-    await setBox(565, 130, 0); soulReset('red'); ui.mode = 'none'; soul.vis = false;
-    for (let i = 0; i < 16; i++) { const x = 40 + i * 37; barV(x, LH + 10, LH + 140, 0, { caps: 1, clip: false, vy1: -900, life: 0.7 }); }
-    audio.big(); shake = 12; impact(0.08); await wait(0.6); bullets = [];
-    await tween(0.25, k => hy.dx = -60 * (1 - k)); hy.face = 'shadow';
-    await hySay(['예의가 업씁니다, 예?']);
-  } else { await doAction(a); hy.face = 'shadow'; await hySay(['…예. 그래도 안 봐줍니다.']); }
-  audio.stopMusic();
-  await panels([['windows', 1.6], ['far', 1.6], ['hy', 1.6], ['slip', 1.8], ['alba', 1.4], ['eyes', 1.6]]);
-  audio.music(2, { offset: audio.tracks[2].loopStart - 0.4 }); flashA = 1;
+/* =====================================================================================
+   현태의 필살기 — a 1:1 port of the reference (12:48–17:40). Times in comments are the
+   reference timestamps; `at(x)` waits until x seconds after the section's own start.
+   Skin: bones → barbells, Gaster blasters → wok blasters, Sans → 현태.
+   ===================================================================================== */
+const secClock = () => { const t0 = T; window.__atlog = []; return s => until(() => T - t0 >= s).then(() => { window.__atlog.push([s, +(T - t0).toFixed(2)]); }); };
+// ---- extra pieces the reference uses ----
+// a bar that orbits the box centre (the spinning orange ring at 13:40.6)
+function orbitBar(cx, cy, r, a0, spin, len, col, life) {
+  return add({ cx, cy, r, a: a0, len, col, clip: true, life,
+    upd(b, dt) { b.a += spin * dt; return b.t < b.life; },
+    pos() { return [this.cx + Math.cos(this.a) * this.r, this.cy + Math.sin(this.a) * this.r, this.a + PI / 2]; },
+    draw() { const [x, y, r] = this.pos(); ctx.save(); ctx.translate(Math.round(x), Math.round(y)); ctx.rotate(r); drawBarbellH(-this.len / 2, this.len / 2, 0, this.col, 14); ctx.restore(); },
+    hit(px, py) { const [x, y, r] = this.pos(); return segDist(px, py, x, y, r, this.len) < 6; } });
 }
-/* ---- act 2: the montage — every picture is built around a path you can take ---- */
-// beams through the box's centre lines leave the quadrants free; diagonals leave the middles of the edges free
+// a long striped rod (the spears at 13:52, 13:59, 16:24)
+function skewer(x, y, ang, sp, o = {}) {
+  const len = o.len || 120;
+  return add({ x, y, ang, sp, clip: false, life: o.life || 4,
+    upd(b, dt) { b.x += Math.cos(b.ang) * b.sp * dt; b.y += Math.sin(b.ang) * b.sp * dt; return b.t < b.life; },
+    draw() { ctx.save(); ctx.translate(Math.round(this.x), Math.round(this.y)); ctx.rotate(this.ang); for (let i = 0; i < len; i += 6) { rect(-i - 6, -4, 4, 8, '#ffffff'); rect(-i - 2, -2, 2, 4, '#9a9a9a'); } rect(0, -3, 8, 6, '#ffffff'); ctx.restore(); },
+    hit(px, py) { const c = Math.cos(this.ang), s = Math.sin(this.ang), dx = px - this.x, dy = py - this.y, al = dx * c + dy * s, pp = -dx * s + dy * c; return al < 8 && al > -len && Math.abs(pp) < 5; } });
+}
+// a rolling wheel of barbells (14:10–14:13); col 'o' = keep moving, 'c' = stay still
+function wheel(x, y, vx, vy, col, r = 14) {
+  const C = { o: '#ff9a1a', c: '#2cc8ff', w: '#ffffff' }[col];
+  return add({ x, y, vx, vy, col: col === 'w' ? undefined : col, rot: 0, clip: false, life: 6,
+    upd(b, dt) { b.x += b.vx * dt; b.y += b.vy * dt; b.rot += (b.vx / r) * dt; return b.t < b.life; },
+    draw() { ctx.save(); ctx.translate(Math.round(this.x), Math.round(this.y)); ctx.rotate(this.rot); for (let a = 0; a < TAU; a += 0.3) rect(Math.cos(a) * r - 1.5, Math.sin(a) * r - 1.5, 3, 3, C); for (let k = 0; k < 3; k++) { ctx.rotate(PI / 3); rect(-r, -1.5, r * 2, 3, C); } ctx.restore(); },
+    hit(px, py) { return Math.hypot(px - this.x, py - this.y) < r; } });
+}
+// "여기" with an arrow: where to go (13:49 "HERE→", 14:22 "HERE↓")
+function hereSign(x, y, dir, life) {
+  return add({ clip: false, life, upd: b => b.t < life, hit: () => false,
+    draw() { if (Math.floor(this.t * 6) % 2 && this.t > life - 0.6) return; text('여기!', x, y, { size: 14, weight: 900, color: '#ffffff', align: 'c' }); const ar = { right: [24, 0], down: [0, 16], left: [-24, 0] }[dir]; pline(x + ar[0] * 0.4, y + ar[1] * 0.6 + 4, x + ar[0], y + ar[1] + 4, '#ffffff', 2); } });
+}
+// a crossed pair of long bars (the rail, 14:14–14:18). white: gap at the top (jump), orange: move, cyan: stay
+function xPair(x, vx, col) {
+  const top = col === 'w' ? B.y + 30 : B.y - 4, bot = B.y + B.h + 40;
+  const C = { w: 'w', o: 'o', c: 'c' }[col];
+  return add({ x, vx, col: col === 'w' ? undefined : col, clip: false, life: 9,
+    upd(b, dt) { b.x += b.vx * dt; return b.t < b.life && b.x > -80; },
+    draw() { for (const s of [-1, 1]) { ctx.save(); ctx.translate(this.x, (top + bot) / 2); ctx.rotate(s * 0.12); drawBarbellV(0, -(bot - top) / 2, (bot - top) / 2, C, 1, 14); ctx.restore(); } },
+    hit(px, py) { if (py < top - 4) return false; const yy = py - (top + bot) / 2; return Math.abs(px - (this.x + yy * 0.12)) < 7 || Math.abs(px - (this.x - yy * 0.12)) < 7; } });
+}
+// small black diamonds dropping off a beam (13:59)
+function diamond(x, y, vx, vy) {
+  return add({ x, y, vx, vy, clip: false, life: 4, upd(b, dt) { b.x += b.vx * dt; b.y += b.vy * dt; return b.t < b.life; },
+    draw() { ctx.fillStyle = '#000'; ctx.beginPath(); ctx.moveTo(this.x, this.y - 8); ctx.lineTo(this.x + 5, this.y); ctx.lineTo(this.x, this.y + 8); ctx.lineTo(this.x - 5, this.y); ctx.fill(); pline(this.x, this.y - 8, this.x + 5, this.y, '#ffffff', 1); pline(this.x + 5, this.y, this.x, this.y + 8, '#ffffff', 1); },
+    hit(px, py) { return Math.abs(px - this.x) / 5 + Math.abs(py - this.y) / 8 < 1.1; } });
+}
+// a beam whose angle sweeps (13:58.2–14:00.8): pivot fixed, angle from a0 to a1 over dur
+function sweepBeam(px, py, a0, a1, dur, w, o = {}) {
+  return add({ clip: false, life: dur + (o.hold || 0) + 0.4, w: 0,
+    ang() { return lerp(a0, a1, ezio(clamp(this.t / dur, 0, 1))); },
+    upd(b, dt) { b.w = b.t < 0.15 ? w * b.t / 0.15 : b.t > b.life - 0.4 ? w * (b.life - b.t) / 0.4 : w; shake = Math.max(shake, 4); return b.t < b.life; },
+    draw() { ctx.save(); ctx.translate(px, py); ctx.rotate(this.ang()); rect(0, -this.w / 2, 1200, this.w, '#ffffff'); rect(0, -this.w / 2 - 3, 1200, 3, '#9ff0ff'); rect(0, this.w / 2, 1200, 3, '#9ff0ff'); ctx.restore(); drawWokBlaster({ x: px, y: py, ang: this.ang(), st: 'fire', t: 1, inT: 0, cT: 1, sc: 1 }, 2.4); },
+    hit(x, y) { const a = this.ang(), dx = x - px, dy = y - py, al = dx * Math.cos(a) + dy * Math.sin(a), pp = -dx * Math.sin(a) + dy * Math.cos(a); return al > 40 && Math.abs(pp) < this.w / 2; } });
+}
+function centreText(lines) { G.ctext = lines; }
+function drawCtext() { if (!G || !G.ctext) return; G.ctext.forEach((l, i) => text(l, 320, 316 + i * 26, { size: 18, weight: 900, align: 'c' })); }
 function crossAt(cx, cy, ch, w = 28) { blaster(cx, cy - 150, PI / 2, { charge: ch, width: w }); blaster(cx - 170, cy, 0, { charge: ch, width: w }); }
 function xAt(cx, cy, ch, w = 24) { for (const [dx, dy] of [[-1, -1], [1, -1]]) { const x = cx + dx * 150, y = cy + dy * 150; blaster(x, y, Math.atan2(cy - y, cx - x), { charge: ch, width: w }); } }
-// a full-height column of barbells with a gap at gy (red heart: go through the gap)
 function gapCol(x, gy, vx, gap = 46, col = 'w') { barV(x, B.y - 12, gy - gap / 2, vx, { caps: 2, col }); barV(x, gy + gap / 2, B.y + B.h + 12, vx, { caps: 1, col }); }
-async function spAct2() {
-  G.drift = 0.5; G.cloth = 0.4;
-  // a) dark red square: cyan bars inside (stand still in a column), side blasters at your height, then the cross, then the X
-  G.tint = { col: '#2a0303' }; await setBox(140, 140, 0.15); soulReset('red');
-  for (let i = 0; i < 3; i++) barV(B.x + 35 + i * 35, B.y - 10, B.y + B.h + 10, 0, { caps: 0, col: 'c', life: 2.4 });
-  blaster(B.x - 70, soul.y, 0, { charge: 0.75 }); await wait(1.4);
-  let cx = B.x + B.w / 2, cy = B.y + B.h / 2;
-  crossAt(cx, cy, 0.8); await wait(1.45);
-  xAt(cx, cy, 0.8); await wait(1.45);
-  await glitchCut();
-  // b) navy: a diamond, orange bars sweep through it (keep moving)
-  G.tint = { col: '#060a26' }; await boxTo(120, 120, { rot: PI / 4, warn: 0.3 });
-  for (let i = 0; i < 3; i++) { const L = i % 2 === 0; barV(L ? B.x - 20 : B.x + B.w + 20, B.y - 20, B.y + B.h + 20, L ? 110 : -110, { caps: 0, col: 'o', life: 3 }); await wait(0.9); }
-  await wait(0.8);
-  // c) a wide box, blue heart: hurdles on every other beat; one blaster from above on the left third
-  await boxTo(240, 90, { warn: 0.3 }); setHeart('blue'); await go('L');
-  for (let i = 0; i < 5; i++) { barV(B.x + B.w + 14, B.y + B.h - 20, B.y + B.h + 12, -180, { caps: 1 }); if (i === 2) blaster(B.x + 50, B.y - 70, PI / 2, { charge: 0.8, width: 26 }); await toBeat(1); await toBeat(1); }
-  await wait(0.6); await glitchCut();
-  // d) a small box: two lanes of barbells, then the middle lane; then the giant wok — the bottom strip is safe
-  G.tint = { col: '#000000' }; setHeart('red'); await boxTo(90, 90, { warn: 0.3 });
-  for (const ys of [[16, 74], [45], [16, 74]]) { for (const y of ys) { const L = ys.length > 1; barH(B.x - 70, B.x - 14, B.y + y, { vx: 150, life: 1.6 }); } await wait(0.85); }
-  { const safe = 24, wb = B.h - safe - 4, by0 = B.y + (B.h - safe) / 2; blaster(B.x - 140, by0, 0, { big: 1.8, charge: 1.1, fire: 0.9, width: wb, from: [B.x - 320, B.y], inT: 0.4 }); }
-  await wait(2.5);
-  // e) a tall box: short barbells slide across, with wide gaps between the rows
-  await boxTo(80, 220, { warn: 0.3 });
-  for (let i = 0; i < 4; i++) { const y = B.y + 26 + i * 56; const L = i % 2 === 0; barH(L ? B.x - 50 : B.x + B.w + 10, L ? B.x - 10 : B.x + B.w + 50, y, { vx: L ? 120 : -120, col: 'w', life: 2.4 }); await wait(0.35); }
-  await wait(1.2); await glitchCut();
-  // f) grey: the camera rolls, 현태 circles the box and throws one thing at a time
-  G.tint = { col: '#3a3a3a' }; G.cloudA = 1; await boxTo(160, 120, { warn: 0.3 });
-  camTo({ x: 320, y: 250, z: 1.1, rot: 0.5 }, 0.8).catch(swallow);
-  await go('R'); for (const k of ['plate', 'egg', 'bar']) { await toss(k); await toBeat(1); await toBeat(1); }
-  await go('L'); for (const k of ['fan', 'egg']) { await toss(k); await toBeat(1); await toBeat(1); }
-  camTo({ x: 320, y: 240, z: 1, rot: 0 }, 0.6).catch(swallow); G.cloudA = 0;
-  // g) the rails: hurdles (jump), orange (move) and cyan (stay) bars, two beats apart
-  await glitchCut(); G.tint = { col: '#000000' }; setHeart('blue'); await boxTo(520, 50, { warn: 0.3 });
-  const seq = ['w', 'w', 'o', 'w', 'c', 'w', 'w', 'o'];
-  for (const col of seq) { barV(B.x + B.w + 12, col === 'w' ? B.y + B.h - 18 : B.y - 12, B.y + B.h + 12, -200, { caps: col === 'w' ? 1 : 0, col }); await toBeat(1); await toBeat(1); }
-  await wait(1.8);
-  // h) dark red: barbells drop where you stand (marked), then a wall rises from below — except one gap, marked in advance
-  G.tint = { col: '#2a0303' }; setHeart('red'); await boxTo(160, 110, { warn: 0.3 }); await go('R');
-  for (let i = 0; i < 4; i++) { const x = clamp(soul.x, B.x + 32, B.x + B.w - 32); floorMark(x, 64, 0.5); await wait(0.5); barH(x - 30, x + 30, B.y - 20, { vy: 520, life: 0.9 }); await wait(0.35); }
-  await go('top', 60);
-  G.tint = { col: '#060a26' };
-  { const n = 10, step = (B.w - 16) / (n - 1), gapI = soul.x < B.x + B.w / 2 ? n - 3 : 2;   // the gap is on the other side: you have to run
-    for (let i = 0; i < n; i++) if (Math.abs(i - gapI) > 1) floorMark(B.x + 8 + i * step, 10, 0.9);
-    await wait(0.9);
-    for (let i = 0; i < n; i++) if (Math.abs(i - gapI) > 1) barV(B.x + 8 + i * step, B.y + B.h + 30, B.y + B.h + 150, 0, { caps: 1, vy1: -300, life: 1.2 }); }
-  await wait(1.1); flashA = 1; await wait(0.3);
+const sideBars = (x, y1, y2, n, col, life) => { for (let i = 0; i < n; i++) barV(x + i * 14, y1, y2, 0, { caps: 0, col, life }); };
+
+/* ---- A. 12:48–13:09  the talk, the counter, "예의가 업씁니다, 예?" ---- */
+async function spA() {
+  hy.face = 'normal';
+  await hySay(['좋씁니다.', '좋씁니다. 제가 하고 싶은 말은.', '우리 아직 기회가 잇씁니다, 그렇지 않씁니까?', '그러니 제발, 알바생.', '그냥… 웍을 내려놓으씹시오.', '그럼 아마… 제 일이…']);
+  // 12:59 your turn — whatever you pick, the strike comes
+  const a = await playerTurn(P2_FL); if (a.t === 'fight') await fightBar(); boxText.on = false; G.boxHidden = true;
+  ui.mode = 'none'; audio.slash(); fx.push({ k: 'slash', x: hy.x, y: hy.feet - 100, t: 0, life: 0.6 });
+  await tween(0.12, k => hy.dx = -70 * k); hy.vis = false; await wait(0.9);
+  // 13:01 a fan of barbells bursts out where he stood
+  hy.vis = true; hy.dx = 0; flashA = 0.6; audio.big(); shake = 10;
+  for (let i = 0; i < 9; i++) { const a = -PI / 2 + (i - 4) * 0.16; add({ a, t: 0, life: 1.3, clip: false, hit: () => false, upd: b => b.t < b.life, draw() { const k = Math.min(1, this.t / 0.15) * (this.t > 1.0 ? (1.3 - this.t) / 0.3 : 1); ctx.save(); ctx.translate(320, 230); ctx.rotate(this.a + PI / 2); drawBarbellV(0, -150 * k, 0, 'w', 1, 22); ctx.restore(); } }); }
+  await wait(1.3);
+  // 13:03 the mercy button is gone; the text sits in the middle
+  G.noMercy = true;
+  for (const t of [['.'], ['…'], ['…'], ['예의가 업씁니다,'], ['예의가 업씁니다, 예?']]) { centreText(t); audio.blip('hy'); await wait(t[0].length > 3 ? 1.2 : 0.7); }
+  await wait(1.6);
+  await tween(1.4, k => { fade = k; }); centreText(null); G.noMercy = false; G.boxHidden = false;
 }
-/* ---- act 3: yellow waves — columns with gaps, then cross → X → twin columns, then two giants (safe below) ---- */
-async function spAct3() {
-  G.tint = { col: '#1c1500', wave: '#3a2c00' }; G.glitch = 0.25; await wait(0.3);
-  setHeart('red'); await boxTo(150, 140, { warn: 0.3 });
-  for (let i = 0; i < 6; i++) {
-    if (i % 3 === 2) barV(B.x + B.w + 10, B.y - 12, B.y + B.h + 12, -150, { caps: 0, col: 'c', life: 3 });
-    else gapCol(B.x + B.w + 10, B.y + 30 + ((i * 47) % (B.h - 60)), -150);
-    await toBeat(1); await toBeat(1);
+/* ---- B. 13:09–13:39  the comic ---- */
+async function spB() {
+  fade = 0; audio.stopMusic();
+  await waitR(1.0);
+  await panels([['windows', 3.0], ['far', 3.0], ['alba', 4.0], ['hy', 4.0], ['slip', 4.0], ['far', 4.0], ['alba', 3.0], ['feet', 1.0], ['hy', 1.0], ['eyes', 1.0]]);
+  flashA = 1; await waitR(0.4);
+}
+/* ---- C. 13:40–14:25  the montage ---- */
+async function spC() {
+  const at = secClock();
+  audio.music(2, { offset: audio.tracks[2].loopStart - 0.05 });
+  G.drift = 0.35;
+  // 13:40.0 yellow flash; square box; 현태 crouched
+  G.tint = { col: '#3a3200' }; flashA = 0.8; hy.pose = 'down';
+  await setBox(144, 140, 0); G.boxHidden = false; soulReset('red'); soul.vis = true; ui.mode = 'none';
+  await at(0.2); G.tint = { col: '#1a0404' };
+  // 13:40.2 vertical bars: white at 1/5, 2/5, 4/5 and cyan at 3/5
+  for (const [k, c] of [[0.2, 'w'], [0.4, 'c'], [0.6, 'c'], [0.8, 'w']]) barV(B.x + B.w * k, B.y - 10, B.y + B.h + 10, 0, { caps: 0, col: c, life: 0.5 });
+  // 13:40.6 an orange ring of bars spins around the centre; blasters slide in at left and right
+  await at(0.6); hy.face = 'glow'; hy.pose = 'up';
+  { const cx = B.x + B.w / 2, cy = B.y + B.h / 2; for (let i = 0; i < 6; i++) orbitBar(cx, cy, 44, i * TAU / 6, 2.2, 34, 'o', 1.4); }
+  await at(0.8); blaster(B.x - 70, B.y + B.h / 2, 0, { charge: 0.75, width: 40 }); blaster(B.x + B.w + 70, B.y + B.h / 2, PI, { charge: 0.75, width: 40 });
+  // 13:41.8 they fire across the middle (the orange ring is gone by then: go above or below)
+  await at(1.8); G.tint = { col: '#3a3a3a' }; G.glitch = 0.3;
+  await at(2.4); G.tint = { col: '#1a0404' }; G.cloth = 0.6; hy.pose = null;
+  // 13:42.6 a wok rises over 현태; he steps to the right of the box; "여기" points at the box top
+  await at(2.6); blaster(B.x + B.w / 2, B.y - 150, PI / 2, { charge: 0.55, width: 36, fire: 1.1, from: [B.x + B.w / 2, -80] }); hy.front = true; hyGo(B.x + B.w + 40, 214, 0.3, { hop: 30 }).catch(swallow);
+  await at(2.8); blaster(B.x - 170, B.y + B.h / 2, 0, { charge: 0.35, width: 36, fire: 1.1 });
+  // 13:43.2 a row of short bars along the floor; 13:43.4 the cross fires — the four quadrants are safe
+  await at(3.2); spikeRow('down', 0.5, 18);
+  await at(4.6); G.glitch = 0.25; hy.front = false; hyGo(320, 240, 0.25).catch(swallow);
+  // 13:44.8 small square; 13:45.0 rows of bars slide in from the left
+  await at(4.55); boxTo(130, 120, { warn: 0.1, d: 0.15 }).catch(swallow);
+  await at(5.0); for (const y of [0.2, 0.5, 0.8]) barH(B.x - 80, B.x - 8, B.y + B.h * y, { vx: 140, life: 1.6 });
+  // 13:45.2 brown flash; 13:45.4 four woks at the corners
+  await at(5.2); G.tint = { col: '#3a1d08' };
+  await at(5.4); { const cx = B.x + B.w / 2, cy = B.y + B.h / 2; for (const [dx, dy] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) blaster(cx + dx * 150, cy + dy * 130, Math.atan2(-dy * 130, -dx * 150), { charge: 0.75, width: 26 }); }
+  // 13:45.6 orange/cyan verticals inside; 13:45.8 cyan flash
+  await at(5.6); for (const [k, c] of [[0.3, 'o'], [0.5, 'c'], [0.7, 'o']]) barV(B.x + B.w * k, B.y - 10, B.y + B.h + 10, 0, { caps: 0, col: c, life: 0.8 });
+  await at(5.8); G.tint = { col: '#0a3a40' };
+  // 13:46.0 eight woks around a larger box; cyan rows below it
+  await at(5.7); boxTo(170, 150, { warn: 0.1, d: 0.15 }).catch(swallow);
+  await at(5.95); { const cx = 320, cy = BOT - 75; for (let i = 0; i < 4; i++) { const a = PI / 4 + i * PI / 2; blaster(cx + Math.cos(a) * 190, cy + Math.sin(a) * 170, a + PI, { charge: 0.2, width: 26 }); } }
+  // 13:46.4 the X fires; 13:47.0 woks at the four sides; 13:47.2 the cross
+  await at(6.6); G.tint = { col: '#1a0404' };
+  { const cx = B.x + B.w / 2, cy = B.y + B.h / 2; blaster(cx, cy - 180, PI / 2, { charge: 0.35, width: 30 }); blaster(cx - 200, cy, 0, { charge: 0.35, width: 30 }); }
+  // 13:47.4 the box narrows; cyan and orange bars stand at its sides
+  await at(7.3); await boxTo(120, 120, { warn: 0.01, d: 0.12 }); sideBars(B.x - 34, B.y - 10, B.y + B.h + 10, 2, 'c', 0.8); sideBars(B.x + B.w + 20, B.y - 10, B.y + B.h + 10, 2, 'o', 0.8);
+  // 13:48.0 grey flash: an orange cross inside the box
+  await at(8.0); G.tint = { col: '#4a4a52' }; flashA = 0.3;
+  { const cx = B.x + B.w / 2, cy = B.y + B.h / 2; barV(cx, B.y - 10, B.y + B.h + 10, 0, { caps: 0, col: 'o', life: 0.4 }); barH(B.x - 10, B.x + B.w + 10, cy, { col: 'o', life: 0.4 }); }
+  // 13:48.2 navy: the box turns into a diamond, blue heart, an orange bar across its middle
+  await at(8.2); G.tint = { col: '#060a26' }; setHeart('blue'); await boxTo(120, 120, { rot: PI / 4, warn: 0.01, d: 0.12 });
+  barH(B.x - 30, B.x + B.w + 30, B.y + B.h / 2, { col: 'o', life: 0.5 });
+  // 13:48.6 it turns back and widens; ceiling and floor bars scroll by — jump between them
+  await at(8.6); await boxTo(320, 120, { rot: 0, warn: 0.01, d: 0.4 });
+  hereSign(B.x + B.w - 40, B.y - 22, 'right', 2.4);
+  for (let i = 0; i < 9; i++) {
+    await at(9.0 + i * 0.32);
+    const x = B.x + B.w + 14, fl = B.y + B.h;
+    // each column: a bar hanging from the ceiling and a short stub on the floor — hop the stub, stay under the bar
+    barV(x, B.y - 12, fl - 54, -190, { caps: 2 }); barV(x, fl - 17, fl + 12, -190, { caps: 1 });
   }
-  healRice(); await wait(0.6);
-  const cx = B.x + B.w / 2, cy = B.y + B.h / 2;
-  crossAt(cx, cy, 0.8); await wait(1.4);
-  xAt(cx, cy, 0.8); await wait(1.4);
-  for (const dx of [-38, 38]) blaster(cx + dx, B.y - 150, PI / 2, { charge: 0.8, width: 24 }); await wait(1.4);
-  // two giant ones from the sides, high in the box: get low
-  const top = B.y, h = B.h * 0.55, y = top + h / 2;
-  blaster(B.x - 120, y, 0, { big: 1.9, charge: 1.1, fire: 0.8, width: h, from: [-200, y], inT: 0.4 });
-  blaster(B.x + B.w + 120, y, PI, { big: 1.9, charge: 1.1, fire: 0.8, width: h, from: [LW + 200, y], inT: 0.4 });
-  await wait(2.5); G.black = 1; audio.stopMusic(); await wait(1.0);
+  // 13:51.6 a wok drops in at the upper left; a skewer flies at your height
+  await at(12.0); blaster(B.x + 60, B.y - 150, PI / 2, { charge: 0.55, width: 70, fire: 1.6, from: [B.x - 40, -80] });
+  await at(12.3); skewer(B.x - 140, soul.y, 0, 420, { len: 120 });
+  // 13:52.6 the box slides right out of the beam and shrinks into a tall narrow cell
+  await at(12.7); await boxTo(150, 120, { cx: 430, warn: 0.01, d: 0.4 });
+  await at(14.2); await boxTo(56, 140, { cx: 470, warn: 0.15, d: 0.25 }); setHeart('red');
+  // 13:55.2 현태 dashes in from the left with afterimages
+  await at(15.2); hy.front = true; await hyGo(250, 330, 0.5, { flip: false, hop: 40 });
+  // 13:55.8 the giant wok behind him; a ring of small woks fires outward; orange bars spin around
+  await at(15.8); hy.pose = 'up2';
+  G.giant = { x: 120, y: 190, k: 0 }; tween(0.5, k => G.giant.k = k).catch(swallow);
+  for (let i = 0; i < 8; i++) { const a = i * TAU / 8, x = 250 + Math.cos(a) * 70, y = 250 + Math.sin(a) * 70; if (Math.cos(a) > 0.5) continue; blaster(x, y, a, { charge: 0.5, width: 18, from: [250, 250] }); }
+  (async () => { for (let i = 0; i < 6; i++) { const ang = rr(-0.6, 0.6); spinBar(250, 260, Math.cos(ang) * 150, Math.sin(ang) * 150 - 40); await wait(0.25); } })().catch(swallow);
+  // 13:56.8 white orbs swell in the giant wok's mouth
+  await at(17.0); G.giant.orbs = true;
+  // 13:58.0 it fires: the beam swings down from above and stops just over the box
+  await at(18.0); hy.pose = null; G.giant.orbs = false;
+  { const px = G.giant.x, py = 150; sweepBeam(px, py, -1.1, 0.0, 1.0, 76, { hold: 1.8 }); }
+
+  await at(19.2); for (let i = 0; i < 4; i++) { diamond(B.x + rr(4, B.w - 4), B.y - 30, rr(-10, 10), 120); await wait(0.09); }
+  await at(19.6); for (let i = 0; i < 2; i++) skewer(B.x + B.w / 2 + (i ? 70 : -70), LH + 40, -PI / 2 - (i ? 0.5 : -0.5), 380, { len: 90 });
+  // 14:01.0 navy flash; tiny box; the heart flips red/blue as bars come and go
+  await at(21.0); G.giant = null; hy.front = false; hyGo(320, 240, 0.25).catch(swallow);
+  G.tint = { col: '#060a26' }; await boxTo(100, 100, { cx: 320, warn: 0.01, d: 0.15 });
+  setHeart('blue'); for (const k of [0.3, 0.7]) barV(B.x + B.w * k, B.y + B.h - 20, B.y + B.h + 12, 0, { caps: 1, col: 'o', life: 0.4 });
+  await at(21.4); G.tint = { col: '#000' }; setHeart('red'); spikeRow('up', 0.4, 26);
+  await at(22.0); setHeart('red'); spikeRow('down', 0.4, 26);
+  await at(22.6); G.tint = { col: '#060a26' }; setHeart('blue'); G.plats = true; platform(B.x + 28, B.x + 72, B.y + B.h - 34, 0);
+  await at(23.0); G.tint = { col: '#000' }; wallWarn('down', 0.4); await at(23.4);
+  const lava = add({ clip: true, life: 999, upd: b => b.t < b.life, draw() { for (let x = B.x; x < B.x + B.w; x += 8) { rect(x + 2, B.y + B.h - 10, 4, 10, '#ffffff'); rect(x, B.y + B.h - 12, 8, 3, '#e3120b'); } }, hit: (px, py) => py > B.y + B.h - 14 });
+  // 14:03.6 the box stretches upward into a tower; platforms keep coming down; things fall from above
+  await at(23.6); await boxTo(100, 300, { warn: 0.01, d: 0.35 });
+  const plats = (async () => { let i = 0; while (G.plats) { const L = [B.x + 8, B.x + B.w - 52, B.x + (B.w - 44) / 2][i++ % 3]; platform(L, L + 44, B.y - 6, 26); await wait(1.55); } })();
+  for (let i = 0; i < 5; i++) platform([B.x + 8, B.x + B.w - 52, B.x + 28][i % 3], [B.x + 8, B.x + B.w - 52, B.x + 28][i % 3] + 44, B.y + B.h - 60 - i * 52, 26);
+  yolkEye(); G.cloudA = 0;
+  (async () => { while (G.plats) { const x = rr(B.x + 14, B.x + B.w - 14); hereSign(x, B.y - 18, 'down', 0.6); await wait(0.6); if (!G.plats) break; saw(x, B.y - 10, 0, 90); await wait(0.9); } })().catch(swallow);
+  // 14:05.2 clouds; 현태 appears at the right and punches
+  await at(25.2); G.cloudA = 1; G.bigClouds = 1; hy.front = true; hyGo(470, 330, 0.4, { hop: 40 }).catch(swallow);
+  for (let i = 0; i < 4; i++) { await at(25.6 + i * 0.35); hyPose('left', 0.3).catch(swallow); skewer(B.x + B.w + 100, clamp(soul.y - 30, B.y + 20, B.y + B.h - 20), PI, 300, { len: 60 }); }
+  // 14:06.8 the camera swings; he kicks
+  await at(26.8); G.tint = { col: '#5a5a5a' }; camTo({ x: 320, y: 240, z: 1.15, rot: -0.55 }, 0.3).catch(swallow); G.glitch = 0.2; hyPose('left', 0.8).catch(swallow);
+  await at(27.4); G.tint = { col: '#000' };
+  await at(28.0); camTo({ x: 320, y: 240, z: 1, rot: 0 }, 0.4).catch(swallow);
+  await at(28.6); G.tint = { col: '#5a5a5a' }; await at(28.9); G.tint = { col: '#000' };
+  // 14:09.2 grey flash; the tower tips over into a long inclined box
+  await at(29.2); G.tint = { col: '#3a3a3a' }; flashA = 0.4; G.plats = false; G.bigClouds = 0; lava.life = 0; bullets = bullets.filter(b => !b.plat && !b.eye);
+  setHeart('blue'); camTo({ x: 320, y: 240, z: 1.1, rot: 0.3 }, 0.4).catch(swallow);
+  boxTo(360, 70, { cx: 280, by: 330, rot: -0.45, warn: 0.01, d: 0.6 }).catch(swallow);
+  await at(30.4); G.tint = { col: '#000' };
+  // 14:10.6 he throws; orange and cyan wheels roll through the box
+  camTo({ x: 320, y: 240, z: 1, rot: 0 }, 0.5).catch(swallow);
+  for (let i = 0; i < 6; i++) { await at(30.6 + i * 0.18); const c = i % 2 ? 'c' : 'o'; const [sx, sy] = toScreen(B.x + B.w + 20, B.y + B.h - 16); wheel(sx, sy, -Math.cos(-0.45) * 150, Math.sin(0.45) * 150 * (B.rot < 0 ? 1 : -1), c, 18); hyPose('left', 0.3).catch(swallow); }
+  await at(31.6); boxTo(380, 80, { cx: 260, by: 330, rot: 0, warn: 0.01, d: 0.5 }).catch(swallow);
+  // 14:12.4 he crouches and charges; 14:13 the camera spins the box upright and back down — then the rail
+  await at(32.4); hy.pose = 'down';
+  await at(33.0); G.glitch = 0.3; camTo({ x: 320, y: 240, z: 1.1, rot: 0.9 }, 0.5).catch(swallow);
+  await at(33.8); camTo({ x: 320, y: 240, z: 1, rot: 0 }, 0.6).catch(swallow); hy.front = false; hy.pose = null; hy.vis = false;
+  boxTo(700, 96, { cx: 320, by: 330, rot: 0, warn: 0.01, d: 0.4 }).catch(swallow); setHeart('blue');
+  // 14:14.4–14:18.8 the rail: crossed pairs roll in — white (jump), orange (move), cyan (stay)
+  const seq = ['o', 'w', 'c', 'o', 'w', 'c', 'o', 'w'];
+  for (let i = 0; i < seq.length; i++) { await at(34.3 + i * 0.55); xPair(LW + 30, -210, seq[i]); }
+  await at(38.8); await boxTo(120, 100, { cx: 320, by: 330, warn: 0.15, d: 0.3 }); setHeart('red'); hy.vis = true;
+  // 14:20.8 white flash; a wok at the lower left with a charging orb; the box tilts long
+  await at(40.8); flashA = 0.8; G.tint = { col: '#1a0404' };
+  await boxTo(300, 70, { cx: 330, by: 330, rot: -0.4, warn: 0.01, d: 0.35 });
+  for (let i = 0; i < 6; i++) fx.push({ k: 'sh', x: -20, y: rr(150, 300), vx: rr(160, 300), vy: rr(-40, 40), r: rand() * PI, w: rr(-6, 6), s: rr(4, 9), t: 0, life: 3 });
+  // 14:22.0 a beam runs along the box's top half — stay on the low side
+  await at(41.6); { const ang = B.rot, [ex, ey] = toScreen(B.x + B.w + 90, B.y + B.h * 0.3); blaster(ex, ey, ang + PI, { charge: 0.6, width: B.h * 0.55, fire: 0.6 }); }
+  // 14:22.6 navy: the long box at the top, "여기↓" at its left end; things come in from the right
+  await at(42.6); G.tint = { col: '#060a26' }; boxTo(460, 60, { cx: 290, by: 260, rot: 0, warn: 0.01, d: 0.2 }).catch(swallow); setHeart('blue');
+  hereSign(B.x + 26, B.y - 26, 'down', 2.0); hy.front = true; hyGo(B.x + B.w + 60, 300, 0.3).catch(swallow);
+  for (let i = 0; i < 4; i++) { await at(42.9 + i * 0.32); barV(B.x + B.w + 14, B.y + B.h - 18, B.y + B.h + 12, -170, { caps: 1, col: i % 2 ? 'o' : 'w' }); }
+  // 14:24.2 a forest of barbells bursts up and sweeps left — everything but the far left end
+  await at(44.2); for (let i = 0; i < 14; i++) { const x = B.x + B.w - 10 - i * ((B.w - 60) / 13); floorMark(x, 10, 0.25); (async () => { await wait(0.25 + i * 0.03); barV(x, B.y + B.h + 30, B.y + B.h + 220, 0, { caps: 1, vy1: -900, life: 0.5 }); })().catch(swallow); }
+  await at(44.8); G.black = 1; await wait(0.2); bullets = []; G.black = 0; hy.front = false;
 }
-/* ---- act 4: the talk, then the tower climb ---- */
-async function spAct4() {
-  G.black = 0; bullets = []; G.boxHidden = true; soul.vis = false; G.tint = { col: '#000' };
+/* ---- D. 14:25–14:40  yellow waves ---- */
+async function spD() {
+  const at = secClock();
+  G.tint = { col: '#000' }; hy.x = 320; hy.feet = 240; hy.vis = true; hy.pose = 'down';
+  await at(0.4); flashA = 0.8; G.tint = { col: '#2a2a2a' };
+  await boxTo(130, 80, { cx: 320, by: 385, warn: 0.01, d: 0.1 }); setHeart('blue');
+  // 14:26 wall bars, glitches; 14:27–14:28 floor bars at the walls and centre (jump)
+  await at(1.2); G.tint = { col: '#000' };
+  await at(1.6); G.glitch = 0.4;
+  for (let i = 0; i < 4; i++) { await at(2.0 + i * 0.33); barV(B.x + B.w + 14, B.y + B.h - 20, B.y + B.h + 12, -150, { caps: 1 }); }
+  await at(3.4); G.glitch = 0.4;
+  // 14:29 yellow waves; 현태 points; the box fills with a comb of bars from the right (gaps you walk through)
+  await at(4.0); G.tint = { col: '#1c1500', wave: '#3a2c00' }; hy.pose = 'point'; await boxTo(140, 110, { warn: 0.2, d: 0.2 }); setHeart('red');
+  for (let i = 0; i < 16; i++) { await at(5.0 + i * 0.2); gapCol(B.x + B.w + 10, B.y + B.h / 2 + Math.sin(i * 0.65) * 26, -130, 54); }
+  // 14:31.8 he throws a skewer straight down through the box, twice
+  await at(6.8); hyThrow().catch(swallow); hereSign(clamp(soul.x, B.x + 20, B.x + B.w - 20), B.y - 16, 'down', 0.4);
+  await at(7.2); skewer(soul.x, B.y - 120, PI / 2, 360, { len: 110 });
+  await at(8.4); hyThrow().catch(swallow); await at(8.8); skewer(soul.x, B.y - 120, PI / 2, 380, { len: 110 });
+  // 14:34.4 narrower square; cyan bar; woks left and right and top
+  await at(9.4); await boxTo(110, 110, { warn: 0.2, d: 0.2 }); barV(B.x + 20, B.y - 10, B.y + B.h + 10, 70, { caps: 0, col: 'c', life: 1.2 });
+  await at(9.8); { const cx = B.x + B.w / 2, cy = B.y + B.h / 2; blaster(cx - 170, cy - 26, 0, { charge: 0.8, width: 24 }); blaster(cx + 170, cy + 26, PI, { charge: 0.8, width: 24 }); }
+  // 14:36 eight around: the cross, then the X
+  await at(10.7); { const cx = B.x + B.w / 2, cy = B.y + B.h / 2; crossAt(cx, cy, 0.45); }
+  await at(11.7); { const cx = B.x + B.w / 2, cy = B.y + B.h / 2; xAt(cx, cy, 0.45); }
+  // 14:37.4 two big woks left and right charge orbs for 1.4s and fire across the top part
+  await at(12.6); { const y = B.y + B.h * 0.32; blaster(B.x - 130, y, 0, { big: 1.8, charge: 1.4, fire: 0.6, width: B.h * 0.6, from: [-200, y], inT: 0.4 }); blaster(B.x + B.w + 130, y, PI, { big: 1.8, charge: 1.4, fire: 0.6, width: B.h * 0.6, from: [LW + 200, y], inT: 0.4 }); }
+  await at(15.0); hy.pose = null; G.black = 1; audio.stopMusic(); await wait(0.3); bullets = [];
+}
+/* ---- E. 14:40–15:12  the talk ---- */
+async function spE() {
+  G.black = 0; G.boxHidden = true; soul.vis = false; G.tint = { col: '#000' }; G.cloudA = 0;
+  await waitR(2.0); G.glitch = 0.4; await waitR(0.4);
   await talk(['#normal', '…예.', '알바 면접 볼 때가 생각나씁니다.', '2인분부터 받는다고 분명히 말햇씁니다.', '근데 당신은… 1인분을 시켯씁니다.', '그날 알앗씁니다. 이렇게 될 줄.', '#shadow', '…예. 좋씁니다.', '#glow', '다시 시작하겟씁니다.']);
-  await flashTo('#ffffff', 0.25); audio.music(2, { offset: audio.tracks[2].loopStart - 0.3 });
-  G.tint = { col: '#d8c400' }; flashA = 0.6; await wait(0.3);
-  // the tower: a tall narrow box; platforms descend, you climb; the floor turns to spikes
-  G.tint = { col: '#000000' }; G.boxHidden = false; hy.vis = false; await setBox(110, 300, 0.25); soulReset('blue');
-  G.plats = true; G.cloudA = 1;
-  const plats = [];
-  for (let i = 0; i < 7; i++) plats.push(platform(i % 2 ? B.x + 52 : B.x + 14, (i % 2 ? B.x + 52 : B.x + 14) + 44, B.y + B.h - 44 - i * 44, 22));
-  const spawn = (async () => { for (let i = 7; i < 60 && G.plats; i++) { await wait(44 / 22); const L = i % 3 === 0 ? B.x + (B.w - 44) / 2 : i % 2 ? B.x + B.w - 58 : B.x + 14; platform(L, L + 44, B.y - 6, 22); } })();
+}
+/* ---- F. 15:13–15:52  the well and the tower ---- */
+async function spF() {
+  const at = secClock();
+  flashA = 1; G.tint = { col: '#ffffff' }; await at(0.6); G.tint = { col: '#d8c400' }; await at(1.0); G.tint = { col: '#3a3200' };
+  await at(1.4); G.tint = { col: '#000' }; hy.face = 'glow';
+  await setBox(120, 110, 0); G.boxHidden = false; soulReset('red'); soul.vis = true; ui.mode = 'none';
+  audio.music(2, { offset: audio.tracks[2].loopStart - 1.6 });
+  // 15:15.75–15:19 grey flashes on the beat; the clouds come back
+  for (const t of [2.75, 3.5, 4.5, 5.5]) { await at(t); G.tint = { col: '#6a6a6a' }; G.cloudA = 1; await wait(0.18); G.tint = { col: '#000' }; }
+  // 15:19.5 yellow waves; 15:21 white; 15:21.5 yellow
+  await at(6.5); G.tint = { col: '#1c1500', wave: '#3a2c00' }; await boxTo(200, 120, { warn: 0.2, d: 0.2 });
+  await at(8.0); flashA = 1; await at(8.5); G.tint = { col: '#3a3200' }; await at(8.75); G.tint = { col: '#1c1500', wave: '#3a2c00' };
+  // 15:21.75–15:23 woks drop in from the upper left one at a time; skewers sweep at your height
+  for (let i = 0; i < 4; i++) { await at(8.75 + i * 0.5); const x = B.x - 40 + i * 30, y = B.y - 110; blaster(x, y, Math.atan2(B.y + B.h / 2 - y, B.x + B.w / 2 + (i % 2 ? 40 : -40) - x), { charge: 0.55, width: 22 }); if (i % 2) skewer(B.x + B.w + 120, soul.y, PI, 360, { len: 100 }); }
+  // 15:23.5 six woks in a row above him; floor bars; 15:24.75 two thick beams down, a gap in the middle
+  await at(10.5); G.glitch = 0.3; spikeRow('down', 0.7, 18);
+  await at(10.75); for (const dx of [-60, 60]) blaster(B.x + B.w / 2 + dx, B.y - 160, PI / 2, { charge: 0.9, width: 56 });
+  // 15:25.5 the box becomes a well; the floor grows barbells (white: jump, orange: move)
+  await at(12.5); hy.vis = false; G.cloudA = 0; await boxTo(110, 280, { warn: 0.2, d: 0.3 }); setHeart('blue');
+  for (let i = 0; i < 20; i++) {
+    await at(13.0 + i * 0.35);
+    const x = B.x + 14 + ((i * 37) % (B.w - 28)), o = i % 3 === 2;
+    if (Math.abs(x - soul.x) < 18 && !o) continue;
+    barV(x, B.y + B.h + 10, B.y + B.h + 60, 0, { caps: 1, col: o ? 'o' : 'w', vy1: -140, life: 0.9 });
+  }
+  // 15:33.25 the floor rises — climb: platforms, the yolk eye, falling things, bars sliding in, beams down the middle
+  await at(20.5); G.plats = true; G.cloudA = 1;
+  const lava = add({ clip: true, life: 999, upd: b => b.t < b.life, draw() { for (let x = B.x; x < B.x + B.w; x += 8) { rect(x + 2, B.y + B.h - 10, 4, 10, '#ffffff'); rect(x, B.y + B.h - 12, 8, 3, '#e3120b'); } }, hit: (px, py) => py > B.y + B.h - 14 });
+  for (let i = 0; i < 6; i++) platform([B.x + 8, B.x + B.w - 52, B.x + 33][i % 3], [B.x + 8, B.x + B.w - 52, B.x + 33][i % 3] + 44, B.y + B.h - 46 - i * 46, 24);
+  const plats = (async () => { let i = 0; while (G.plats) { await wait(46 / 24); const L = [B.x + 8, B.x + B.w - 52, B.x + 33][i++ % 3]; platform(L, L + 44, B.y - 6, 24); } })();
   yolkEye();
-  await wait(2.0); wallWarn('down', 1.0); await wait(1.0);
-  const lava = add({ clip: true, life: 30, upd: b => b.t < b.life, draw() { for (let x = B.x; x < B.x + B.w; x += 8) { rect(x + 2, B.y + B.h - 10, 4, 10, '#ffffff'); rect(x, B.y + B.h - 12, 8, 3, '#e3120b'); } }, hit: (px, py) => py > B.y + B.h - 14 });
-  for (let i = 0; i < 8; i++) {
-    const r = i % 4;
-    if (r === 1) { let x; do x = rr(B.x + 15, B.x + B.w - 15); while (Math.abs(x - soul.x) < 24); saw(x, B.y - 10, 0, 60); }
-    if (r === 3) blaster(clamp(soul.x, B.x + 20, B.x + B.w - 20), B.y - 70, PI / 2, { charge: 0.85, width: 20 });
-    await wait(1.7);
+  for (let i = 0; i < 16; i++) {
+    await at(22.0 + i * 0.5);
+    if (i % 4 === 1) { const x = rr(B.x + 14, B.x + B.w - 14); if (Math.abs(x - soul.x) > 20) saw(x, B.y - 10, 0, 70); }
+    if (i % 4 === 3) barH(i % 8 === 3 ? B.x - 60 : B.x + B.w + 14, i % 8 === 3 ? B.x - 14 : B.x + B.w + 60, clamp(soul.y - 40, B.y + 30, B.y + B.h - 60), { vx: i % 8 === 3 ? 120 : -120, life: 2.0 });
+    if (i === 6 || i === 12) blaster(B.x + B.w / 2, B.y - 120, PI / 2, { charge: 0.8, width: 20 });
   }
-  // the tower widens; sawblades drift across high up, a blaster from the left now and then
-  await boxTo(170, 300, { warn: 0.3 });
-  for (let i = 0; i < 5; i++) { const L = i % 2 === 0; saw(L ? B.x - 10 : B.x + B.w + 10, B.y + 40 + (i % 3) * 30, L ? 80 : -80, 0, { clip: false }); if (i === 3) blaster(B.x - 60, clamp(soul.y - 70, B.y + 20, B.y + B.h - 30), 0, { charge: 0.85, width: 18 }); await wait(1.6); }
-  G.plats = false; lava.life = 0; await spawn;
-  // clouds sweep everything away
-  flashA = 0.8; G.tint = { col: '#cfcfcf' }; await wait(0.4);
-  bullets = []; G.cloudA = 0; hy.vis = true;
+  // 15:41 the walls fade; shuriken outside and in; woks fire across at one height (warned)
+  await at(30.5); for (let i = 0; i < 6; i++) { const L = i % 2 === 0; saw(L ? B.x - 60 : B.x + B.w + 60, B.y + 40 + (i % 3) * 50, L ? 70 : -70, 0, { clip: false }); }
+  await at(31.0); { const y = clamp(soul.y - 70, B.y + 20, B.y + B.h - 60); blaster(B.x - 130, y, 0, { charge: 0.9, width: 20 }); blaster(B.x + B.w + 130, y, PI, { charge: 0.9, width: 20 }); }
+  await at(34.0); { const y = clamp(soul.y - 70, B.y + 20, B.y + B.h - 60); blaster(B.x - 130, y, 0, { charge: 0.9, width: 20 }); blaster(B.x + B.w + 130, y, PI, { charge: 0.9, width: 20 }); }
+  // 15:49 red lines rise; red / blue flashes; grey clouds close in
+  await at(36.0); G.plats = false; lava.life = 0; bullets = bullets.filter(b => !b.plat); setHeart('red');
+  await at(36.5); G.tint = { col: '#3a0606' }; await at(36.75); G.tint = { col: '#0a1a8a' }; await at(37.0); G.tint = { col: '#2a2a2a' };
+  await at(38.0); flashA = 1; G.tint = { col: '#ffffff' }; await at(38.7);
+  bullets = []; hy.vis = true; hy.face = 'normal';
 }
-/* ---- act 5: red, then teal — rows with gaps, falling bars, hurdles ---- */
-async function spAct5() {
-  G.tint = { col: '#2a0303', wave: '#3a0606' }; setHeart('red'); await setBox(220, 120, 0.25); soulReset('red');
-  for (let i = 0; i < 6; i++) { const gy = B.y + 24 + ((i * 37) % (B.h - 48)); for (let y = B.y + 6; y < B.y + B.h; y += 14) if (Math.abs(y - gy) > 22) yeShot(B.x + B.w + 10, y, -130, 0); await toBeat(1); await toBeat(1); }
-  // teal: bars fall from above (cyan ones: stand still), never right on top of you
-  G.tint = { col: '#03151a' };
-  for (let i = 0; i < 10; i++) { let x; do x = rr(B.x + 10, B.x + B.w - 10); while (Math.abs(x - soul.x) < 22); barV(x, B.y - 80, B.y - 10, 0, { caps: 0, col: i % 3 === 1 ? 'c' : 'w', vy1: 200, life: 2 }); await wait(0.42); }
-  healRice();
-  for (let i = 0; i < 2; i++) { sideBlast({ charge: 0.75 }); await wait(1.1); }
-  // a square, blue heart: a white hurdle and an orange bar from opposite sides — jump (which also counts as moving)
-  setHeart('blue'); await boxTo(110, 100, { warn: 0.3 });
-  for (let i = 0; i < 4; i++) { const L = i % 2 === 0; barV(L ? B.x - 14 : B.x + B.w + 14, B.y + B.h - 20, B.y + B.h + 12, L ? 150 : -150, { caps: 1 }); await toBeat(1); await toBeat(1); await toBeat(1); }
-  setHeart('red'); await wait(0.3);
-  const cx = B.x + B.w / 2, cy = B.y + B.h / 2;
-  xAt(cx, cy, 0.8); await wait(1.4); crossAt(cx, cy, 0.8); await wait(1.4);
+/* ---- G. 15:52–16:28  red, then teal ---- */
+async function spG() {
+  const at = secClock();
+  G.tint = { col: '#2a0303', wave: '#3a0606' }; await boxTo(160, 110, { warn: 0.01, d: 0.1 }); setHeart('blue');
+  // 15:52.5 stalactites hang from the ceiling and slide; 15:54 he raises his arm
+  for (let i = 0; i < 5; i++) { await at(0.3 + i * 0.3); barV(B.x + B.w + 14, B.y - 12, B.y + 40 + (i % 2) * 14, -170, { caps: 2 }); }
+  await at(2.0); hy.pose = 'up';
+  // 15:54.5 red flash; a comb rises from the floor (white: jump; cyan: stay)
+  await at(2.2); G.tint = { col: '#5a0606' }; await at(2.4); G.tint = { col: '#2a0303', wave: '#3a0606' };
+  for (let i = 0; i < 6; i++) { await at(2.5 + i * 0.5); const c = i % 3 === 2 ? 'c' : 'w'; barV(B.x + B.w + 14, c === 'c' ? B.y - 12 : B.y + B.h - 20, B.y + B.h + 12, -180, { caps: c === 'c' ? 0 : 1, col: c }); }
+  // 15:56.5 two big woks left and right; the box narrows; 15:58.25 they fire over the top part
+  await at(5.6); hy.pose = null; { const y = B.y + B.h * 0.35; blaster(B.x - 140, y, 0, { big: 1.9, charge: 1.6, fire: 0.6, width: B.h * 0.62, from: [-220, y], inT: 0.4 }); blaster(B.x + B.w + 140, y, PI, { big: 1.9, charge: 1.6, fire: 0.6, width: B.h * 0.62, from: [LW + 220, y], inT: 0.4 }); }
+  await at(6.75); G.black = 1; await at(8.0); G.black = 0; bullets = [];
+  // 16:00.5 teal; cyan bars hang and rise and scroll (stay still when they pass)
+  G.tint = { col: '#03151a' }; setHeart('red'); await boxTo(160, 110, { warn: 0.2, d: 0.2 });
+  for (let i = 0; i < 10; i++) { await at(8.6 + i * 0.55); const top = i % 2 === 0; barV(B.x + B.w + 14, top ? B.y - 12 : B.y + 30, top ? B.y + B.h - 30 : B.y + B.h + 12, -150, { caps: 0, col: 'c' }); }
+  // 16:06.5–16:13.5 single woks appear around him one at a time and fire diagonally
+  for (let i = 0; i < 7; i++) { await at(14.5 + i * 1.0); const side = i % 2 ? 1 : -1, x = B.x + B.w / 2 + side * 180, y = B.y - 90; blaster(x, y, Math.atan2(soul.y - y, soul.x - x), { charge: 0.75, width: 24 }); }
+  // 16:13.75 grey flash; 16:14–16:21 W / V shapes and closing orange bars, blue heart
+  await at(21.75); G.tint = { col: '#4a4a52' }; flashA = 0.3; await at(22.0); G.tint = { col: '#000' }; setHeart('blue'); await boxTo(150, 100, { warn: 0.2, d: 0.2 });
+  for (let i = 0; i < 4; i++) { await at(22.4 + i * 0.8); const L = i % 2 === 0; barV(L ? B.x - 14 : B.x + B.w + 14, B.y + B.h - 20, B.y + B.h + 12, L ? 160 : -160, { caps: 1 }); }
+  await at(25.8); await boxTo(110, 100, { warn: 0.2, d: 0.2 });
+  for (let i = 0; i < 4; i++) { await at(26.2 + i * 0.7); barV(B.x - 40 - i * 10, B.y - 10, B.y + B.h + 10, 150, { caps: 0, col: 'o', life: 2.2 }); }
+  // 16:21 a comb above and below; 16:22 a wok above; 16:22.75 a beam down the middle
+  await at(29.0); spikeRow('up', 0.6, 20); spikeRow('down', 0.6, 18);
+  await at(30.0); blaster(B.x + B.w / 2, B.y - 150, PI / 2, { charge: 0.75, width: 36 });
+  // 16:24 skewers burst out of the box in a star — the safe spots are between them
+  await at(31.8); setHeart('red'); { const cx = B.x + B.w / 2, cy = B.y + B.h / 2; for (let i = 0; i < 6; i++) { const a = i * TAU / 6 + 0.26; skewer(cx - Math.cos(a) * 300, cy - Math.sin(a) * 300, a, 360, { len: 120 }); } }
+  await at(33.0); G.glitch = 0.4; await at(36.0);
 }
-/* ---- act 6: yellow — he runs circles around you throwing one thing at a time; the camera rolls ---- */
-async function spAct6() {
-  await flashTo('#d8c400', 0.25); flashA = 1; await wait(0.15);
-  G.tint = { col: '#1c1500', wave: '#3a2c00' }; await setBox(130, 130, 0.2); soulReset('red');
-  let roll = 0; const t0 = T, on = { v: true };
-  (async () => { while (on.v) { roll = (T - t0) * 0.35; cam.rot = Math.sin(roll) * 0.4; await wait(1 / 60); } })().catch(swallow);
-  hy.front = true;
-  for (let i = 0; i < 6; i++) {
-    const ang = i * TAU / 6, x = 320 + Math.cos(ang) * 210, y = 300 + Math.sin(ang) * 115;
-    await hyGo(x, y + 60, 0.35, { flip: Math.cos(ang) > 0 });
-    const [sx, sy] = soulScreen(), a = Math.atan2(sy - y, sx - x);
-    if (i % 2) spinBar(x, y, Math.cos(a) * 190, Math.sin(a) * 190); else withTrail(shot({ x, y, vx: Math.cos(a) * 210, vy: Math.sin(a) * 210, spr: SPR.plateF, hw: 9, hh: 9, spin: 9, clip: false }), 5);
-    await toBeat(1); await toBeat(1);
+/* ---- H. 16:28–17:09  he goes all out ---- */
+async function spH() {
+  const at = secClock();
+  // 16:28.4 yellow flash; he shrugs; white; grey; he points
+  await at(0.4); flashA = 0.8; G.tint = { col: '#3a3200' }; hy.pose = 'up2';
+  await at(1.2); flashA = 1; G.tint = { col: '#ffffff' }; await at(2.0); G.tint = { col: '#3a3a3a' }; await at(2.4); G.tint = { col: '#000' }; hy.pose = 'point';
+  await boxTo(120, 120, { warn: 0.2, d: 0.2 }); setHeart('red');
+  // 16:31.6–16:37 yellow waves; bars fly through the box from both sides at different heights; he moves to the left and kicks
+  await at(3.6); G.tint = { col: '#1c1500', wave: '#3a2c00' };
+  for (let i = 0; i < 14; i++) { await at(3.6 + i * 0.36); const L = i % 2 === 0, y = B.y + 15 + ((i * 29) % (B.h - 30)); barH(L ? B.x - 70 : B.x + B.w + 10, L ? B.x - 10 : B.x + B.w + 70, y, { vx: L ? 190 : -190, life: 2.4 }); if (i === 6) { hy.front = true; hyGo(B.x - 80, 330, 0.4, { flip: true, hop: 50 }).catch(swallow); } }
+  // 16:37.2 he kicks the box: the camera tilts, orange bars inside
+  await at(9.2); hyPose('right', 0.5).catch(swallow); camTo({ x: 320, y: 260, z: 1.1, rot: -0.55 }, 0.3).catch(swallow); knockBox(60, 0, 0.25); shake = 10; for (let i = 0; i < 4; i++) orbitBar(B.x + B.w / 2, B.y + B.h / 2, 30, i * PI / 2, 2.5, 28, 'o', 1.4);
+  await at(10.6); camTo({ x: 320, y: 240, z: 1, rot: 0 }, 0.4).catch(swallow); G.tint = { col: '#000' };
+  // 16:39.4 white; a punch with afterimage fists; skewers come out of it at the box
+  await at(11.4); flashA = 1; await at(11.6); G.tint = { col: '#3a3a3a' };
+  for (let i = 0; i < 6; i++) { await at(11.8 + i * 0.3); const y0 = B.y + 20 + i * 18, ang = Math.atan2(B.y + B.h / 2 - y0, B.x + B.w / 2 - (B.x - 160)); skewer(B.x - 200, y0 - 40 + (i % 2) * 70, ang, 340, { len: 90 }); }
+  await at(13.6); G.tint = { col: '#000' }; hy.front = true; await hyGo(B.x + B.w + 90, 330, 0.4, { flip: false, hop: 60 });
+  // 16:42.2 the box tilts and turns; woks at the corners fire diagonals; an orange ring spins inside
+  await at(14.2); flashA = 0.3; await boxTo(120, 120, { rot: 0.5, warn: 0.2, d: 0.3 });
+  for (let i = 0; i < 4; i++) { await at(16.0 + i * 0.6); const s = i % 2 ? 1 : -1, cx = B.x + B.w / 2, cy = B.y + B.h / 2, x = cx + s * 170, y = cy - 160; blaster(x, y, Math.atan2(cy + s * 35 - y, cx - s * 0 - x), { charge: 0.55, width: 30 }); }
+  await at(18.6); for (let i = 0; i < 8; i++) orbitBar(B.x + B.w / 2, B.y + B.h / 2, 40, i * TAU / 8, 1.8, 20, 'o', 2.0);
+  // 16:48.8 skewers from the left; L-shaped bars inside; the box flips between square and diamond
+  await at(20.8); for (let i = 0; i < 4; i++) { skewer(B.x - 200, B.y + 20 + i * 26, 0.15, 320, { len: 80 }); await wait(0.4); }
+  for (let i = 0; i < 6; i++) { await at(22.6 + i * 0.35); B.rot = i % 2 ? PI / 4 : 0.1; audio.tone(160, 0.08, 0.1); }
+  // 16:52.8–17:04.6 the storm: fans of woks; every beam passes beside one safe point
+  await at(24.8); hy.vis = false; hy.front = false;
+  for (let w = 0; w < 6; w++) {
+    await at(24.8 + w * 2.0);
+    const cx = B.x + B.w / 2, cy = B.y + B.h / 2, S = w < 2 ? [cx, cy] : [cx + rr(-20, 20), cy + rr(-20, 20)];
+    G.glitch = 0.25; shake = Math.max(shake, 4); camTo({ x: 320, y: 240, z: 1.05, rot: (w % 2 ? 0.12 : -0.12) }, 0.5).catch(swallow);
+    const n = 9, a0 = w * 0.7, side = w % 2 ? 1 : -1;
+    for (let i = 0; i < n; i++) { const a = a0 + i * PI / (n - 1) * side, x = S[0] + Math.cos(a) * 190, y = S[1] + Math.sin(a) * 190, off = (i % 2 ? 1 : -1) * 34, dir = Math.atan2(S[1] - y, S[0] - x) + Math.asin(off / 190); blaster(x, y, dir, { charge: 0.75, width: 20 }); await wait(0.08); }
   }
-  on.v = false; hy.front = false; cam.rot = 0; await hyGo(320, 240, 0.3, { flip: false, hop: 40 });
+  // 17:04.8 his face, sketched; 17:05.4 a red box and the giant wok; 17:07.4 it fires across the top
+  await at(37.0); camTo({ x: 320, y: 240, z: 1, rot: 0 }, 0.3).catch(swallow); G.glitch = 0.5; hy.vis = true; hy.x = 320;
+  await at(37.6); G.tint = { col: '#000' }; await boxTo(120, 120, { rot: 0, warn: 0.01, d: 0.2 }); setHeart('red');
+  { const safe = 24, wb = B.h - safe - 4, by0 = B.y + (B.h - safe) / 2; blaster(B.x + B.w + 130, by0, PI, { big: 2.6, charge: 1.8, fire: 1.4, width: wb, from: [LW + 300, by0 - 60], inT: 0.5, onCharge: b => { shake = Math.max(shake, 6); } }); }
+  await at(41.8); G.grey = 0.9; G.tint = { col: '#6a6a6a' }; tween(0.8, k => G.grey = 0.9 * (1 - k)).catch(swallow);
+  await at(42.8); flashA = 1; G.tint = { col: '#ffffff' }; await at(44.8);
 }
-/* ---- act 7: the storm — fans of woks that all miss one spot; find it. Then the last one ---- */
-async function spAct7() {
-  G.tint = { col: '#000000' }; await boxTo(120, 120, { rot: PI / 4, warn: 0.3 }); setHeart('red');
-  for (let w = 0; w < 4; w++) {
-    // the safe spot moves each wave; every beam passes at least 34px away from it
-    const cx = B.x + B.w / 2, cy = B.y + B.h / 2, S = w === 0 ? [cx, cy] : [cx + rr(-22, 22), cy + rr(-22, 22)];
-    G.glitch = 0.3; shake = Math.max(shake, 4);
-    const n = 9, a0 = rand() * TAU, side = w % 2 ? 1 : -1;
-    for (let i = 0; i < n; i++) {
-      const a = a0 + i * PI / (n - 1) * side, x = S[0] + Math.cos(a) * 190, y = S[1] + Math.sin(a) * 190;
-      const off = (i % 2 ? 1 : -1) * 34, dir = Math.atan2(S[1] - y, S[0] - x) + Math.asin(off / 190);
-      blaster(x, y, dir, { charge: 0.75, width: 20 }); await wait(0.11);
-    }
-    camTo({ x: 320, y: 240, z: 1.05, rot: side * 0.12 }, 0.5).catch(swallow);
-    await wait(1.5);
-  }
-  healRice();
-  // the last one: a huge wok from the right — the bottom strip of the box is the only safe place
-  await boxTo(150, 120, { warn: 0.3 }); setHeart('blue');
-  const safe = 22, wb = B.h - safe - 4, by0 = B.y + (B.h - safe) / 2;
-  blaster(B.x + B.w + 130, by0, PI, { big: 2.6, charge: 2.0, fire: 1.8, width: wb, from: [LW + 300, by0 - 60], inT: 0.8, onCharge: b => { shake = Math.max(shake, 3 + 7 * clamp((b.t - 0.8) / 2, 0, 1)); } });
-  camTo({ x: 380, y: by0, z: 1.3, rot: 0.2 }, 1.2).catch(swallow);
-  await wait(0.8 + 2.0); G.glitch = 0.6; G.cyan = 0.2;
-  await wait(1.8);
-  G.grey = 0.9; tween(0.6, k => G.grey = 0.9 * (1 - k)).catch(swallow); await wait(0.4);
+/* ---- I. 17:09–17:40  he stands alone ---- */
+async function spI() {
+  bullets = []; G.boxHidden = true; soul.vis = false; G.tint = { col: '#000' }; audio.stopMusic(); G.cloudA = 0;
+  hy.vis = true; hy.x = 320; hy.feet = 240; hy.face = 'normal'; hy.pose = null; hy.front = false; hy.alpha = 0;
+  await tween(1.2, k => hy.alpha = k);
+  hy.sweat = 3; await wait(14.0);
+  await tween(1.6, k => hy.alpha = 1 - 0.0 * k);
 }
 async function special() {
-  try {
-    await spAct1();
-    soul.vis = true; G.boxHidden = false;
-    await spAct2(); await spAct3(); await spAct4(); await spAct5(); await spAct6(); await spAct7();
-  } finally {
-    PANEL = null; G.tint = null; G.black = 0; G.plats = false; G.drift = 0; G.cloth = 0; G.cloudA = undefined; bullets = []; setGrav(0, 1, 0); B.rot = 0;
-    camReset(0.3).catch(swallow); hy.vis = true; hy.front = false; hy.prop = null; hy.pose = null; hy.flip = false;
-    if (hy.x !== 320 || hy.feet !== 240) { hy.x = 320; hy.feet = 240; }
+  window.__secs = {}; const run = async (n, f) => { window.__secs[n] = T; await f(); };
+  try { await run('A', spA); await run('B', spB); await run('C', spC); await run('D', spD); await run('E', spE); await run('F', spF); await run('G', spG); await run('H', spH); await run('I', spI); }
+  finally {
+    PANEL = null; G.tint = null; G.black = 0; G.plats = false; G.giant = null; G.bigClouds = 0; G.drift = 0; G.cloth = 0; G.cloudA = undefined; G.ctext = null; G.noMercy = false; bullets = []; setGrav(0, 1, 0); B.rot = 0;
+    camReset(0.3).catch(swallow); hy.vis = true; hy.alpha = 1; hy.front = false; hy.prop = null; hy.pose = null; hy.flip = false; hy.x = 320; hy.feet = 240; hy.dx = 0;
   }
-  // he's alone in the dark, steaming
-  G.boxHidden = true; soul.vis = false; G.black = 0; audio.stopMusic();
-  hy.face = 'normal'; hy.sweat = 3; G.tint = { col: '#000' };
-  await wait(1.5); G.tint = null; await setBox(200, 140, 0); G.boxHidden = false;
+  G.tint = null; await setBox(200, 140, 0); G.boxHidden = false;
+}
+
+function drawGiant() {
+  const g = G && G.giant; if (!g) return;
+  ctx.globalAlpha = g.k;
+  drawWokBlaster({ x: g.x, y: g.y, ang: -0.2, st: g.orbs ? 'charge' : 'in', t: g.orbs ? 0.9 : 0, inT: 0, cT: 1, sc: 1 }, 3.4);
+  if (g.orbs) for (const [ox, oy, r] of [[110, -10, 34], [150, -40, 20], [140, 30, 24], [80, 40, 16], [180, 0, 14]]) pdisc(g.x + ox, g.y + oy, r * (0.6 + 0.4 * Math.sin(T * 6 + ox)), '#ffffff');
+  ctx.globalAlpha = 1;
+}
+let BIGCL = null;
+function drawBigClouds() {
+  if (!G || !G.bigClouds) return;
+  if (!BIGCL) { const c = document.createElement('canvas'); c.width = LW; c.height = LH; const g = c.getContext('2d'); for (const [y0, dir] of [[0, 1], [LH, -1]]) for (let x = -30; x < LW + 60; x += 52) { const r = 34 + (x * 7) % 18; g.fillStyle = '#5a5a5a'; g.beginPath(); g.arc(x, y0 + dir * 18, r, 0, TAU); g.fill(); g.fillStyle = '#3a3a3a'; g.beginPath(); g.arc(x + 20, y0 + dir * 34, r * 0.7, 0, TAU); g.fill(); } BIGCL = c; }
+  ctx.drawImage(BIGCL, 0, 0);
 }
 
 /* ========= main loop & rendering ========= */
@@ -3590,7 +3801,7 @@ function drawHUD() {
   text('기름', bx + bw + 10, y, { size: 12, weight: 900, color: G.kr > 0 ? '#ff8c00' : '#ffffff' });
   text(`${Math.ceil(G.hp)} / ${G.max}`, bx + bw + 46, y, { size: 17, weight: 900, color: G.kr > 0 ? '#ff8c00' : '#ffffff' });
   const X = [32, 185, 345, 500], IC = ['fight', 'act', 'item', 'mercy'];
-  for (let i = 0; i < 4; i++) {
+  for (let i = 0; i < (G.noMercy ? 3 : 4); i++) {
     const act = (ui.mode === 'menu' || ui.mode === 'list' || ui.mode === 'fight') && ui.sel === i && scene === 'battle' && G.menuSel === i || (ui.mode === 'menu' && ui.sel === i);
     const col = act ? '#ffff00' : '#ff7f27', x = X[i], yy = 432;
     rect(x, yy, 110, 42, col); rect(x + 3, yy + 3, 104, 36, '#000');
@@ -3601,7 +3812,7 @@ function drawHUD() {
 function drawBattle() {
   // ---- world (seen through the camera) ----
   ctx.save(); applyCam(); drawTint();
-  drawCorr(); drawRing(); drawBG(); drawAmb(); drawClouds(); drawRise();
+  drawCorr(); drawRing(); drawBG(); drawBigClouds(); drawGiant(); drawAmb(); drawClouds(); drawRise();
   drawGhosts();
   drawClones();
   if (!hy.front) { drawHy(); for (const p of G.props) p.draw && p.draw(); }
@@ -3627,7 +3838,7 @@ function drawBattle() {
   const ha = Math.min(1 - LB * 0.85, 1 - ((G.cine && G.cine.dark) || 0) * 0.8);
   if (ha > 0.02 && VIEW.hudY < LH) { ctx.save(); ctx.translate(0, Math.round(VIEW.hudY)); ctx.globalAlpha = ha; drawHUD(); ctx.restore(); ctx.globalAlpha = 1; }
   drawHpRing();
-  drawBubble(); drawHeat();
+  drawBubble(); drawHeat(); drawCtext();
   if (banner && banner.big) {
     const k = Math.min(1, banner.t / 0.25), sx = Math.round((rand() - .5) * 6);
     ctx.globalAlpha = k; rect(0, 150, LW, 120, '#000'); rect(0, 150, LW, 4, '#2cf0ff'); rect(0, 266, LW, 4, '#2cf0ff');
