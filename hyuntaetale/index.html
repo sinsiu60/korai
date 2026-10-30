@@ -693,12 +693,12 @@ function blaster(tx, ty, ang, o = {}) {
   const cT = o.charge || 0.5, fT = o.fire || 0.38, dist = 130, inT = o.inT || 0.25, big = o.big || 1;
   const sx = o.from ? o.from[0] : tx - Math.cos(ang) * dist, sy = o.from ? o.from[1] : ty - Math.sin(ang) * dist;
   return add({
-    x: sx, y: sy, ang, clip: false, st: 'in', w: 0, sc: 1,
+    x: sx, y: sy, ang, clip: false, st: 'in', w: 0, sc: 1, inT, cT,
     upd(b, dt) {
       const t = b.t;
       if (t < inT) { const k = ezo(t / inT); b.x = lerp(sx, tx, k); b.y = lerp(sy, ty, k); if (o.from) b.ang = ang; }
       else if (t < inT + cT) { if (b.st !== 'charge') { b.st = 'charge'; audio.charge(); } b.sc = 1 + Math.sin(t * 40) * 0.04; if (o.onCharge) o.onCharge(b); }
-      else if (t < inT + cT + fT) { if (b.st !== 'fire') { b.st = 'fire'; audio.beam(); shake = Math.max(shake, big > 1 ? 14 : 3); if (big > 1) audio.big(); } const k = (t - inT - cT) / fT, up = big > 1 ? 0.06 : 0.15, dn = big > 1 ? 0.6 : 0.7; b.w = (k < up ? k / up : k > dn ? (1 - k) / (1 - dn) : 1) * (o.width || 26); const rc = big > 1 ? 12 : 40; b.x -= Math.cos(ang) * rc * dt; b.y -= Math.sin(ang) * rc * dt; if (big > 1) shake = Math.max(shake, 7); }
+      else if (t < inT + cT + fT) { if (b.st !== 'fire') { b.st = 'fire'; audio.beam(); shake = Math.max(shake, big > 1 ? 14 : 3); if (big > 1) audio.big(); } const k = (t - inT - cT) / fT, up = big > 1 ? 0.06 : 0.15, dn = big > 1 ? 0.6 : 0.7; b.w = (k < up ? k / up : k > dn ? (1 - k) / (1 - dn) : 1) * (o.width || 34); const rc = big > 1 ? 12 : 40; b.x -= Math.cos(ang) * rc * dt; b.y -= Math.sin(ang) * rc * dt; if (big > 1) shake = Math.max(shake, 7); }
       else { b.st = 'out'; b.w = 0; b.x -= Math.cos(ang) * 600 * dt; b.y -= Math.sin(ang) * 600 * dt; }
       return t < inT + cT + fT + 0.5;
     },
@@ -707,7 +707,7 @@ function blaster(tx, ty, ang, o = {}) {
       if (this.w > 0.5) {
         ctx.save(); ctx.translate(this.x, this.y); ctx.rotate(this.ang);
         const w = Math.round(this.w + Math.sin(T * 60) * 2), w2 = Math.round(w / 2) * 2;
-        const b0 = Math.round(20 * big); rect(b0, -w2 / 2, 1000, w2, '#ffffff'); rect(b0, -w2 / 2 - 2, 1000, 2, '#9ff0ff'); rect(b0, w2 / 2, 1000, 2, '#9ff0ff');
+        const b0 = Math.round(38 * big); rect(b0, -w2 / 2, 1000, w2, '#ffffff'); rect(b0, -w2 / 2 - 2, 1000, 2, '#9ff0ff'); rect(b0, w2 / 2, 1000, 2, '#9ff0ff');
         const st = tbmp('예.', 12, '#000000', 900).c, flip = Math.cos(this.ang) < -0.01; for (let i = 0; i < 16; i++) { const xx = 30 + ((i * 64 + T * 700) % 1000); if (w2 > 14) { ctx.save(); ctx.translate(Math.round(xx) + 11, 0); if (flip) ctx.rotate(PI); ctx.drawImage(st, -11, -9); ctx.restore(); } }
         ctx.restore();
       }
@@ -715,12 +715,9 @@ function blaster(tx, ty, ang, o = {}) {
       if (BL_TELE && (this.st === 'in' || this.st === 'charge')) { ctx.save(); ctx.translate(this.x, this.y); ctx.rotate(this.ang); ctx.globalAlpha = this.st === 'charge' ? 0.45 + Math.sin(T * 30) * 0.1 : 0.2; rect(20, -3, 1000, 6, '#ff2a2a'); ctx.restore(); ctx.globalAlpha = 1; }
       if (big > 1 && this.st === 'charge') { const k = clamp((this.t - inT) / cT, 0, 1), mx = this.x + Math.cos(this.ang) * 34 * big, my = this.y + Math.sin(this.ang) * 34 * big; [[0, 0, 1], [-0.9, -0.7, 0.45], [0.8, -0.9, 0.35], [1.0, 0.8, 0.4], [-0.6, 1.0, 0.3]].forEach(([ox, oy, s], i) => pdisc(mx + ox * 30 * k * big * 0.6, my + oy * 30 * k * big * 0.6, Math.max(1, (6 + 26 * s) * big * 0.55 * ezo(clamp(k * 1.3 - i * 0.08, 0, 1))), '#ffffff')); }
       const flash = this.st === 'charge' && Math.floor(T * 16) % 2;
-      const img = flash ? recolorCache(s) : s;
-      ctx.save(); ctx.translate(Math.round(this.x), Math.round(this.y)); ctx.rotate(this.ang); if (Math.cos(this.ang) < -0.01) ctx.scale(1, -1);
-      const sc = this.sc * 1.35 * big; ctx.drawImage(img, -img.width * sc / 2, -img.height * sc / 2, img.width * sc, img.height * sc); ctx.restore();
-      text('예.', this.x - 2 * big, this.y, { size: 18, weight: 900, color: flash ? '#0a3cff' : '#000000', align: 'c', px: big > 1.5 ? 2 : 1 });
+      drawWokBlaster(this, big);
     },
-    hit(px, py) { if (this.st !== 'fire' || this.w < 8) return false; const dx = px - this.x, dy = py - this.y, c = Math.cos(this.ang), s = Math.sin(this.ang); const al = dx * c + dy * s, pp = -dx * s + dy * c; return al > 10 * big && Math.abs(pp) < this.w / 2 + 2; },
+    hit(px, py) { if (this.st !== 'fire' || this.w < 8) return false; const dx = px - this.x, dy = py - this.y, c = Math.cos(this.ang), s = Math.sin(this.ang); const al = dx * c + dy * s, pp = -dx * s + dy * c; return al > 30 * big && Math.abs(pp) < this.w / 2 + 2; },
   });
 }
 let _bc = null; const recolorCache = s => _bc || (_bc = recolor(s, '#9ff0ff'));
@@ -767,6 +764,7 @@ function updFx(dt) {
     if (f.k === 'p') { f.x += f.vx * dt; f.y += f.vy * dt; f.vy += 300 * dt; }
     if (f.k === 't') { f.y += f.vy * dt; f.vy += 140 * dt; if (f.vy > 0 && (f.t < 0.6 || f.stay)) f.vy = 0; }
     if (f.k === 'shard') { f.x += f.vx * dt; f.y += f.vy * dt; f.vy += 420 * dt; }
+    if (f.k === 'sh') { f.x += f.vx * dt; f.y += f.vy * dt; f.r += f.w * dt; }
     if (f.k === 'ember') { f.x += f.vx * dt + Math.sin(f.t * 6 + f.y) * 0.3; f.y += f.vy * dt; }
     if (f.k === 'drip') { f.y += 30 * dt; }
     if (f.t > f.life) fx.splice(i, 1);
@@ -777,6 +775,7 @@ function drawFx() {
     if (f.k === 'p') rect(f.x, f.y, f.s, f.s, f.col);
     if (f.k === 't') { const a = f.t > f.life - 0.3 ? (f.life - f.t) / 0.3 : 1; ctx.globalAlpha = a; text(f.str, f.x, f.y, { size: f.size, color: f.col, weight: 900, align: 'c', px: f.px }); ctx.globalAlpha = 1; }
     if (f.k === 'shard') drawSpr(SPR.shard, f.x, f.y);
+    if (f.k === 'sh') { ctx.globalAlpha = Math.min(1, (f.life - f.t) / 0.4); const c = Math.cos(f.r) * f.s, s2 = Math.sin(f.r) * f.s; pline(f.x - c, f.y - s2, f.x + c, f.y + s2, '#ffffff'); pline(f.x - c, f.y - s2, f.x - f.vx * 0.04, f.y - f.vy * 0.04, '#777777'); ctx.globalAlpha = 1; }
     if (f.k === 'ember' && !f.a) { ctx.globalAlpha = Math.min(1, (f.life - f.t) / 0.6); rect(f.x, f.y, 2, 2, f.col); ctx.globalAlpha = 1; }
     if (f.k === 'drip') rect(f.x, f.y, 2, 2, f.t < 0.25 ? '#ffb347' : '#c86a00');
     if (f.k === 'ring') { const k = f.t / f.life, r = lerp(f.r0, f.r1, ezo(k)); ctx.globalAlpha = 1 - k; const n = Math.max(12, Math.round(r * 0.9)); for (let i = 0; i < n; i++) { const a2 = i / n * TAU; rect(f.x + Math.cos(a2) * r - f.w / 2, f.y + Math.sin(a2) * r - f.w / 2, f.w, f.w, f.col); } ctx.globalAlpha = 1; }
@@ -1800,7 +1799,11 @@ const camReset = (d = 0.35) => camTo({ x: 320, y: 240, z: 1, rot: 0 }, d);
 const camFace = (z = 2, d = 0.5, o = {}) => camTo({ x: hy.x + (o.dx || 0), y: hy.feet - 148 + (o.dy || 0), z, rot: o.rot || 0 }, d);
 const lbTo = (v, d = 0.25) => { const s = LB; return tweenR(d, k => LB = lerp(s, v, k)); };
 function w2s(x, y) { const dx = (x - cam.x) * cam.z, dy = (y - cam.y) * cam.z, c = Math.cos(cam.rot), s = Math.sin(cam.rot); return [LW / 2 + dx * c - dy * s, LH / 2 + dx * s + dy * c]; }
-function applyCam() { ctx.translate(LW / 2, LH / 2); ctx.rotate(cam.rot); ctx.scale(cam.z, cam.z); ctx.translate(-cam.x, -cam.y); }
+let KICK = 0;
+function applyCam() {
+  const d = (G && G.drift) || 0, r = cam.rot + Math.sin(RT * 0.62) * 0.045 * d, z = cam.z * (1 + Math.sin(RT * 0.81) * 0.035 * d + KICK * d), x = cam.x + Math.sin(RT * 0.47) * 12 * d, y = cam.y + Math.cos(RT * 0.53) * 8 * d;
+  ctx.translate(LW / 2, LH / 2); ctx.rotate(r); ctx.scale(z, z); ctx.translate(-x, -y);
+}
 
 // ---- the punctuation of an anime fight ----
 const hitStop = s => { HS = Math.max(HS, s); };
@@ -1866,6 +1869,8 @@ function postImpact() {
   ctx.restore(); ctx.globalCompositeOperation = 'source-over';
 }
 function cineStep(dt) {
+  if (BEAT.on) { const ph = ((RT - BEAT.t0) / BEAT.len) % 1; KICK = Math.pow(1 - ph, 5) * 0.03; } else KICK = 0;
+  if (G && G.corrA > 0 && scene === 'battle' && rand() < dt * 26) { const L = rand() < 0.5; fx.push({ k: 'sh', x: L ? -40 : LW + 40, y: rr(-40, LH), vx: (L ? 1 : -1) * rr(160, 340), vy: rr(-80, 80), r: rand() * PI, w: rr(-8, 8), s: rr(3, 8), t: 0, life: 3 }); }
   if (CUT) CUT.t += dt;
   if (SPEEDL) { SPEEDL.t += dt; if (SPEEDL.t > SPEEDL.life) SPEEDL = null; }
   IMP = Math.max(0, IMP - dt); grazeCd = Math.max(0, grazeCd - dt);
@@ -2576,6 +2581,54 @@ async function hallSeq() {
   hy.face = 'normal'; scene = 'battle'; fade = 0;
 }
 
+/* ========= the wok blaster: a giant line-art wok that opens like a jaw ========= */
+const WB = document.createElement('canvas'); WB.width = 150; WB.height = 120; const wbg = WB.getContext('2d');
+let DITH = {};
+function dither(d, col = '#bdbdbd') {
+  const key = d + col; if (DITH[key]) return DITH[key];
+  const c = document.createElement('canvas'); c.width = 4; c.height = 4; const g = c.getContext('2d'); g.fillStyle = col;
+  const M = [[0, 8, 2, 10], [12, 4, 14, 6], [3, 11, 1, 9], [15, 7, 13, 5]];
+  for (let y = 0; y < 4; y++) for (let x = 0; x < 4; x++) if (M[y][x] < d * 16) g.fillRect(x, y, 1, 1);
+  return DITH[key] = ctx.createPattern(c, 'repeat');
+}
+// draws into a small offscreen canvas at half resolution, then blown up with hard pixels
+function renderWok(open, glow, flash, flipped) {
+  const g = wbg; g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, 150, 120);
+  g.translate(62, 60); g.lineJoin = 'round';
+  const W = '#ffffff', shell = (sgn) => {
+    // one half of the wok, hinged at the back (-34, 0)
+    g.save(); g.translate(-34, 0); g.rotate(sgn * open * 0.62); g.translate(34, 0);
+    g.beginPath(); g.moveTo(-34, 0);
+    g.bezierCurveTo(-30, sgn * 30, 26, sgn * 34, 40, sgn * 2); g.lineTo(-34, 0); g.closePath();
+    g.fillStyle = '#000'; g.fill(); g.lineWidth = 3; g.strokeStyle = W; g.stroke();
+    // hammered rings and a rim
+    g.lineWidth = 1; g.strokeStyle = '#9a9a9a';
+    for (const k of [0.45, 0.7]) { g.beginPath(); g.moveTo(-30 + 10 * k, sgn * 1); g.bezierCurveTo(-26, sgn * 30 * k, 20, sgn * 32 * k, 36, sgn * 2); g.stroke(); }
+    g.fillStyle = W; for (const [x, y] of [[-14, 14], [2, 18], [18, 14]]) g.fillRect(x, sgn * y - 1, 2, 2);
+    // teeth along the rim — splatters of burnt rice
+    g.fillStyle = W; for (let i = 0; i < 6; i++) { const x = -20 + i * 10; g.beginPath(); g.moveTo(x, sgn * 2); g.lineTo(x + 4, sgn * 9); g.lineTo(x + 8, sgn * 2); g.fill(); }
+    g.restore();
+  };
+  // the long handle out of the back, and the little loop handle
+  g.save(); g.translate(-34, 0); g.rotate(-open * 0.62);
+  g.fillStyle = '#000'; g.strokeStyle = W; g.lineWidth = 3; g.beginPath(); g.rect(-60, -5, 36, 9); g.fill(); g.stroke();
+  g.fillStyle = W; g.fillRect(-58, -2, 30, 2); g.restore();
+  shell(-1); shell(1);
+  // the mouth: dark inside, glowing while it charges
+  if (glow > 0) { g.globalAlpha = glow; g.fillStyle = '#ffffff'; g.beginPath(); g.ellipse(18, 0, 10 + glow * 10, 4 + open * 16, 0, 0, TAU); g.fill(); g.globalAlpha = 1; }
+  // "예." engraved on the upper shell
+  g.save(); g.translate(-34, 0); g.rotate(-open * 0.62); g.translate(34, 0); g.fillStyle = flash ? '#2cf0ff' : W; g.font = `900 13px ${FONT}`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.translate(2, -16); if (flipped) g.scale(-1, -1); g.fillText('예.', 0, 0); g.restore();
+  if (flash) { g.globalCompositeOperation = 'source-atop'; g.fillStyle = 'rgba(44,240,255,.35)'; g.fillRect(-80, -70, 160, 140); g.globalCompositeOperation = 'source-over'; }
+}
+function drawWokBlaster(b, big) {
+  const st = b.st, open = st === 'in' ? 0.12 : st === 'charge' ? 0.18 + 0.45 * clamp((b.t - b.inT) / b.cT, 0, 1) + Math.sin(T * 40) * 0.04 : st === 'fire' ? 1 : 0.7;
+  const glow = st === 'charge' ? clamp((b.t - b.inT) / b.cT, 0, 1) : st === 'fire' ? 1 : 0;
+  renderWok(open, glow, st === 'charge' && Math.floor(T * 16) % 2, Math.cos(b.ang) < -0.01);
+  const sc = 1.15 * big * (b.sc || 1);
+  ctx.save(); ctx.translate(Math.round(b.x), Math.round(b.y)); ctx.rotate(b.ang); if (Math.cos(b.ang) < -0.01) ctx.scale(1, -1);
+  ctx.imageSmoothingEnabled = false; ctx.drawImage(WB, -62 * sc, -60 * sc, 150 * sc, 120 * sc); ctx.restore();
+}
+
 /* ========= the opening: "덤비십씨오" → the scripted first assault → the walk back in ========= */
 const VIEW = { hudY: 0 };
 const BL_TELE = false;          // blaster aim lines — kept for later
@@ -2615,27 +2668,42 @@ function segDist(px, py, x, y, a, len) { const c = Math.cos(a), s = Math.sin(a),
 // a red outline that marks where something is about to come out
 function zoneWarn(x, y, w, h, d) { return add({ life: d, clip: false, hit: () => false, upd: b => b.t < d, draw() { const c = '#ff2020'; rect(x, y, w, 2, c); rect(x, y + h - 2, w, 2, c); rect(x, y, 2, h, c); rect(x + w - 2, y, 2, h, c); } }); }
 function pdisc(x, y, r, col) { r = Math.round(r); ctx.fillStyle = col; for (let dy = -r; dy <= r; dy += 2) { const w = Math.round(Math.sqrt(Math.max(0, r * r - dy * dy))); ctx.fillRect(Math.round(x - w), Math.round(y + dy), w * 2, 2); } }
-// a grey, foreshortened version of the back hallway, seen from a low angle — only during the opening assault
+// the back hallway in line art: white outlines on black, ordered-dither shading, a stained-glass arch
 function drawCorr() {
   const a = G && G.corrA; if (!a) return;
   ctx.globalAlpha = a;
-  rect(-500, -500, LW + 1000, LH + 1000, '#0b0b0b');
-  ctx.fillStyle = '#8c8c8c'; ctx.beginPath(); ctx.moveTo(-500, 250); ctx.lineTo(LW + 500, -60); ctx.lineTo(LW + 500, 70); ctx.lineTo(-500, 470); ctx.fill();
-  ctx.fillStyle = '#5a5a5a'; ctx.beginPath(); ctx.moveTo(-500, 470); ctx.lineTo(LW + 500, 70); ctx.lineTo(LW + 500, 90); ctx.lineTo(-500, 500); ctx.fill();
-  // light shafts across the floor
-  ctx.fillStyle = '#6a6a6a';
-  for (let i = 0; i < 4; i++) { const x0 = -80 + i * 190; ctx.beginPath(); ctx.moveTo(x0, LH + 300); ctx.lineTo(x0 + 70, LH + 300); ctx.lineTo(x0 + 330, 160 - i * 30); ctx.lineTo(x0 + 290, 150 - i * 30); ctx.fill(); }
-  // pillars with stacked round bases
+  rect(-600, -600, LW + 1200, LH + 1200, '#000000');
+  const poly = (pts, fill, stroke) => { ctx.beginPath(); pts.forEach(([x, y], i) => i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)); ctx.closePath(); if (fill) { ctx.fillStyle = fill; ctx.fill(); } if (stroke) for (let i = 0; i < pts.length; i++) { const p = pts[i], q = pts[(i + 1) % pts.length]; pline(p[0], p[1], q[0], q[1], stroke); } };
+  // far wall: a long band receding to the upper right
+  poly([[-600, 260], [LW + 600, -90], [LW + 600, 40], [-600, 430]], dither(0.5), '#ffffff');
+  poly([[-600, 430], [LW + 600, 40], [LW + 600, 60], [-600, 462]], dither(0.25), null);
+  // light shafts on the floor
+  for (let i = 0; i < 4; i++) { const x0 = -120 + i * 200; poly([[x0, LH + 400], [x0 + 70, LH + 400], [x0 + 360, 170 - i * 34], [x0 + 320, 160 - i * 34]], dither(0.3), null); }
+  // stained-glass arch at the left
+  ctx.save(); ctx.translate(40, 120); for (let r = 150; r > 110; r -= 12) for (let t = 0; t < 60; t++) { const q = PI + t / 60 * PI * 0.5; rect(Math.cos(q) * r * 0.6 + 60, Math.sin(q) * r, 2, 2, '#ffffff'); }
+  for (let i = 0; i < 6; i++) pline(-10 + i * 6, -60 + i * 18, 40 + i * 4, -100 + i * 22, '#bdbdbd'); ctx.restore();
+  // pillars: black fill, white outline, stacked round bases
   for (let i = 0; i < 4; i++) {
-    const x = -60 + i * 230, base = 290 - i * 70, w = 60;
-    rect(x, base - 520, w, 520, '#0b0b0b'); for (const ox of [0, w - 3]) for (let y = base - 520; y < base; y += 3) rect(x + ox, y, 3, 2, '#d0d0d0');
-    for (let r = 0; r < 4; r++) { const ry = base + r * 9, rw = w / 2 + 8 + r * 6; for (let t = 0; t < 40; t++) { const q = t / 40 * PI; rect(x + w / 2 + Math.cos(q) * rw - 1, ry + Math.sin(q) * 6, 3, 2, '#d0d0d0'); } }
+    const x = -60 + i * 230, base = 300 - i * 74, w = 62;
+    rect(x, base - 620, w, 620, '#000000'); pline(x, base - 620, x, base, '#ffffff', 3); pline(x + w, base - 620, x + w, base, '#ffffff', 3);
+    ctx.fillStyle = dither(0.2); ctx.fillRect(x + w - 16, base - 620, 14, 620);
+    for (let r = 0; r < 4; r++) { const ry = base + r * 9, rw = w / 2 + 8 + r * 6; for (let t = 0; t < 46; t++) { const q = t / 46 * PI; rect(x + w / 2 + Math.cos(q) * rw - 1, ry + Math.sin(q) * 6, 3, 2, '#ffffff'); } }
   }
   ctx.globalAlpha = 1;
+}
+// the box as cloth: four corners drift on their own and the edges bulge
+function drawCloth(x, y, w, h, col, amp) {
+  const A = 9 * amp, cn = [[x, y], [x + w, y], [x + w, y + h], [x, y + h]].map(([cx, cy], i) => [cx + Math.sin(RT * 2.3 + i * 1.9) * A, cy + Math.cos(RT * 2.1 + i * 2.7) * A]);
+  const pts = [];
+  for (let e = 0; e < 4; e++) { const p = cn[e], q = cn[(e + 1) % 4], nx = q[1] - p[1], ny = p[0] - q[0], L = Math.hypot(nx, ny) || 1;
+    for (let i = 0; i < 14; i++) { const t = i / 14, bul = Math.sin(t * PI) * Math.sin(RT * 3.1 + e * 1.3) * A * 0.9 + Math.sin(t * TAU * 2 + RT * 6 + e) * A * 0.18; pts.push([lerp(p[0], q[0], t) + nx / L * bul, lerp(p[1], q[1], t) + ny / L * bul]); } }
+  ctx.fillStyle = '#000'; ctx.beginPath(); pts.forEach(([px, py], i) => i ? ctx.lineTo(px, py) : ctx.moveTo(px, py)); ctx.closePath(); ctx.fill();
+  for (let i = 0; i < pts.length; i++) { const p = pts[i], q = pts[(i + 1) % pts.length]; pline(p[0], p[1], q[0], q[1], col, 4); }
 }
 // screen-space finishing: double-image glitch and the cyan wash
 function postFx() {
   if (!G) return;
+  if (G.corrA > 0) { ctx.save(); ctx.setTransform(K, 0, 0, K, 0, 0); ctx.globalAlpha = 0.22 * G.corrA; ctx.fillStyle = '#ffffff'; for (let i = 0; i < 260; i++) ctx.fillRect((rand() * LW) | 0, (rand() * LH) | 0, 1, 1); ctx.restore(); }
   if (G.glitch > 0) {
     G.glitch -= 1 / 60;
     ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -2669,12 +2737,14 @@ async function openerSeq(intro) {
   audio.music(1);
   await wait(clamp(intro.delay ?? 0.5, 0.25, 2.2) + 0.3);
   const t0 = T, at = s => until(() => T - t0 >= s);
+  // 현태 rides on top of the box the whole time; the camera never stops drifting
+  G.ride = true; G.drift = 1; (async () => { while (G.ride) { hy.feet = B.y - 5; hy.x = B.x + B.w / 2; await wait(1 / 60); } })().catch(swallow);
   // 0.00 the arm comes down: the heart is yanked to the floor, a red zone, a blaster rises over his head
   soul.mode = 'blue'; soul.gx = 0; soul.gy = 1; soul.grounded = false; soul.va = 900; soul.slamV = 900; hySlam('down').catch(swallow); shake = Math.max(shake, 4); audio.tone(120, 0.2, 0.2, 'square', 0, 0.4);
   await at(0.12); zoneWarn(B.x + 6, B.y + B.h - 46, B.w - 12, 42, 0.5);
-  blaster(320, B.y - 64, PI / 2, { charge: 0.58, width: 34, from: [320, hy.feet - 220] });
+  blaster(320, B.y - 182, PI / 2, { charge: 0.58, width: 40, from: [320, -80] });
   // 0.40 the hallway snaps in behind (grey, low angle)
-  await at(0.4); G.corrA = 1; G.glitch = 0.12;
+  await at(0.4); G.corrA = 1; G.glitch = 0.12; tween(0.4, k => G.cloth = k).catch(swallow);
   await at(0.5); spikeRow('down', 0.42, 22); shake = Math.max(shake, 3);
   await at(1.0); G.wob = 3; tween(0.6, k => G.wob = 3 * (1 - k)).catch(swallow);
   await at(1.15); soul.mode = 'red'; soul.vx = soul.vy = 0; burst(soul.x, soul.y, '#ff2020', 8, 60);
@@ -2682,32 +2752,37 @@ async function openerSeq(intro) {
   await at(1.35);
   G.rise = 0; tween(0.3, k => G.rise = k).catch(swallow); tween(0.5, k => G.cloudA = 1 - k).catch(swallow);
   const y0 = B.y; tween(2.2, k => B.y = y0 - 64 * k, ezio).catch(swallow);
-  tween(0.8, k => { hy.dy = 460 * k; VIEW.hudY = 150 * k; }, x => x * x).catch(swallow);
+  tween(0.8, k => { VIEW.hudY = 150 * k; }, x => x * x).catch(swallow); hy.pose = 'up';
   for (let i = 0; i < 5; i++) {
     await at(1.55 + i * 0.13);
     const c = B.x + B.w / 2, gap = 42;
     barH(B.x - 14, c - gap / 2, B.y - 14, { vy: 230, life: 1.6 }); barH(c + gap / 2, B.x + B.w + 14, B.y - 14, { vy: 230, life: 1.6 });
   }
   // 2.60 the tangle, with a glitch frame
-  await at(2.6); audio.noise(0.25, 0.25, 900); shake = Math.max(shake, 5); G.wob = 2.5; G.glitch = 0.15; tween(0.5, k => G.wob = 2.5 * (1 - k)).catch(swallow);
+  await at(2.6); hySlam('down').catch(swallow); audio.noise(0.25, 0.25, 900); shake = Math.max(shake, 5); G.wob = 2.5; G.glitch = 0.15; tween(0.5, k => G.wob = 2.5 * (1 - k)).catch(swallow);
   let made = 0;
   for (let k = 0; k < 60 && made < 15; k++) { const x = rr(B.x + 8, B.x + B.w - 8), y = rr(B.y + 8, B.y + B.h - 8), a = rr(0, PI), len = rr(48, 84); if (segDist(soul.x, soul.y, x, y, a, len) < 28) continue; barAt(x, y, a, len, { life: 0.8, warn: 0.15 }); made++; }
   // 3.35 three blasters — above, left, right — and the cross fires in a cyan wash
   await at(3.35); G.rise = 0;
   camTo({ x: 320, y: 260, z: 1.1, rot: -0.12 }, 0.3).catch(swallow);
-  { const [cx, cy] = [B.x + B.w / 2, B.y + B.h / 2]; blaster(cx, B.y - 62, PI / 2, { charge: 0.48 }); blaster(B.x - 62, cy, 0, { charge: 0.48 }); blaster(B.x + B.w + 62, cy, PI, { charge: 0.48 }); }
+  hy.pose = 'up2'; hy.idle = false;
+  { const [cx, cy] = [B.x + B.w / 2, B.y + B.h / 2]; blaster(cx, B.y - 178, PI / 2, { charge: 0.48 }); blaster(B.x - 62, cy, 0, { charge: 0.48 }); blaster(B.x + B.w + 62, cy, PI, { charge: 0.48 }); }
   await at(3.35 + 0.25 + 0.48); G.cyan = 0.28; flashA = 0.2;
   // 4.30 low angle: cyan barbells at both sides, blasters level with you
   await at(4.3);
   camTo({ x: 320, y: 250, z: 1.15, rot: 0.1 }, 0.35).catch(swallow);
   barV(B.x - 14, B.y - 12, B.y + B.h + 12, 260, { caps: 0, col: 'c', life: 1.2 }); barV(B.x + B.w + 14, B.y - 12, B.y + B.h + 12, -260, { caps: 0, col: 'c', life: 1.2 });
-  { const sy = soul.y; blaster(B.x - 60, sy, 0, { charge: 0.55 }); blaster(B.x + B.w + 60, sy, PI, { charge: 0.55 }); }
+  hy.pose = 'left'; setTimeout(() => { if (G.ride) hy.pose = 'right'; }, 250 / SPEED);
+  { const sy = soul.y; blaster(B.x - 70, sy, 0, { charge: 0.55 }); blaster(B.x + B.w + 70, sy, PI, { charge: 0.55 }); }
   // 4.90 the camera rolls over — two shoot up from below and cross in an X
   await at(4.9);
   camTo({ x: 320, y: 230, z: 1.15, rot: 2.6 }, 0.45, ezio).catch(swallow);
-  for (const [fx0, tx, ty] of [[B.x - 20, B.x - 60, B.y - 40], [B.x + B.w + 20, B.x + B.w + 60, B.y - 40]]) { const ang = Math.atan2(soul.y - ty, soul.x - tx); blaster(tx, ty, ang, { from: [fx0, LH + 80], inT: 0.25, charge: 0.35 }); }
+  hy.pose = 'point';
+  for (const [fx0, tx, ty] of [[B.x - 20, B.x - 70, B.y - 50], [B.x + B.w + 20, B.x + B.w + 70, B.y - 50]]) { const ang = Math.atan2(soul.y - ty, soul.x - tx); blaster(tx, ty, ang, { from: [fx0, LH + 80], inT: 0.25, charge: 0.35 }); }
+  setTimeout(() => { if (G.ride) impact(0.28); }, 620 / SPEED);
   // 5.70 the giant one swings in, gathers itself for two seconds, fires for two
   await at(5.7);
+  hy.pose = 'right';
   const safe = 20, wBeam = B.h - safe - 4, by = B.y + (B.h - safe) / 2;
   blaster(B.x + B.w + 120, by, PI, { big: 2.6, charge: 2.0, fire: 2.0, width: wBeam, from: [B.x + B.w + 340, by + 60], inT: 0.9, onCharge: b => { shake = Math.max(shake, 3 + 7 * clamp((b.t - 0.9) / 2, 0, 1)); } });
   camTo({ x: 360, y: by, z: 1.3, rot: 0.45 }, 0.8, ezio).then(() => camTo({ x: 380, y: by, z: 1.4, rot: -0.35 }, 1.8)).catch(swallow);
@@ -2715,17 +2790,17 @@ async function openerSeq(intro) {
   await at(5.7 + 0.9 + 3.0); G.wob = 3;
   // blackout
   await at(5.7 + 0.9 + 4.0 + 0.1);
-  bullets = []; G.boxHidden = true; soul.vis = false; setGrav(0, 1, 0); G.wob = 0; G.rise = 0; G.corrA = 0;
+  bullets = []; G.boxHidden = true; soul.vis = false; setGrav(0, 1, 0); G.wob = 0; G.rise = 0; G.corrA = 0; G.ride = false; G.drift = 0; G.cloth = 0; hy.vis = false; hy.pose = null;
   camReset(0.01).catch(swallow);
   await wait(0.6);
   // a pale flash that fades; the box drops back in crumpled, with the heart, and unfolds
   G.grey = 0.85; tween(0.9, k => G.grey = 0.85 * (1 - k)).catch(swallow);
-  hy.dy = 0; hy.x = 720; hy.face = 'normal'; hy.pose = null; hy.idle = false;
+  hy.dy = 0; hy.x = 720; hy.feet = 240; hy.vis = true; hy.face = 'normal'; hy.pose = null; hy.idle = false;
   await wait(0.3);
   await setBox(120, 120, 0); B.rot = 0.25; const byb = B.y; B.y = LH + 60; G.boxHidden = false; G.crumple = 1; soulReset('red'); soul.vis = true;
-  await tween(0.45, k => B.y = lerp(LH + 60, byb, k), k => 1 - Math.pow(1 - k, 3) + Math.sin(k * PI) * 0.08);
-  audio.slam(); shake = 4;
-  tween(0.8, k => { G.crumple = 1 - k; B.rot = lerp(0.25, -0.35, ezio(k)); }).catch(swallow);
+  await tween(0.6, k => B.y = lerp(LH + 60, byb, k), k => 1 - Math.pow(1 - k, 3) + Math.sin(k * PI) * 0.08);
+  audio.slam(); shake = 4; await wait(0.45);
+  await tween(0.9, k => { G.crumple = 1 - k; B.rot = lerp(0.25, -0.35, ezio(k)); });
   // 현태 walks in from the right while the box settles
   for (let i = 0; i < 6; i++) {
     audio.tone(70, 0.12, 0.3, 'sine', 0, 0.6); audio.noise(0.05, 0.1, 300); const s = hy.x;
@@ -2774,6 +2849,7 @@ function drawBox() {
   const x = Math.round(B.x), y = Math.round(B.y), w = Math.round(B.w), h = Math.round(B.h);
   const p = G && G.boxPulse > 0 ? G.boxPulse : 0;
   const col = p > 0 && Math.floor(p * 20) % 2 ? '#ffd23a' : '#ffffff';
+  if (G && G.cloth > 0.02) { drawCloth(x, y, w, h, col, G.cloth); return; }
   const wob = G && G.wob > 0.3 ? G.wob : 0;
   if (!wob) { rect(x - 5, y - 5, w + 10, h + 10, col); rect(x, y, w, h, '#000000'); return; }
   // the box warps under pressure: wavy edges drawn as pixel blocks
