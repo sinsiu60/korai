@@ -697,7 +697,7 @@ function blaster(tx, ty, ang, o = {}) {
       const t = b.t;
       if (t < inT) { const k = ezo(t / inT); b.x = lerp(sx, tx, k); b.y = lerp(sy, ty, k); if (o.from) b.ang = ang; }
       else if (t < inT + cT) { if (b.st !== 'charge') { b.st = 'charge'; audio.charge(); } b.sc = 1 + Math.sin(t * 40) * 0.04; if (o.onCharge) o.onCharge(b); }
-      else if (t < inT + cT + fT) { if (b.st !== 'fire') { b.st = 'fire'; audio.beam(); shake = Math.max(shake, big > 1 ? 14 : 3); if (big > 1) audio.big(); } const k = (t - inT - cT) / fT; b.w = (k < 0.15 ? k / 0.15 : k > 0.7 ? (1 - k) / 0.3 : 1) * (o.width || 26); b.x -= Math.cos(ang) * 40 * dt; b.y -= Math.sin(ang) * 40 * dt; }
+      else if (t < inT + cT + fT) { if (b.st !== 'fire') { b.st = 'fire'; audio.beam(); shake = Math.max(shake, big > 1 ? 14 : 3); if (big > 1) audio.big(); } const k = (t - inT - cT) / fT, up = big > 1 ? 0.06 : 0.15, dn = big > 1 ? 0.85 : 0.7; b.w = (k < up ? k / up : k > dn ? (1 - k) / (1 - dn) : 1) * (o.width || 26); const rc = big > 1 ? 12 : 40; b.x -= Math.cos(ang) * rc * dt; b.y -= Math.sin(ang) * rc * dt; if (big > 1) shake = Math.max(shake, 7); }
       else { b.st = 'out'; b.w = 0; b.x -= Math.cos(ang) * 600 * dt; b.y -= Math.sin(ang) * 600 * dt; }
       return t < inT + cT + fT + 0.5;
     },
@@ -2614,7 +2614,7 @@ function segDist(px, py, x, y, a, len) { const c = Math.cos(a), s = Math.sin(a),
 function zoneWarn(x, y, w, h, d) { return add({ life: d, clip: false, hit: () => false, upd: b => b.t < d, draw() { const c = '#ff2020'; rect(x, y, w, 2, c); rect(x, y + h - 2, w, 2, c); rect(x, y, 2, h, c); rect(x + w - 2, y, 2, h, c); } }); }
 async function openerSeq(intro) {
   // the box appears, the heart in it; his arm is up and the light comes on in his eye
-  await setBox(230, 125, 0); G.boxHidden = false; soulReset('blue'); ui.mode = 'none';
+  await setBox(230, 125, 0); G.boxHidden = false; soulReset('red'); soul.y = B.y + 30; ui.mode = 'none';
   hy.pose = 'up'; hy.idle = false; hy.face = 'glow'; flashA = 0.25; audio.tone(220, 0.5, 0.18, 'sawtooth', 0, 2.2);
   audio.music(1);
   await wait(clamp(intro.delay ?? 0.5, 0.25, 2.2) + 0.35);
@@ -2622,10 +2622,11 @@ async function openerSeq(intro) {
   const t0 = T, at = s => until(() => T - t0 >= s);
   // 0.00 the arm comes down: slam, square box, a red zone where the barbells will rise, a blaster above the middle
   const sq = 140; tween(0.14, k => { B.x = lerp(B.x, 320 - sq / 2, k); B.y = lerp(B.y, BOT - sq, k); B.w = lerp(B.w, sq, k); B.h = lerp(B.h, sq, k); }).catch(swallow);
-  slam('down', 1).catch(swallow);
+  // the heart is yanked to the floor — hard
+  soul.mode = 'blue'; soul.gx = 0; soul.gy = 1; soul.grounded = false; soul.va = 900; soul.slamV = 900; hySlam('down').catch(swallow); shake = Math.max(shake, 4); audio.tone(120, 0.2, 0.2, 'square', 0, 0.4);
   await at(0.12); zoneWarn(B.x + 6, B.y + B.h - 46, B.w - 12, 42, 0.5);
   blaster(320, B.y - 64, PI / 2, { charge: 0.58, width: 34 });
-  await at(0.3); spikeRow('down', 0.42, 22, 40, 320); shake = Math.max(shake, 3);
+  await at(0.3); spikeRow('down', 0.42, 22); shake = Math.max(shake, 3);
   await at(0.85); G.wob = 3; tween(0.6, k => G.wob = 3 * (1 - k)).catch(swallow);
   // 1.00 the heart turns red — free to move
   await at(1.0); soul.mode = 'red'; soul.vx = soul.vy = 0; burst(soul.x, soul.y, '#ff2020', 8, 60);
@@ -2660,11 +2661,13 @@ async function openerSeq(intro) {
   // 5.40 the screen shakes, the camera turns toward a huge one on the right
   await at(5.4);
   const safe = 20, wBeam = B.h - safe - 4, by = B.y + (B.h - safe) / 2;
-  blaster(B.x + B.w + 120, by, PI, { big: 2.6, charge: 0.75, fire: 0.6, width: wBeam, from: [B.x + B.w + 300, by], inT: 0.3, onCharge: () => { shake = Math.max(shake, 9); } });
-  camTo({ x: 380, y: by, z: 1.35, rot: 0.22 }, 0.45).catch(swallow);
-  await at(6.45); G.wob = 4; camTo({ x: 330, y: by, z: 1.15, rot: 0.12 }, 0.2).catch(swallow);
-  // 7.00 everything is gone — black
-  await at(7.0);
+  // it drifts in slowly (0.9s), gathers itself for 2s, then fires for 2s
+  blaster(B.x + B.w + 120, by, PI, { big: 2.6, charge: 2.0, fire: 2.0, width: wBeam, from: [B.x + B.w + 340, by + 30], inT: 0.9, onCharge: b => { shake = Math.max(shake, 3 + 7 * clamp((b.t - 0.9) / 2, 0, 1)); } });
+  camTo({ x: 380, y: by, z: 1.35, rot: 0.22 }, 1.2).catch(swallow);
+  await at(5.4 + 0.9 + 2.0); G.wob = 4; camTo({ x: 330, y: by, z: 1.15, rot: 0.12 }, 0.25).catch(swallow);
+  await at(5.4 + 0.9 + 2.0 + 1.0); G.wob = 3;
+  // everything is gone — black
+  await at(5.4 + 0.9 + 4.0 + 0.1);
   bullets = []; G.boxHidden = true; soul.vis = false; setGrav(0, 1, 0); G.wob = 0; G.rise = 0;
   camReset(0.01).catch(swallow);
   await wait(1.1);
