@@ -1000,7 +1000,7 @@ async function runAttack(name, ph, mode, ...args) {
   soulReset(mode || a.mode); ui.mode = 'none';
   try { await a.fn(ph, ...args); const t0 = T; await until(() => !bullets.some(b => !b.persist && b.hit !== undefined && !b.heal) || T - t0 > 2.4); }
   finally {
-    bullets = bullets.filter(b => b.persist); setGrav(0, 1, 0); G.oilLv = 0; G.pour = false; B.rot = 0; hy.trail = false; hy.front = false; hy.prop = null; hy.pose = null; hy.propT = 0;
+    bullets = bullets.filter(b => b.persist); setGrav(0, 1, 0); G.oilLv = 0; G.pour = false; B.rot = 0; G.boxGhost = null; hy.trail = false; hy.front = false; hy.prop = null; hy.pose = null; hy.propT = 0;
     if (hy.x !== 320 || hy.feet !== 240 || hy.flip) await hyGo(320, 240, 0.3, { flip: false, hop: 30 }).catch(() => { hy.x = 320; hy.feet = 240; hy.flip = false; });
   }
 }
@@ -2169,176 +2169,6 @@ async function rainBars(bars, o = {}) {
   }
 }
 
-/* T1 — 쌀알 폭풍 */
-ATK.rain.fn = async ph => {
-  hyThrow().catch(swallow);
-  await rainBars(2, { clumpEvery: 8 });
-  // act 2: he moves to the left of the box and fans — the rain bends and the box narrows
-  act(); hy.front = true;
-  hyGo(108, BOT, 0.4, { flip: true, hop: 30 }).catch(swallow); setBox(170, 145, 0.5).catch(swallow);
-  let wind = 0; tween(1.5, k => wind = 85 * k).catch(swallow);
-  const fan = (async () => { for (let i = 0; i < 4; i++) { await toBeat(1); await hyThrow2((hx, hyy) => { const [vx, vy] = lob(hx, hyy, soulScreen()[0], soulScreen()[1], 0.6, 330); clump(hx, hyy, vx, vy, { ay: 330, clip: false, onUpd: b => b.y < fl() + 20 }); }, { wind: 0.1 }); await toBeat(1); } })();
-  await Promise.all([rainBars(2.5, { wind: () => wind }), fan]);
-  // act 3: back on top — three fat clumps, one per beat, then the burst
-  act(); hy.front = false;
-  await Promise.all([hyGo(320, 240, 0.4, { flip: false, hop: 60 }), setBox(230, 145, 0.4)]);
-  for (let i = 0; i < 3; i++) {
-    await toBeat(1); const x = clamp(soul.x, B.x + 14, B.x + B.w - 14); floorMark(x, 42, 0.38); hyThrow().catch(swallow);
-    (async () => { await wait(0.38); clump(x, B.y - 10, 0, 560, { sc: 2, hw: 18, hh: 10, onUpd(b) { if (b.y > fl() - 10) { thud(x, fl() - 6); for (let j = 0; j < 9; j++) grain(x, fl() - 10, rr(-160, 160), rr(-230, -90), { ay: 420 }); return false; } } }); })().catch(swallow);
-  }
-  await wait(0.5);
-};
-
-/* T2 — 바벨 허들 */
-ATK.jump.fn = async ph => {
-  const sp = 185, R = () => B.x + B.w + 14;
-  for (let i = 0; i < 6; i++) { await toBeat(0.5); barV(R(), fl() - rr(18, 24), fl() + 12, -sp, { caps: 1 }); }
-  // act 2: 현태 lifts and hurls barbells from above — duck under some, jump the others
-  act(); hy.prop = 'barbell'; hy.pose = 'up2'; hy.idle = false;
-  for (let i = 0; i < 6; i++) {
-    await toBeat(0.5);
-    tween(0.25, k => hy.propY = -Math.sin(k * PI) * 10).catch(swallow);
-    if (i % 2) barV(R(), B.y - 12, fl() - 30, -sp, { caps: 2 });
-    else { barV(R(), fl() - 20, fl() + 12, -sp, { caps: 1 }); barV(R() + 28, fl() - 20, fl() + 12, -sp, { caps: 1 }); }
-  }
-  hy.prop = null; hy.pose = null; hy.idle = true;
-  // act 3: plates roll in from the left while hurdles come from the right — they cross in the middle
-  act();
-  for (let i = 0; i < 4; i++) {
-    await toBeat(0.5);
-    plate(B.x - 16, fl() - 10, rr(120, 150), { vy: -rr(0, 120), clip: true });
-    await toBeat(1); barV(R(), fl() - 20, fl() + 12, -sp, { caps: 1 });
-  }
-  // the tall one, on the bar
-  await toBeat(0.25); barV(R(), fl() - 46, fl() + 12, -200, { caps: 1 });
-  await wait(0.6);
-};
-
-/* T3 — 직구, 변화구, 골든 에그 */
-ATK.sideEggs.fn = async ph => {
-  const n = 4;
-  try {
-    hy.front = true;
-    await hyGo(548, BOT, 0.38, { flip: false, hop: 30 });
-    quip('직구 들어갑니다.', 0.9);
-    for (let i = 0; i < n; i++) { await hyThrow2((hx, hyy) => { const [sx, sy] = soulScreen(), [vx, vy] = lob(hx, hyy, sx + rr(-12, 12), sy, 0.72, 380); eggArc(hx, hyy, vx, vy, { clip: false }); }); await toBeat(1); }
-    act();
-    await hyGo(92, BOT, 0.5, { flip: true, hop: 170 });
-    for (let i = 0; i < n + 1; i++) {
-      await hyThrow2((hx, hyy) => {
-        const [sx, sy] = soulScreen(), keep = b => b.y < fl() + 20;
-        if (i % 2) { const [vx, vy] = lob(hx, hyy, sx, sy, 0.62, 330); clump(hx, hyy, vx, vy, { ay: 330, clip: false, onUpd: keep }); }
-        else for (const off of [-40, 0, 40]) { const [vx, vy] = lob(hx, hyy, sx + off, sy, 0.62, 330); grain(hx, hyy, vx, vy, { ay: 330, clip: false, onUpd: keep }); }
-      }, { wind: 0.1 });
-      await toBeat(1);
-    }
-    // act 3: he jumps above the box and lobs one giant golden egg — it cracks into a cross of yolk
-    act();
-    await hyGo(320, 214, 0.45, { flip: false, hop: 90 });
-    hy.front = false;
-    await hyThrow2((hx, hyy) => {
-      const tx = clamp(soulScreen()[0], B.x + 30, B.x + B.w - 30), [vx, vy] = lob(hx, hyy, tx, fl() - 12, 0.95, 380);
-      shot({ x: hx, y: hyy, vx, vy, ay: 380, spr: SPR.egg, sc: 2.4, hw: 16, hh: 20, spin: 3, snap: true, clip: false,
-        onUpd(b) { if (b.vy > 0 && b.y > fl() - 22) { thud(b.x, fl() - 8, { r1: 90 }); crackAt(b.x, fl() - 6, 12); yolkBeams(b.x, fl() - 30, 0.4); return false; } } });
-    }, { wind: 0.25 });
-    await wait(0.6);
-  } finally { hy.front = false; }
-};
-
-/* T4 — 예. 연사 */
-ATK.stream.fn = async ph => {
-  const sp = 170;
-  orbsOn(); await toBeat(1);
-  for (let i = 0; i < 8; i++) {
-    await toBeat(1);
-    const [x, y] = orbPos(ORBS[i % 2]), [sx, sy] = soulScreen();
-    for (const off of [-0.17, 0, 0.17]) { const a = Math.atan2(sy - y, sx - x) + off; withTrail(yeShot(x, y, Math.cos(a) * sp, Math.sin(a) * sp, { clip: false }), 4); }
-    ring(x, y, { r1: 34, life: 0.25, col: '#2cd8ff', w: 2 }); audio.spawn();
-  }
-  orbsOn(false);
-  // act 2: from the side, rows of "예." with one gap that keeps moving
-  for (const side of [1, -1]) {
-    act(); hy.front = true;
-    await hyGo(side > 0 ? 548 : 92, BOT, 0.42, { flip: side < 0, hop: side > 0 ? 30 : 160 });
-    for (let i = 0; i < 6; i++) {
-      await toBeat(1); hyPose('tFwd', 0.2).catch(swallow);
-      const gap = B.y + 22 + ((i * 37 + (side < 0 ? 50 : 0)) % (B.h - 44)), x0 = side > 0 ? B.x + B.w + 10 : B.x - 10;
-      for (let y = B.y + 8; y < fl() - 4; y += 15) if (Math.abs(y - gap) > 20) yeShot(x0, y, -side * 150, 0);
-      audio.spawn();
-    }
-  }
-  // act 3: back on top — a sprinkler of "예." that stops dead, then drops
-  act(); hy.front = false; await hyGo(320, 240, 0.4, { flip: false, hop: 60 });
-  const ox = B.x + B.w / 2, oy = B.y - 30, held = [];
-  for (let i = 0; i < 24; i++) {
-    await toBeat(4);
-    const a = PI / 2 + Math.sin(i * 0.45) * 1.0, b = yeShot(ox, oy, Math.cos(a) * 150, Math.sin(a) * 150, { life: 9 });
-    held.push(b); audio.spawn();
-  }
-  await toBeat(1);
-  for (const b of held) { b.vx = 0; b.vy = 0; }
-  audio.tone(200, 0.3, 0.12, 'square', 0, 0.5); await toBeat(1);
-  for (const b of held) { b.vy = 0; b.ay = 520; }
-  await wait(0.5);
-};
-
-/* T5 — 기울어지는 바벨 복도 */
-ATK.wall2.fn = async ph => {
-  const sp = 160, gap = 50, R = () => B.x + B.w + 14, L = () => B.x - 14;
-  const col = (x, gy, vx) => { barV(x, B.y - 12, gy - gap / 2, vx, { caps: 2 }); barV(x, gy + gap / 2, fl() + 12, vx, { caps: 1 }); };
-  for (let i = 0; i < 4; i++) { await toBeat(0.5); col(R(), B.y + B.h / 2 + Math.sin(i * 0.9) * 30, -sp); }
-  // act 2: the room starts to rock
-  act(); quip('주방이 기울어집니다.', 1.0);
-  let on = true; const t0 = T;
-  (async () => { while (on) { B.rot = Math.sin((T - t0) * 1.3) * 0.3 * Math.min(1, (T - t0) / 1.2); await wait(1 / 60); } })().catch(swallow);
-  for (let i = 0; i < 6; i++) { await toBeat(0.5); col(R(), B.y + B.h / 2 + Math.sin(i * 1.1 + 1) * 38, -sp); }
-  await toBeat(0.5); on = false;
-  const r0 = B.rot; await tween(0.2, k => B.rot = r0 * (1 - k)); B.rot = 0; thud(B.x + B.w / 2, fl(), { r1: 80 });
-  // act 3: pincer — columns from both sides, the gaps at different heights, crossing in the middle
-  act();
-  for (let i = 0; i < 6; i++) {
-    await toBeat(0.5);
-    const a = B.y + 30 + ((i * 41) % (B.h - 60)), b = B.y + 30 + ((i * 41 + 55) % (B.h - 60));
-    col(R(), a, -sp); col(L(), b, sp);
-  }
-  await wait(0.6);
-};
-
-/* T6 — 웍 수업: 기름 두르기 → 양쪽에서 볶기 → 불쇼 */
-ATK.wokOil.fn = async ph => {
-  try {
-    hy.prop = 'wok'; hy.pose = 'wokL'; hy.front = true; hy.idle = false; slamId++;
-    await hyGo(560, BOT - 4, 0.42, { flip: false, hop: 34 });
-    quip('먼저 기름을 두르씹시오.', 1.2);
-    await pourOil(2.0, 'wokLPour');
-    hy.prop = 'wok'; hy.pose = 'wokL';
-    act(); await wokToss(1, 3, true);
-    act(); await hyGo(80, BOT - 4, 0.55, { flip: true, hop: 160 });
-    await wokToss(1, 3, true);
-    // act 3: 불쇼 — back on top, the whole wok goes up in flames and comes down as a rain of rice
-    act(); hy.front = false;
-    await hyGo(320, 240, 0.4, { flip: false, hop: 60 });
-    hy.pose = 'wokUp'; hy.wokRice = true;
-    await tween(0.3, k => hy.propT = -1.1 * k);
-    audio.noise(0.6, 0.3, 600); audio.big(); flashA = 0.25; shake = 6;
-    const [mx, my] = wokMid();
-    for (let i = 0; i < 26; i++) fx.push({ k: 'ember', x: mx + rr(-20, 20), y: my - rr(0, 20), vx: rr(-30, 30), vy: -rr(80, 200), col: pick(['#ff6a00', '#ffb000', '#ff3a00', '#fff35a']), t: 0, life: rr(0.4, 0.9) });
-    hy.wokRice = false;
-    await wait(0.35);
-    // the rice comes down over the whole box in lanes, one beat apart
-    for (let i = 0; i < 8; i++) {
-      await toBeat(2);
-      const lane = (i * 3) % 5;
-      for (let j = 0; j < 5; j++) if (j !== lane) grain(B.x + (j + 0.5) * B.w / 5 + rr(-10, 10), B.y - 8, 0, 160, { sway: 1 });
-      if (i % 2) clump(B.x + (lane + 0.5) * B.w / 5 + (rand() < 0.5 ? -26 : 26), B.y - 10, 0, 170);
-    }
-    tween(0.3, k => hy.propT = -1.1 * (1 - k)).catch(swallow); hy.pose = 'wok';
-    quip('예. 불쇼씁니다.', 0.9);
-    await wait(0.6);
-  } finally { hy.prop = null; hy.pose = null; hy.idle = true; hy.propT = 0; G.pour = false; hy.front = false; }
-};
-
-/* T7 — 예. 블래스터: add a pulsing sweep between the waves and the ring finale */
 function sweeper(px, py, a0, a1, dur) {
   return add({ clip: false, life: dur + 0.4, upd: b => b.t < dur + 0.4,
     ang() { return lerp(a0, a1, clamp((this.t - 0.4) / dur, 0, 1)); },
@@ -2352,66 +2182,269 @@ function sweeper(px, py, a0, a1, dur) {
     },
     hit(x, y) { if (!this.on()) return false; const a = this.ang(), dx = x - px, dy = y - py, al = dx * Math.cos(a) + dy * Math.sin(a), pp = -dx * Math.sin(a) + dy * Math.cos(a); return al > 14 && Math.abs(pp) < 11; } });
 }
-{ const _bl = ATK.blaster.fn;
-  ATK.blaster.fn = async ph => {
-    orbsOn();
-    try { await _bl(ph); } finally { orbsOn(false); }
-    if (ph > 1) return;
-    // act 4 (encore): a beam that pulses on the beat while it sweeps across — cross it while it's off
-    act(); quip('끊어서 쏩니다.', 0.8);
-    const cx = B.x + B.w / 2;
-    sweeper(cx, B.y - 70, PI * 0.25, PI * 0.75, 3.2 * BEAT.len * 4 / 4);
-    await wait(3.2 * BEAT.len + 0.6);
-    sweeper(cx, B.y - 70, PI * 0.75, PI * 0.25, 3.2 * BEAT.len);
-    await wait(3.2 * BEAT.len + 1.0);
-  };
-}
 
-/* T8 — 기름 끓이기: bubbles → eruption waves → the egg that splashes */
+/* ========= toolkit: everything 현태 can throw at you, usable all at once ========= */
+// the box changes shape — a blinking ghost outline shows the new shape first, so you can react
+async function boxTo(w, h, o = {}) {
+  const cx = o.cx ?? 320, by = o.by ?? BOT, rot = o.rot ?? 0, warn = o.warn ?? 0.5;
+  G.boxGhost = { x: cx - w / 2, y: by - h, w, h, rot, t0: T };
+  for (let i = 0; i < 3; i++) audio.tone(1250, 0.03, 0.05, 'square', i * warn / 3);
+  await wait(warn); G.boxGhost = null;
+  const s = { x: B.x, y: B.y, w: B.w, h: B.h, rot: B.rot || 0 };
+  audio.tone(150, 0.15, 0.12, 'square', 0, 0.6); G.boxPulse = 0.2;
+  await tween(o.d ?? 0.2, k => { B.x = lerp(s.x, cx - w / 2, k); B.y = lerp(s.y, by - h, k); B.w = lerp(s.w, w, k); B.h = lerp(s.h, h, k); B.rot = lerp(s.rot, rot, k); }, ezio);
+}
+function drawBoxGhost() {
+  const g = G && G.boxGhost; if (!g || Math.floor((T - g.t0) * 12) % 2) return;
+  ctx.save(); const cx = g.x + g.w / 2, cy = g.y + g.h / 2; ctx.translate(cx, cy); ctx.rotate(g.rot); ctx.translate(-cx, -cy);
+  const c = '#ffd23a';
+  for (let x = g.x; x < g.x + g.w; x += 10) { rect(x, g.y - 4, 5, 3, c); rect(x, g.y + g.h + 1, 5, 3, c); }
+  for (let y = g.y; y < g.y + g.h; y += 10) { rect(g.x - 4, y, 3, 5, c); rect(g.x + g.w + 1, y, 3, 5, c); }
+  ctx.restore();
+}
+// where 현태 can stand — relative to wherever the box is right now
+const SPOT = {
+  top: () => [320, 240, false], TL: () => [Math.max(70, B.x - 40), 214, true], TR: () => [Math.min(570, B.x + B.w + 40), 214, false],
+  L: () => [Math.max(52, B.x - 92), BOT, true], R: () => [Math.min(588, B.x + B.w + 92), BOT, false],
+};
+async function go(spot, hop) {
+  const [x, f, flip] = SPOT[spot](); hy.front = spot === 'L' || spot === 'R';
+  await hyGo(x, f, 0.34, { flip, hop: hop ?? (Math.abs(x - hy.x) > 250 ? 150 : 40) });
+}
+// a barbell thrown end over end
+function spinBar(x, y, vx, vy, o = {}) {
+  const len = o.len || 58;
+  return withTrail(add({ x, y, vx, vy, ay: o.ay || 0, rot: rand() * PI, w: o.spin || 7, clip: false,
+    upd(b, dt) { b.vy += b.ay * dt; b.x += b.vx * dt; b.y += b.vy * dt; b.rot += b.w * dt; return b.t < 6 && b.x > -140 && b.x < LW + 140 && b.y < LH + 60 && b.y > -160; },
+    draw() { ctx.save(); ctx.translate(Math.round(this.x), Math.round(this.y)); ctx.rotate(this.rot); drawBarbellH(-len / 2, len / 2, 0, 'w', 18); ctx.restore(); },
+    hit(px, py) { const dx = px - this.x, dy = py - this.y, c = Math.cos(this.rot), s = Math.sin(this.rot), al = dx * c + dy * s, pp = -dx * s + dy * c; if (Math.abs(al) > len / 2 + 4) return false; return Math.abs(pp) < (Math.abs(al) > len / 2 - 16 ? 12 : 5); } }), 5);
+}
+// throw something from 현태's hand at the heart
+function toss(kind, o = {}) {
+  return hyThrow2((hx, hyy) => {
+    const [sx, sy] = soulScreen(), keep = b => b.y < LH + 30;
+    if (kind === 'egg') { const [vx, vy] = lob(hx, hyy, sx + rr(-10, 10), sy, o.t || 0.7, 380); eggArc(hx, hyy, vx, vy, { clip: false }); }
+    if (kind === 'clump') { const [vx, vy] = lob(hx, hyy, sx, sy, o.t || 0.62, 330); clump(hx, hyy, vx, vy, { ay: 330, clip: false, onUpd: keep }); }
+    if (kind === 'fan') for (const off of [-38, 0, 38]) { const [vx, vy] = lob(hx, hyy, sx + off, sy, o.t || 0.62, 330); withTrail(grain(hx, hyy, vx, vy, { ay: 330, clip: false, onUpd: keep }), 3); }
+    if (kind === 'plate') { const a = Math.atan2(sy - hyy, sx - hx), sp = o.sp || 240; withTrail(shot({ x: hx, y: hyy, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, spr: SPR.plateF, hw: 9, hh: 9, spin: 9, clip: false }), 5); }
+    if (kind === 'bar') { const a = Math.atan2(sy - hyy, sx - hx), sp = o.sp || 210; spinBar(hx, hyy, Math.cos(a) * sp, Math.sin(a) * sp); }
+    audio.noise(0.12, 0.14, 2200);
+  }, { wind: o.wind || 0.1 });
+}
+// two blasters that cross the box (telegraphed by their red lines)
+function crossBlast(o = {}) {
+  const ch = o.charge || 0.6, y1 = soul.y;
+  if (o.v) { blaster(soul.x, B.y - 70, PI / 2, { charge: ch }); return; }
+  blaster(B.x - 52, y1, 0, { charge: ch });
+  if (o.both) blaster(B.x + B.w + 52, clamp(y1 + (rand() < 0.5 ? -40 : 40), B.y + 12, B.y + B.h - 12), PI, { charge: ch + 0.25 });
+}
+// run tracks in parallel until the choreography (the main track) finishes
+async function medley(main, ...loops) {
+  const st = { on: true };
+  const ts = loops.map(f => (async () => { while (st.on) await f(st); })());
+  try { await main(st); } finally { st.on = false; }
+  await Promise.all(ts);
+}
+const beats = n => toBeat(1 / n);   // wait n beats (n ≥ 1 → whole beats)
+async function nBeats(n) { for (let i = 0; i < n; i++) await toBeat(1); }
+
+/* ========= phase 1: nine medleys — he keeps moving and uses everything ========= */
+// T1 쌀알 폭풍 — rain never stops; clumps from above, eggs from the side, a spinning barbell, the box narrows and widens
+ATK.rain.fn = async ph => {
+  let wind = 0;
+  await medley(async st => {
+    await toss('clump'); await nBeats(2); await toss('clump'); await nBeats(1);
+    boxTo(160, 145, { cx: 300 }).catch(swallow); await go('R');
+    for (let i = 0; i < 4; i++) { await toss('egg'); await toBeat(1); }
+    crossBlast(); await nBeats(1);
+    tween(1.2, k => wind = -70 * k).catch(swallow);
+    boxTo(250, 100, { cx: 330, rot: -0.06 }).catch(swallow); await go('TL', 120);
+    await toss('bar', { sp: 190 }); await nBeats(2); await toss('fan'); await nBeats(1); await toss('bar', { sp: 220 }); await nBeats(1);
+    wind = 0; act(); await go('top', 60); await boxTo(230, 145, { rot: 0.05 });
+    for (let i = 0; i < 3; i++) {
+      await toBeat(1); const x = clamp(soul.x, B.x + 14, B.x + B.w - 14); floorMark(x, 42, 0.38); hyThrow().catch(swallow);
+      (async () => { await wait(0.38); clump(x, B.y - 10, 0, 560, { sc: 2, hw: 18, hh: 10, onUpd(b) { if (b.y > fl() - 10) { thud(x, fl() - 6); for (let j = 0; j < 9; j++) grain(x, fl() - 10, rr(-160, 160), rr(-230, -90), { ay: 420 }); return false; } } }); })().catch(swallow);
+    }
+    await nBeats(2);
+  }, async () => { await toBeat(4); grain(rr(B.x - (wind < 0 ? 0 : 40), B.x + B.w + (wind < 0 ? 80 : 0)), B.y - 6, wind + rr(-12, 12), rr(100, 145), { sway: 1 }); });
+};
+// T2 바벨 허들 — hurdles on every beat while he lifts, throws plates and barbells, and the box shrinks under you
+ATK.jump.fn = async ph => {
+  const sp = 180, R = () => B.x + B.w + 14;
+  let hurdles = true, k = 0;
+  await medley(async st => {
+    await nBeats(4);
+    hy.prop = 'barbell'; hy.pose = 'up2'; hy.idle = false;
+    for (let i = 0; i < 3; i++) { await toBeat(1); tween(0.25, q => hy.propY = -Math.sin(q * PI) * 10).catch(swallow); barV(R(), B.y - 12, fl() - 30, -sp, { caps: 2 }); await toBeat(1); }
+    hy.prop = null; hy.pose = null; hy.idle = true;
+    act(); boxTo(200, 110, { cx: 300, rot: 0.04 }).catch(swallow); await go('L');
+    for (let i = 0; i < 3; i++) { await hyThrow2((hx, hyy) => plate(B.x - 12, fl() - 10, rr(130, 160), { vy: -rr(60, 160), clip: true })); await nBeats(1); }
+    blaster(B.x - 52, fl() - 34, 0, { charge: 0.7 }); await nBeats(2);
+    act(); hurdles = false; await go('TR', 90);
+    for (let i = 0; i < 2; i++) { await toss('bar', { sp: 200 }); await nBeats(2); }
+    await go('top', 60); await boxTo(260, 120);
+    hurdles = true; await nBeats(3); hurdles = false;
+    await toBeat(0.25); barV(R(), fl() - 46, fl() + 12, -200, { caps: 1 }); await nBeats(2);
+  }, async st => { await toBeat(1); if (!hurdles) return; k++; barV(R(), fl() - rr(18, 24), fl() + 12, -sp, { caps: 1 }); if (k % 5 === 4) barV(R() + 28, fl() - 18, fl() + 12, -sp, { caps: 1 }); });
+};
+// T3 직구·변화구 — he circles the box: eggs from the right, rice from the left, barbells from above, the box slides away from him
+ATK.sideEggs.fn = async ph => {
+  try {
+    await go('R'); quip('직구 들어갑니다.', 0.9);
+    for (let i = 0; i < 3; i++) { await toss('egg'); await toBeat(1); }
+    boxTo(190, 140, { cx: 260, rot: -0.05 }).catch(swallow); await toss('egg'); await toBeat(1); await toss('plate'); await nBeats(1);
+    act(); await go('L');
+    for (let i = 0; i < 4; i++) { await toss(i % 2 ? 'clump' : 'fan'); await toBeat(1); }
+    crossBlast({ v: true }); await nBeats(1);
+    act(); boxTo(220, 140, { cx: 330, rot: 0.04 }).catch(swallow); await go('TR', 100);
+    await toss('bar'); await toBeat(1); await toss('egg'); await toBeat(1); await toss('bar', { sp: 240 }); await nBeats(1);
+    // the golden egg
+    act(); await go('top', 80); hy.front = false;
+    await hyThrow2((hx, hyy) => {
+      const tx = clamp(soulScreen()[0], B.x + 30, B.x + B.w - 30), [vx, vy] = lob(hx, hyy, tx, fl() - 12, 0.95, 380);
+      withTrail(shot({ x: hx, y: hyy, vx, vy, ay: 380, spr: SPR.egg, sc: 2.4, hw: 16, hh: 20, spin: 3, snap: true, clip: false,
+        onUpd(b) { if (b.vy > 0 && b.y > fl() - 22) { thud(b.x, fl() - 8, { r1: 90 }); crackAt(b.x, fl() - 6, 12); yolkBeams(b.x, fl() - 30, 0.4); return false; } } }), 6);
+    }, { wind: 0.25 });
+    await nBeats(3);
+  } finally { hy.front = false; }
+};
+// T4 예. 연사 — the orbs never stop firing while the box shrinks to a cell, rows sweep from the sides, blasters cross
+ATK.stream.fn = async ph => {
+  let orbFire = true; orbsOn(); await toBeat(1);
+  await medley(async st => {
+    await nBeats(4);
+    act(); await boxTo(130, 130, { rot: 0.07 }); await nBeats(3); crossBlast({ both: true }); await nBeats(2);
+    act(); orbFire = false; await boxTo(240, 140, { cx: 300 }); await go('R');
+    for (let i = 0; i < 5; i++) {
+      await toBeat(1); hyPose('tFwd', 0.2).catch(swallow);
+      const gap = B.y + 22 + ((i * 37) % (B.h - 44));
+      for (let y = B.y + 8; y < fl() - 4; y += 15) if (Math.abs(y - gap) > 20) yeShot(B.x + B.w + 10, y, -150, 0);
+    }
+    orbFire = true; await go('top', 60); await nBeats(2);
+    // the sprinkler that stops and drops
+    act(); orbFire = false;
+    const ox = B.x + B.w / 2, oy = B.y - 30, held = [];
+    for (let i = 0; i < 20; i++) { await toBeat(4); const a = PI / 2 + Math.sin(i * 0.5) * 1.0; held.push(yeShot(ox, oy, Math.cos(a) * 150, Math.sin(a) * 150, { life: 9 })); audio.spawn(); }
+    await toBeat(1); for (const b of held) { b.vx = 0; b.vy = 0; } audio.tone(200, 0.3, 0.12, 'square', 0, 0.5);
+    await toBeat(1); for (const b of held) b.ay = 520;
+    await nBeats(2);
+  }, async st => {
+    await toBeat(1); if (!orbFire || !st.on) return;
+    const o = ORBS[(Math.random() * 2) | 0], [x, y] = orbPos(o), [sx, sy] = soulScreen();
+    for (const off of [-0.17, 0, 0.17]) { const a = Math.atan2(sy - y, sx - x) + off; withTrail(yeShot(x, y, Math.cos(a) * 165, Math.sin(a) * 165, { clip: false }), 4); }
+    ring(x, y, { r1: 34, life: 0.25, col: '#2cd8ff', w: 2 }); audio.spawn();
+  });
+  orbsOn(false);
+};
+// T5 바벨 복도 — the corridor keeps coming while the room rocks, he hurls barbells over the top and blasters fire down the gaps
+ATK.wall2.fn = async ph => {
+  const sp = 160, gap = 52, R = () => B.x + B.w + 14, L = () => B.x - 14;
+  const col = (x, gy, vx) => { barV(x, B.y - 12, gy - gap / 2, vx, { caps: 2 }); barV(x, gy + gap / 2, fl() + 12, vx, { caps: 1 }); };
+  let rock = false, cols = true, i = 0; const t0 = T;
+  const rocker = (async () => { while (cols || rock) { if (rock) B.rot = Math.sin((T - t0) * 1.3) * 0.28; await wait(1 / 60); } })();
+  await medley(async st => {
+    await nBeats(4);
+    act(); rock = true; quip('주방이 기울어집니다.', 1.0); await nBeats(4);
+    await go('TL', 100); for (let k = 0; k < 2; k++) { await toss('bar', { sp: 190 }); await nBeats(2); }
+    rock = false; const r0 = B.rot; await tween(0.2, k => B.rot = r0 * (1 - k)); B.rot = 0; thud(B.x + B.w / 2, fl(), { r1: 80 });
+    act(); cols = false; await go('top', 60);
+    for (let k = 0; k < 5; k++) {
+      await toBeat(0.5);
+      const a = B.y + 30 + ((k * 41) % (B.h - 60)), b = B.y + 30 + ((k * 41 + 55) % (B.h - 60));
+      col(R(), a, -sp); col(L(), b, sp);
+      if (k === 2) blaster(B.x + B.w / 2, B.y - 70, PI / 2, { charge: 0.7, width: 18 });
+    }
+    await nBeats(3);
+  }, async st => { await toBeat(0.5); if (!cols) return; i++; col(R(), B.y + B.h / 2 + Math.sin(i * 1.0) * 36, -sp); });
+  cols = false; rock = false; await rocker; B.rot = 0;
+};
+// T6 웍 수업 — oil, then he cooks from both sides while the box squeezes, throws barbells between tosses, ends on the fire show
+ATK.wokOil.fn = async ph => {
+  try {
+    hy.prop = 'wok'; hy.pose = 'wokL'; hy.front = true; hy.idle = false; slamId++;
+    await hyGo(560, BOT - 4, 0.42, { flip: false, hop: 34 });
+    quip('먼저 기름을 두르씹시오.', 1.2);
+    await pourOil(2.0, 'wokLPour');
+    hy.prop = 'wok'; hy.pose = 'wokL';
+    act(); await wokToss(1, 2, true);
+    boxTo(170, 130, { cx: 290, rot: -0.05 }).catch(swallow); await wokToss(1, 1, true); crossBlast();
+    act(); await hyGo(80, BOT - 4, 0.55, { flip: true, hop: 160 }); await wokToss(1, 2, true);
+    boxTo(230, 145, { cx: 330, rot: 0.04 }).catch(swallow); await wokToss(1, 1, true);
+    // fire show
+    act(); hy.front = false; await hyGo(320, 240, 0.4, { flip: false, hop: 60 });
+    hy.pose = 'wokUp'; hy.wokRice = true; await tween(0.3, k => hy.propT = -1.1 * k);
+    audio.noise(0.6, 0.3, 600); audio.big(); flashA = 0.25; shake = 6;
+    const [mx, my] = wokMid();
+    for (let i = 0; i < 26; i++) fx.push({ k: 'ember', x: mx + rr(-20, 20), y: my - rr(0, 20), vx: rr(-30, 30), vy: -rr(80, 200), col: pick(['#ff6a00', '#ffb000', '#ff3a00', '#fff35a']), t: 0, life: rr(0.4, 0.9) });
+    hy.wokRice = false; await wait(0.3);
+    for (let i = 0; i < 8; i++) {
+      await toBeat(2); const lane = (i * 3) % 5;
+      for (let j = 0; j < 5; j++) if (j !== lane) grain(B.x + (j + 0.5) * B.w / 5 + rr(-10, 10), B.y - 8, 0, 160, { sway: 1 });
+      if (i === 4) crossBlast({ v: true });
+    }
+    tween(0.3, k => hy.propT = -1.1 * (1 - k)).catch(swallow); hy.pose = 'wok'; quip('예. 불쇼씁니다.', 0.9);
+    await nBeats(2);
+  } finally { hy.prop = null; hy.pose = null; hy.idle = true; hy.propT = 0; G.pour = false; hy.front = false; }
+};
+// T7 예. 블래스터 — blasters from everywhere while he jumps around throwing and the box keeps changing shape
+ATK.blaster.fn = async ph => {
+  if (!G.blB) { G.blB = 1; await cutIn('예. 블래스터', { sub: '대답 그대로 쏩니다' }); }
+  orbsOn();
+  try {
+    const ch = 0.55;
+    await toBeat(1); crossBlast({ both: true, charge: ch }); await nBeats(2);
+    for (const [x, y] of [[B.x - 40, B.y - 30], [B.x + B.w + 40, B.y - 30]]) blaster(x, y, Math.atan2(soul.y - y, soul.x - x), { charge: ch }); await nBeats(2);
+    act(); boxTo(140, 140, { rot: 0.08 }).catch(swallow); await go('TR', 90); await toss('bar'); await nBeats(1);
+    crossBlast({ v: true }); await toss('plate'); await nBeats(2);
+    act(); boxTo(250, 110, { cx: 300, rot: -0.05 }).catch(swallow); await go('L');
+    for (let i = 0; i < 3; i++) { await toss(i === 1 ? 'bar' : 'egg'); const a = rand() * TAU, x = B.x + B.w / 2 + Math.cos(a) * 160, y = Math.min(B.y + B.h / 2 + Math.sin(a) * 120, fl() + 40); blaster(x, y, Math.atan2(soul.y - y, soul.x - x), { charge: ch }); await nBeats(1); }
+    // the ring of six, on the bar
+    act(); await go('top', 60); await boxTo(190, 145); await toBeat(0.25); hyPose('up2', 1.2).catch(swallow);
+    const sx = soul.x, sy = soul.y;
+    for (let i = 0; i < 6; i++) { const a = i * TAU / 6 + 0.3, x = sx + Math.cos(a) * 150, y = Math.min(sy + Math.sin(a) * 125, fl() + 45); blaster(x, y, Math.atan2(sy - y, sx - x), { charge: 0.85, width: 18 }); }
+    await wait(1.1); bigHit(sx, sy, { hs: 0.05, imp: 0.06, shake: 8 });
+    await nBeats(2);
+    // the pulsing sweep
+    act(); quip('끊어서 쏩니다.', 0.8);
+    sweeper(B.x + B.w / 2, B.y - 70, PI * 0.25, PI * 0.75, 3.2 * BEAT.len); await toss('fan');
+    await wait(3.2 * BEAT.len + 0.6);
+  } finally { orbsOn(false); }
+};
+// T8 기름 끓이기 — the oil never stops boiling; he drops eggs in from both sides, the box floods and shrinks, the floor erupts
 ATK.oilSplash.fn = async ph => {
-  const popBubble = () => {
+  let boil = true;
+  const pop = () => {
     const x = rr(B.x + 14, B.x + B.w - 14), popY = rr(B.y + 22, B.y + B.h - 40);
     add({ x, y: fl() - 4, popY, r: 2, clip: true,
       upd(b, dt) { b.y -= 75 * dt; b.r = Math.min(6, b.r + dt * 8); if (b.y <= b.popY) { audio.crack(); for (let i = 0; i < 7; i++) { const a = i / 7 * TAU + rand() * 0.3, s = rr(70, 105); shot({ x: b.x, y: b.y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, ay: 90, spr: SPR.oilDrop, hw: 3, hh: 3 }); } return false; } return true; },
-      draw() { const r = Math.round(this.r); for (let a = 0; a < TAU; a += 0.45) rect(this.x + Math.cos(a) * r - 1, this.y + Math.sin(a) * r - 1, 2, 2, '#ffb347'); },
-      hit: () => false });
+      draw() { const r = Math.round(this.r); for (let a = 0; a < TAU; a += 0.45) rect(this.x + Math.cos(a) * r - 1, this.y + Math.sin(a) * r - 1, 2, 2, '#ffb347'); }, hit: () => false });
   };
-  for (let i = 0; i < 12; i++) { await toBeat(2); popBubble(); }
-  // act 2: eruption waves — columns of hot oil shoot up one after another across the floor
-  for (const dir of [1, -1]) {
-    act(); await toBeat(1);
-    const n = 12;
-    for (let i = 0; i < n; i++) {
-      const x = dir > 0 ? B.x + 10 + i * (B.w - 20) / (n - 1) : B.x + B.w - 10 - i * (B.w - 20) / (n - 1);
-      for (let j = 0; j < 3; j++) shot({ x: x + rr(-4, 4), y: fl() - 4, vx: rr(-15, 15), vy: -rr(150, 230), ay: 300, spr: SPR.oilDrop, hw: 3, hh: 3, onUpd: b => !(b.vy > 0 && b.y > fl()) });
-      audio.noise(0.04, 0.08, 2500); await wait(0.09);
-    }
-    await toBeat(0.5);
-  }
-  // act 3: 현태 drops one egg straight into the hot oil — a big splash
-  act(); quip('계란 하나 넣겟씁니다.', 0.9); await toBeat(1);
-  const tx = clamp(soul.x, B.x + 30, B.x + B.w - 30); floorMark(tx, 50, 0.6); hyThrow().catch(swallow);
-  await wait(0.5);
-  shot({ x: tx, y: B.y - 20, vx: 0, vy: 380, spr: SPR.egg, sc: 1.6, hw: 10, hh: 14, spin: 4, snap: true,
-    onUpd(b) { if (b.y > fl() - 16) { thud(tx, fl() - 8, { r1: 100, col: '#ff9a1a' }); for (let i = 0; i < 16; i++) { const a = -PI + (i + 0.5) * PI / 16, s = rr(120, 190); shot({ x: tx, y: fl() - 10, vx: Math.cos(a) * s, vy: Math.sin(a) * s, ay: 260, spr: SPR.oilDrop, hw: 3, hh: 3 }); } shot({ x: tx, y: fl() - 8, vx: 0, vy: 0, spr: SPR.friedEgg, hw: 12, hh: 6, life: 1.5 }); return false; } } });
-  await wait(0.6);
+  const erupt = async dir => { const n = 12; for (let i = 0; i < n; i++) { const x = dir > 0 ? B.x + 10 + i * (B.w - 20) / (n - 1) : B.x + B.w - 10 - i * (B.w - 20) / (n - 1); for (let j = 0; j < 3; j++) shot({ x: x + rr(-4, 4), y: fl() - 4, vx: rr(-15, 15), vy: -rr(150, 230), ay: 300, spr: SPR.oilDrop, hw: 3, hh: 3, onUpd: b => !(b.vy > 0 && b.y > fl()) }); audio.noise(0.04, 0.08, 2500); await wait(0.09); } };
+  await medley(async st => {
+    await nBeats(4);
+    act(); await go('R'); for (let i = 0; i < 2; i++) { await toss('egg'); await nBeats(1); }
+    boxTo(180, 120, { cx: 290, rot: 0.05 }).catch(swallow); await erupt(1); await toss('egg');
+    act(); await go('L'); await toss('plate'); await nBeats(1); await erupt(-1); crossBlast(); await nBeats(1);
+    act(); boil = false; await go('top', 60); await boxTo(230, 145);
+    quip('계란 하나 넣겟씁니다.', 0.9); await toBeat(1);
+    const tx = clamp(soul.x, B.x + 30, B.x + B.w - 30); floorMark(tx, 50, 0.6); hyThrow().catch(swallow); await wait(0.5);
+    withTrail(shot({ x: tx, y: B.y - 20, vx: 0, vy: 380, spr: SPR.egg, sc: 1.6, hw: 10, hh: 14, spin: 4, snap: true,
+      onUpd(b) { if (b.y > fl() - 16) { thud(tx, fl() - 8, { r1: 100, col: '#ff9a1a' }); for (let i = 0; i < 16; i++) { const a = -PI + (i + 0.5) * PI / 16, s = rr(120, 190); shot({ x: tx, y: fl() - 10, vx: Math.cos(a) * s, vy: Math.sin(a) * s, ay: 260, spr: SPR.oilDrop, hw: 3, hh: 3 }); } return false; } } }), 5);
+    await nBeats(3);
+  }, async st => { await toBeat(1); if (boil) pop(); });
 };
-
-/* T9 — 내려찍기: slams → slams with blasters → the big one */
+// T9 내려찍기 — slams one after another; between them the box shrinks, barbells roll and blasters answer
 ATK.slam.fn = async ph => {
-  const dirs = ['down', 'left', 'up', 'right']; let last = '';
-  await toBeat(1);
   const one = async (d) => { await slam(d, 1); await wait(0.24); wallWarn(d, 0.12); await wait(0.12); spikeRow(d, 0.42); };
-  for (let i = 0; i < 4; i++) { let d; do d = i === 0 ? 'down' : pick(dirs); while (d === last); last = d; await one(d); await toBeat(0.5); }
-  // act 2: after each slam a blaster answers from the opposite wall
-  act();
-  for (const d of ['left', 'right', 'up']) {
-    await one(d); await toBeat(1);
-    const [x, y, a] = d === 'left' ? [B.x + B.w + 50, soul.y, PI] : d === 'right' ? [B.x - 50, soul.y, 0] : [soul.x, fl() + 50, -PI / 2];
-    blaster(x, y, a, { charge: 0.45 }); await toBeat(0.5);
-  }
-  // act 3: the big one, on the bar
-  act(); await toBeat(0.25); hy.face = 'shadow';
+  await toBeat(1);
+  await one('down'); await toBeat(0.5); await one('left'); await toBeat(0.5);
+  act(); boxTo(150, 140, { rot: 0.06 }).catch(swallow); await one('right'); await toBeat(1);
+  blaster(B.x - 52, soul.y, 0, { charge: 0.5 }); await one('up'); await toBeat(0.5);
+  act(); boxTo(240, 120, { cx: 300, rot: -0.04 }).catch(swallow); setGrav(0, 1, 0); await go('L');
+  for (let i = 0; i < 3; i++) { await hyThrow2(() => plate(B.x - 12, fl() - 10, rr(150, 180), { vy: -rr(80, 180), clip: true })); await toBeat(1); }
+  await go('top', 60); await one('down'); blaster(B.x + B.w + 52, fl() - 30, PI, { charge: 0.55 }); await toBeat(0.5);
+  // the big one, on the bar
+  act(); await boxTo(200, 140); await toBeat(0.25); hy.face = 'shadow';
   await slam('down', 2); await wait(0.1);
   bigHit(B.x + B.w / 2, fl(), { hs: 0.14, r1: 140 }); wallWarn('down', 0.16); await wait(0.16); spikeRow('down', 0.5, 26);
   await wait(0.8); hy.face = 'normal';
@@ -2511,7 +2544,7 @@ function drawBattle() {
   ctx.restore();
   if (soul.vis && ui.mode === 'none' && !G.boxHidden) drawSpr(soul.mode === 'blue' ? SPR.heartB : soul.mode === 'oil' ? SPR.heartO : SPR.heart, soul.x, soul.y);
   ctx.restore();
-  drawBoxContent();
+  drawBoxContent(); drawBoxGhost();
   for (const b of bullets) if (!b.clip) b.draw();
   if (hy.front) { drawHy(); for (const p of G.props) p.draw && p.draw(); }
   drawFx();
