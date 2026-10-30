@@ -595,7 +595,7 @@ function updSoul(dt) {
   }
   const was = soul.grounded; soul.grounded = false;
   // platforms (the tower climb): land on them from above while falling
-  if (G && G.plats && soul.mode === 'blue' && soul.gy === 1 && soul.va >= 0) for (const p of bullets) { if (!p.plat) continue; if (soul.x > p.x1 - 4 && soul.x < p.x2 + 4 && oy <= p.y - 8 + 1.5 && soul.y >= p.y - 8) { soul.y = p.y - 8; land(); break; } }
+  if (G && G.plats && soul.mode === 'blue' && soul.gy === 1 && soul.va >= 0) for (const p of bullets) { if (!p.plat) continue; if (soul.x > p.x1 - 4 && soul.x < p.x2 + 4 && oy <= p.y - 8 + 3 && soul.y >= p.y - 11) { soul.y = p.y - 8; land(); break; } }
   const oil = soul.mode === 'oil';
   if (soul.x < L) { soul.x = L; if (oil) soul.vx = Math.abs(soul.vx) * 0.3; if (soul.gx === -1) land(); }
   if (soul.x > R) { soul.x = R; if (oil) soul.vx = -Math.abs(soul.vx) * 0.3; if (soul.gx === 1) land(); }
@@ -1746,7 +1746,7 @@ ATK.wall2 = { box: [240, 140], mode: 'red', async fn(ph) {
 ATK.squeezeRing = { box: [190, 145], mode: 'red', async fn(ph) {
   let on = true;
   (async () => {
-    const shapes = [[130, 145, 250], [240, 100, 380], [150, 150, 320], [220, 90, 270], [120, 120, 360], [190, 145, 320]];
+    const shapes = [[160, 145, 270], [240, 110, 360], [170, 150, 320], [220, 105, 290], [165, 140, 350], [190, 145, 320]];
     for (let i = 0; on; i++) { const [w, h, cx] = shapes[i % shapes.length]; audio.tone(140, 0.1, 0.1, 'square', 0, 0.6); await setBox(w, h, 0.35, cx); await wait(0.9); }
   })().catch(swallow);
   try { await ATK.ring.fn(ph); } finally { on = false; }
@@ -3257,7 +3257,7 @@ function saw(x, y, vx, vy, o = {}) {
 }
 function platform(x1, x2, y, vy) {
   const p = add({ x1, x2, y, vy, clip: true, life: 30, plat: true,
-    upd(b, dt) { b.y += b.vy * dt; return b.y < B.y + B.h + 20 && b.t < b.life; },
+    upd(b, dt) { b.y += b.vy * dt; return b.y < B.y + B.h + 20 && b.t < b.life; }, x1o: x1,
     draw() { rect(this.x1, this.y, this.x2 - this.x1, 3, '#3fbf45'); rect(this.x1, this.y + 3, this.x2 - this.x1, 1, '#1f6a25'); },
     hit: () => false });
   return p;
@@ -3335,66 +3335,80 @@ async function spAct1() {
   await panels([['windows', 1.6], ['far', 1.6], ['hy', 1.6], ['slip', 1.8], ['alba', 1.4], ['eyes', 1.6]]);
   audio.music(2, { offset: audio.tracks[2].loopStart - 0.4 }); flashA = 1;
 }
-/* ---- act 2: the montage — a new picture every few seconds ---- */
+/* ---- act 2: the montage — every picture is built around a path you can take ---- */
+// beams through the box's centre lines leave the quadrants free; diagonals leave the middles of the edges free
+function crossAt(cx, cy, ch, w = 28) { blaster(cx, cy - 150, PI / 2, { charge: ch, width: w }); blaster(cx - 170, cy, 0, { charge: ch, width: w }); }
+function xAt(cx, cy, ch, w = 24) { for (const [dx, dy] of [[-1, -1], [1, -1]]) { const x = cx + dx * 150, y = cy + dy * 150; blaster(x, y, Math.atan2(cy - y, cx - x), { charge: ch, width: w }); } }
+// a full-height column of barbells with a gap at gy (red heart: go through the gap)
+function gapCol(x, gy, vx, gap = 46, col = 'w') { barV(x, B.y - 12, gy - gap / 2, vx, { caps: 2, col }); barV(x, gy + gap / 2, B.y + B.h + 12, vx, { caps: 1, col }); }
 async function spAct2() {
   G.drift = 0.5; G.cloth = 0.4;
-  // a) dark red: narrow box, cyan bars inside, blasters from the sides then a cross
-  G.tint = { col: '#2a0303' }; await setBox(110, 140, 0.15); soulReset('red');
-  for (let i = 0; i < 3; i++) barV(B.x + 25 + i * 30, B.y - 10, B.y + B.h + 10, 0, { caps: 0, col: 'c', life: 3.2 });
-  blaster(B.x - 60, soul.y, 0, { charge: 0.55 }); blaster(B.x + B.w + 60, soul.y - 30, PI, { charge: 0.75 }); await wait(1.3);
-  blaster(B.x + B.w / 2, B.y - 70, PI / 2, { charge: 0.5 }); blaster(B.x - 60, B.y + B.h / 2, 0, { charge: 0.5 }); await wait(1.3);
+  // a) dark red square: cyan bars inside (stand still in a column), side blasters at your height, then the cross, then the X
+  G.tint = { col: '#2a0303' }; await setBox(140, 140, 0.15); soulReset('red');
+  for (let i = 0; i < 3; i++) barV(B.x + 35 + i * 35, B.y - 10, B.y + B.h + 10, 0, { caps: 0, col: 'c', life: 2.4 });
+  blaster(B.x - 70, soul.y, 0, { charge: 0.75 }); await wait(1.4);
+  let cx = B.x + B.w / 2, cy = B.y + B.h / 2;
+  crossAt(cx, cy, 0.8); await wait(1.45);
+  xAt(cx, cy, 0.8); await wait(1.45);
   await glitchCut();
-  // b) navy: a diamond box, orange bars at its sides
-  G.tint = { col: '#060a26' }; await boxTo(120, 120, { rot: PI / 4, warn: 0.25 });
-  for (let i = 0; i < 2; i++) { barV(B.x - 30 - i * 40, B.y - 20, B.y + B.h + 20, 120, { caps: 0, col: 'o', life: 3 }); barV(B.x + B.w + 30 + i * 40, B.y - 20, B.y + B.h + 20, -120, { caps: 0, col: 'o', life: 3 }); }
-  await wait(1.6);
-  // c) wide box, hurdles; 현태 dashes in from the left
-  await boxTo(240, 90, { warn: 0.25 }); setHeart('blue');
-  await go('L'); for (let i = 0; i < 4; i++) { barV(B.x + B.w + 14, B.y + B.h - rr(16, 22), B.y + B.h + 12, -200, { caps: 1 }); if (i % 2) await toss('bar', { sp: 220 }); await toBeat(1); }
-  blaster(B.x + 40, B.y - 70, PI / 2, { charge: 0.5 }); await wait(1.0);
-  await glitchCut();
-  // d) tiny box, rows of bars, then the giant wok at the left
-  G.tint = { col: '#000000' }; setHeart('red'); await boxTo(80, 80, { warn: 0.25 });
-  for (let i = 0; i < 4; i++) { barH(B.x - 70, B.x - 20, B.y + 14 + i * 18, { vx: 140 + i * 20, life: 2 }); await wait(0.2); }
-  blaster(B.x - 140, B.y + B.h / 2 - 10, 0, { big: 1.8, charge: 1.0, fire: 0.9, width: 52, from: [B.x - 320, B.y], inT: 0.4 }); await wait(2.4);
-  // e) a tall box: green and cyan bars slide past
-  await boxTo(70, 220, { warn: 0.25 });
-  for (let i = 0; i < 6; i++) { const y = B.y + 20 + i * 32; barH(i % 2 ? B.x + B.w + 10 : B.x - 50, i % 2 ? B.x + B.w + 50 : B.x - 10, y, { vx: i % 2 ? -110 : 110, col: i % 3 === 0 ? 'c' : 'w', life: 2.6 }); await wait(0.25); }
-  await wait(0.8); await glitchCut();
-  // f) grey, the camera rolls; 현태 circles the box punching
-  G.tint = { col: '#3a3a3a' }; G.cloudA = 1; await boxTo(160, 120, { warn: 0.25 });
-  camTo({ x: 320, y: 250, z: 1.1, rot: 0.6 }, 0.8).catch(swallow);
-  await go('R'); for (let i = 0; i < 3; i++) { await toss(pick(['plate', 'bar', 'egg'])); await toBeat(1); }
-  await go('L'); for (let i = 0; i < 2; i++) { await toss('fan'); await toBeat(1); }
+  // b) navy: a diamond, orange bars sweep through it (keep moving)
+  G.tint = { col: '#060a26' }; await boxTo(120, 120, { rot: PI / 4, warn: 0.3 });
+  for (let i = 0; i < 3; i++) { const L = i % 2 === 0; barV(L ? B.x - 20 : B.x + B.w + 20, B.y - 20, B.y + B.h + 20, L ? 110 : -110, { caps: 0, col: 'o', life: 3 }); await wait(0.9); }
+  await wait(0.8);
+  // c) a wide box, blue heart: hurdles on every other beat; one blaster from above on the left third
+  await boxTo(240, 90, { warn: 0.3 }); setHeart('blue'); await go('L');
+  for (let i = 0; i < 5; i++) { barV(B.x + B.w + 14, B.y + B.h - 20, B.y + B.h + 12, -180, { caps: 1 }); if (i === 2) blaster(B.x + 50, B.y - 70, PI / 2, { charge: 0.8, width: 26 }); await toBeat(1); await toBeat(1); }
+  await wait(0.6); await glitchCut();
+  // d) a small box: two lanes of barbells, then the middle lane; then the giant wok — the bottom strip is safe
+  G.tint = { col: '#000000' }; setHeart('red'); await boxTo(90, 90, { warn: 0.3 });
+  for (const ys of [[16, 74], [45], [16, 74]]) { for (const y of ys) { const L = ys.length > 1; barH(B.x - 70, B.x - 14, B.y + y, { vx: 150, life: 1.6 }); } await wait(0.85); }
+  { const safe = 24, wb = B.h - safe - 4, by0 = B.y + (B.h - safe) / 2; blaster(B.x - 140, by0, 0, { big: 1.8, charge: 1.1, fire: 0.9, width: wb, from: [B.x - 320, B.y], inT: 0.4 }); }
+  await wait(2.5);
+  // e) a tall box: short barbells slide across, with wide gaps between the rows
+  await boxTo(80, 220, { warn: 0.3 });
+  for (let i = 0; i < 4; i++) { const y = B.y + 26 + i * 56; const L = i % 2 === 0; barH(L ? B.x - 50 : B.x + B.w + 10, L ? B.x - 10 : B.x + B.w + 50, y, { vx: L ? 120 : -120, col: 'w', life: 2.4 }); await wait(0.35); }
+  await wait(1.2); await glitchCut();
+  // f) grey: the camera rolls, 현태 circles the box and throws one thing at a time
+  G.tint = { col: '#3a3a3a' }; G.cloudA = 1; await boxTo(160, 120, { warn: 0.3 });
+  camTo({ x: 320, y: 250, z: 1.1, rot: 0.5 }, 0.8).catch(swallow);
+  await go('R'); for (const k of ['plate', 'egg', 'bar']) { await toss(k); await toBeat(1); await toBeat(1); }
+  await go('L'); for (const k of ['fan', 'egg']) { await toss(k); await toBeat(1); await toBeat(1); }
   camTo({ x: 320, y: 240, z: 1, rot: 0 }, 0.6).catch(swallow); G.cloudA = 0;
-  // g) rails: a long thin box, orange and cyan bars cross it
-  await glitchCut(); G.tint = { col: '#000000' }; setHeart('blue'); await boxTo(520, 46, { warn: 0.3 });
-  for (let i = 0; i < 8; i++) { const col = i % 3 === 1 ? 'c' : i % 3 === 2 ? 'o' : 'w'; barV(B.x + B.w + 12, col === 'w' ? B.y + B.h - 18 : B.y - 12, B.y + B.h + 12, -230, { caps: col === 'w' ? 1 : 0, col }); await toBeat(1); }
-  await wait(1.6);
-  // h) dark red: barbells fall, then a wall of them bursts
-  G.tint = { col: '#2a0303' }; setHeart('red'); await boxTo(150, 110, { warn: 0.25 }); await go('R');
-  for (let i = 0; i < 4; i++) { const x = clamp(soul.x + rr(-20, 20), B.x + 30, B.x + B.w - 30); floorMark(x, 60, 0.35); await wait(0.35); barH(x - 30, x + 30, B.y - 20, { vy: 600, life: 0.9 }); await wait(0.25); }
+  // g) the rails: hurdles (jump), orange (move) and cyan (stay) bars, two beats apart
+  await glitchCut(); G.tint = { col: '#000000' }; setHeart('blue'); await boxTo(520, 50, { warn: 0.3 });
+  const seq = ['w', 'w', 'o', 'w', 'c', 'w', 'w', 'o'];
+  for (const col of seq) { barV(B.x + B.w + 12, col === 'w' ? B.y + B.h - 18 : B.y - 12, B.y + B.h + 12, -200, { caps: col === 'w' ? 1 : 0, col }); await toBeat(1); await toBeat(1); }
+  await wait(1.8);
+  // h) dark red: barbells drop where you stand (marked), then a wall rises from below — except one gap, marked in advance
+  G.tint = { col: '#2a0303' }; setHeart('red'); await boxTo(160, 110, { warn: 0.3 }); await go('R');
+  for (let i = 0; i < 4; i++) { const x = clamp(soul.x, B.x + 32, B.x + B.w - 32); floorMark(x, 64, 0.5); await wait(0.5); barH(x - 30, x + 30, B.y - 20, { vy: 520, life: 0.9 }); await wait(0.35); }
   await go('top', 60);
   G.tint = { col: '#060a26' };
-  for (let i = 0; i < 12; i++) barV(B.x + 8 + i * (B.w - 16) / 11, B.y + B.h + 30, B.y + B.h + 140, 0, { caps: 1, vy1: -260, life: 1.3 });
-  await wait(1.0); flashA = 1; await wait(0.3);
+  { const n = 10, step = (B.w - 16) / (n - 1), gapI = soul.x < B.x + B.w / 2 ? n - 3 : 2;   // the gap is on the other side: you have to run
+    for (let i = 0; i < n; i++) if (Math.abs(i - gapI) > 1) floorMark(B.x + 8 + i * step, 10, 0.9);
+    await wait(0.9);
+    for (let i = 0; i < n; i++) if (Math.abs(i - gapI) > 1) barV(B.x + 8 + i * step, B.y + B.h + 30, B.y + B.h + 150, 0, { caps: 1, vy1: -300, life: 1.2 }); }
+  await wait(1.1); flashA = 1; await wait(0.3);
 }
-/* ---- act 3: yellow waves, a ring of woks ---- */
+/* ---- act 3: yellow waves — columns with gaps, then cross → X → twin columns, then two giants (safe below) ---- */
 async function spAct3() {
   G.tint = { col: '#1c1500', wave: '#3a2c00' }; G.glitch = 0.25; await wait(0.3);
-  setHeart('red'); await boxTo(140, 140, { warn: 0.2 });
-  for (let i = 0; i < 5; i++) { barV(B.x + B.w + 10, B.y - 12, B.y + B.h + 12, -170, { caps: 0, col: i % 2 ? 'c' : 'w', life: 3 }); await toBeat(1); }
-  healRice();
-  for (let w = 0; w < 2; w++) {
-    const cx = B.x + B.w / 2, cy = B.y + B.h / 2;
-    for (let i = 0; i < 8; i++) { const a = i * TAU / 8 + w * 0.39, x = cx + Math.cos(a) * 170, y = cy + Math.sin(a) * 150; blaster(x, y, Math.atan2(soul.y - y, soul.x - x) + rr(-0.15, 0.15), { charge: 0.55 + i * 0.05 }); }
-    await wait(1.6);
+  setHeart('red'); await boxTo(150, 140, { warn: 0.3 });
+  for (let i = 0; i < 6; i++) {
+    if (i % 3 === 2) barV(B.x + B.w + 10, B.y - 12, B.y + B.h + 12, -150, { caps: 0, col: 'c', life: 3 });
+    else gapCol(B.x + B.w + 10, B.y + 30 + ((i * 47) % (B.h - 60)), -150);
+    await toBeat(1); await toBeat(1);
   }
-  // two giant ones from the sides, the box between them
-  const y = B.y + B.h / 2 - 20;
-  blaster(B.x - 120, y, 0, { big: 1.9, charge: 1.0, fire: 0.8, width: 60, from: [-200, y], inT: 0.4 });
-  blaster(B.x + B.w + 120, y, PI, { big: 1.9, charge: 1.0, fire: 0.8, width: 60, from: [LW + 200, y], inT: 0.4 });
-  await wait(2.4); G.black = 1; audio.stopMusic(); await wait(1.0);
+  healRice(); await wait(0.6);
+  const cx = B.x + B.w / 2, cy = B.y + B.h / 2;
+  crossAt(cx, cy, 0.8); await wait(1.4);
+  xAt(cx, cy, 0.8); await wait(1.4);
+  for (const dx of [-38, 38]) blaster(cx + dx, B.y - 150, PI / 2, { charge: 0.8, width: 24 }); await wait(1.4);
+  // two giant ones from the sides, high in the box: get low
+  const top = B.y, h = B.h * 0.55, y = top + h / 2;
+  blaster(B.x - 120, y, 0, { big: 1.9, charge: 1.1, fire: 0.8, width: h, from: [-200, y], inT: 0.4 });
+  blaster(B.x + B.w + 120, y, PI, { big: 1.9, charge: 1.1, fire: 0.8, width: h, from: [LW + 200, y], inT: 0.4 });
+  await wait(2.5); G.black = 1; audio.stopMusic(); await wait(1.0);
 }
 /* ---- act 4: the talk, then the tower climb ---- */
 async function spAct4() {
@@ -3406,72 +3420,77 @@ async function spAct4() {
   G.tint = { col: '#000000' }; G.boxHidden = false; hy.vis = false; await setBox(110, 300, 0.25); soulReset('blue');
   G.plats = true; G.cloudA = 1;
   const plats = [];
-  for (let i = 0; i < 7; i++) plats.push(platform(i % 2 ? B.x + 52 : B.x + 14, (i % 2 ? B.x + 52 : B.x + 14) + 44, B.y + B.h - 46 - i * 46, 30));
-  const spawn = (async () => { for (let i = 7; i < 40 && G.plats; i++) { await wait(46 / 30); const L = i % 3 === 0 ? B.x + 33 : i % 2 ? B.x + 52 : B.x + 14; platform(L, L + 44, B.y - 6, 30); } })();
+  for (let i = 0; i < 7; i++) plats.push(platform(i % 2 ? B.x + 52 : B.x + 14, (i % 2 ? B.x + 52 : B.x + 14) + 44, B.y + B.h - 44 - i * 44, 22));
+  const spawn = (async () => { for (let i = 7; i < 60 && G.plats; i++) { await wait(44 / 22); const L = i % 3 === 0 ? B.x + (B.w - 44) / 2 : i % 2 ? B.x + B.w - 58 : B.x + 14; platform(L, L + 44, B.y - 6, 22); } })();
   yolkEye();
   await wait(2.0); wallWarn('down', 1.0); await wait(1.0);
   const lava = add({ clip: true, life: 30, upd: b => b.t < b.life, draw() { for (let x = B.x; x < B.x + B.w; x += 8) { rect(x + 2, B.y + B.h - 10, 4, 10, '#ffffff'); rect(x, B.y + B.h - 12, 8, 3, '#e3120b'); } }, hit: (px, py) => py > B.y + B.h - 14 });
-  for (let i = 0; i < 9; i++) {
-    const r = i % 3;
-    if (r === 0) barH(B.x - 70, B.x - 10, clamp(soul.y + rr(-30, 10), B.y + 30, B.y + B.h - 40), { vx: 150, life: 2.4 });
-    if (r === 1) saw(rr(B.x + 15, B.x + B.w - 15), B.y - 10, 0, 70);
-    if (r === 2) blaster(clamp(soul.x, B.x + 20, B.x + B.w - 20), B.y - 70, PI / 2, { charge: 0.65, width: 22 });
-    await wait(1.6);
+  for (let i = 0; i < 8; i++) {
+    const r = i % 4;
+    if (r === 1) { let x; do x = rr(B.x + 15, B.x + B.w - 15); while (Math.abs(x - soul.x) < 24); saw(x, B.y - 10, 0, 60); }
+    if (r === 3) blaster(clamp(soul.x, B.x + 20, B.x + B.w - 20), B.y - 70, PI / 2, { charge: 0.85, width: 20 });
+    await wait(1.7);
   }
-  // the tower widens; sawblades cross from both sides
+  // the tower widens; sawblades drift across high up, a blaster from the left now and then
   await boxTo(170, 300, { warn: 0.3 });
-  for (let i = 0; i < 6; i++) { const L = i % 2 === 0; saw(L ? B.x - 10 : B.x + B.w + 10, clamp(soul.y - 40, B.y + 30, B.y + B.h - 40), L ? 90 : -90, 30, { clip: false }); if (i % 2) blaster(B.x - 60, clamp(soul.y - 50, B.y + 20, B.y + B.h - 30), 0, { charge: 0.6, width: 18 }); await wait(1.4); }
+  for (let i = 0; i < 5; i++) { const L = i % 2 === 0; saw(L ? B.x - 10 : B.x + B.w + 10, B.y + 40 + (i % 3) * 30, L ? 80 : -80, 0, { clip: false }); if (i === 3) blaster(B.x - 60, clamp(soul.y - 70, B.y + 20, B.y + B.h - 30), 0, { charge: 0.85, width: 18 }); await wait(1.6); }
   G.plats = false; lava.life = 0; await spawn;
   // clouds sweep everything away
   flashA = 0.8; G.tint = { col: '#cfcfcf' }; await wait(0.4);
   bullets = []; G.cloudA = 0; hy.vis = true;
 }
-/* ---- act 5: red — the heavy part ---- */
+/* ---- act 5: red, then teal — rows with gaps, falling bars, hurdles ---- */
 async function spAct5() {
   G.tint = { col: '#2a0303', wave: '#3a0606' }; setHeart('red'); await setBox(220, 120, 0.25); soulReset('red');
-  for (let i = 0; i < 6; i++) { const gy = B.y + 20 + ((i * 37) % (B.h - 40)); for (let y = B.y + 6; y < B.y + B.h; y += 14) if (Math.abs(y - gy) > 18) yeShot(B.x + B.w + 10, y, -140, 0); await toBeat(1); await toBeat(1); }
-  // teal: cyan and white bars from above
+  for (let i = 0; i < 6; i++) { const gy = B.y + 24 + ((i * 37) % (B.h - 48)); for (let y = B.y + 6; y < B.y + B.h; y += 14) if (Math.abs(y - gy) > 22) yeShot(B.x + B.w + 10, y, -130, 0); await toBeat(1); await toBeat(1); }
+  // teal: bars fall from above (cyan ones: stand still), never right on top of you
   G.tint = { col: '#03151a' };
-  for (let i = 0; i < 10; i++) { barV(rr(B.x + 10, B.x + B.w - 10), B.y - 80, B.y - 10, 0, { caps: 0, col: i % 2 ? 'c' : 'w', vy1: 220, life: 2 }); await wait(0.28); }
+  for (let i = 0; i < 10; i++) { let x; do x = rr(B.x + 10, B.x + B.w - 10); while (Math.abs(x - soul.x) < 22); barV(x, B.y - 80, B.y - 10, 0, { caps: 0, col: i % 3 === 1 ? 'c' : 'w', vy1: 200, life: 2 }); await wait(0.42); }
   healRice();
-  for (let i = 0; i < 3; i++) { sideBlast({ charge: 0.6 }); await wait(0.8); }
-  // square, blue: bars on the sides, then rows closing in
-  setHeart('blue'); await boxTo(100, 100, { warn: 0.3 });
-  for (let i = 0; i < 4; i++) { barV(B.x - 14, B.y + B.h - 22, B.y + B.h + 12, 160, { caps: 1, col: i % 2 ? 'o' : 'w' }); barV(B.x + B.w + 14, B.y + B.h - 22, B.y + B.h + 12, -160, { caps: 1, col: i % 2 ? 'w' : 'o' }); await toBeat(1); await toBeat(1); }
-  setHeart('red'); blaster(B.x + B.w / 2, B.y - 70, PI / 2, { charge: 0.5 }); await wait(1.1);
-  // the X
-  for (let i = 0; i < 2; i++) { for (const s of [-1, 1]) { const x = B.x + B.w / 2 + s * 170, y = B.y - 120; blaster(x, y, Math.atan2(B.y + B.h / 2 - y, B.x + B.w / 2 - x), { charge: 0.6 }); } await wait(1.3); }
+  for (let i = 0; i < 2; i++) { sideBlast({ charge: 0.75 }); await wait(1.1); }
+  // a square, blue heart: a white hurdle and an orange bar from opposite sides — jump (which also counts as moving)
+  setHeart('blue'); await boxTo(110, 100, { warn: 0.3 });
+  for (let i = 0; i < 4; i++) { const L = i % 2 === 0; barV(L ? B.x - 14 : B.x + B.w + 14, B.y + B.h - 20, B.y + B.h + 12, L ? 150 : -150, { caps: 1 }); await toBeat(1); await toBeat(1); await toBeat(1); }
+  setHeart('red'); await wait(0.3);
+  const cx = B.x + B.w / 2, cy = B.y + B.h / 2;
+  xAt(cx, cy, 0.8); await wait(1.4); crossAt(cx, cy, 0.8); await wait(1.4);
 }
-/* ---- act 6: yellow — he runs circles around you; the camera rolls ---- */
+/* ---- act 6: yellow — he runs circles around you throwing one thing at a time; the camera rolls ---- */
 async function spAct6() {
   await flashTo('#d8c400', 0.25); flashA = 1; await wait(0.15);
-  G.tint = { col: '#1c1500', wave: '#3a2c00' }; await setBox(110, 110, 0.2); soulReset('red');
+  G.tint = { col: '#1c1500', wave: '#3a2c00' }; await setBox(130, 130, 0.2); soulReset('red');
   let roll = 0; const t0 = T, on = { v: true };
-  (async () => { while (on.v) { roll = (T - t0) * 0.35; cam.rot = Math.sin(roll) * 0.5; await wait(1 / 60); } })().catch(swallow);
+  (async () => { while (on.v) { roll = (T - t0) * 0.35; cam.rot = Math.sin(roll) * 0.4; await wait(1 / 60); } })().catch(swallow);
   hy.front = true;
   for (let i = 0; i < 6; i++) {
-    const ang = i * TAU / 6, x = 320 + Math.cos(ang) * 200, y = 300 + Math.sin(ang) * 110;
-    await hyGo(x, y + 60, 0.3, { flip: Math.cos(ang) > 0 });
-    const [sx, sy] = soulScreen(); for (const off of [-0.2, 0, 0.2]) { const a = Math.atan2(sy - y, sx - x) + off; spinBar(x, y, Math.cos(a) * 220, Math.sin(a) * 220); }
-    if (i % 2) sideBlast(); await toBeat(1);
+    const ang = i * TAU / 6, x = 320 + Math.cos(ang) * 210, y = 300 + Math.sin(ang) * 115;
+    await hyGo(x, y + 60, 0.35, { flip: Math.cos(ang) > 0 });
+    const [sx, sy] = soulScreen(), a = Math.atan2(sy - y, sx - x);
+    if (i % 2) spinBar(x, y, Math.cos(a) * 190, Math.sin(a) * 190); else withTrail(shot({ x, y, vx: Math.cos(a) * 210, vy: Math.sin(a) * 210, spr: SPR.plateF, hw: 9, hh: 9, spin: 9, clip: false }), 5);
+    await toBeat(1); await toBeat(1);
   }
   on.v = false; hy.front = false; cam.rot = 0; await hyGo(320, 240, 0.3, { flip: false, hop: 40 });
 }
-/* ---- act 7: the storm — woks from every angle around a tilted box, then the last one ---- */
+/* ---- act 7: the storm — fans of woks that all miss one spot; find it. Then the last one ---- */
 async function spAct7() {
-  G.tint = { col: '#000000' }; await boxTo(110, 110, { rot: PI / 4, warn: 0.3 });
-  const cx = B.x + B.w / 2, cy = B.y + B.h / 2;
+  G.tint = { col: '#000000' }; await boxTo(120, 120, { rot: PI / 4, warn: 0.3 }); setHeart('red');
   for (let w = 0; w < 4; w++) {
-    G.glitch = 0.4; shake = Math.max(shake, 5);
-    const n = 8 + w * 2, r0 = 190;
-    for (let i = 0; i < n; i++) { const a = i * TAU / n + w * 0.31, x = cx + Math.cos(a) * r0, y = cy + Math.sin(a) * r0 * 0.85; const off = (i % 2 ? 1 : -1) * (24 + w * 4); blaster(x, y, Math.atan2(cy - y, cx - x) + Math.atan2(off, r0), { charge: 0.7 + (i % 3) * 0.08, width: 20 }); }
-    camTo({ x: 320, y: 240, z: 1.05 + w * 0.04, rot: (w % 2 ? 0.15 : -0.15) }, 0.5).catch(swallow);
-    await wait(1.8);
+    // the safe spot moves each wave; every beam passes at least 34px away from it
+    const cx = B.x + B.w / 2, cy = B.y + B.h / 2, S = w === 0 ? [cx, cy] : [cx + rr(-22, 22), cy + rr(-22, 22)];
+    G.glitch = 0.3; shake = Math.max(shake, 4);
+    const n = 9, a0 = rand() * TAU, side = w % 2 ? 1 : -1;
+    for (let i = 0; i < n; i++) {
+      const a = a0 + i * PI / (n - 1) * side, x = S[0] + Math.cos(a) * 190, y = S[1] + Math.sin(a) * 190;
+      const off = (i % 2 ? 1 : -1) * 34, dir = Math.atan2(S[1] - y, S[0] - x) + Math.asin(off / 190);
+      blaster(x, y, dir, { charge: 0.75, width: 20 }); await wait(0.11);
+    }
+    camTo({ x: 320, y: 240, z: 1.05, rot: side * 0.12 }, 0.5).catch(swallow);
+    await wait(1.5);
   }
   healRice();
-  // the last one: a huge wok from the right — the bottom of the box is the only safe place
+  // the last one: a huge wok from the right — the bottom strip of the box is the only safe place
   await boxTo(150, 120, { warn: 0.3 }); setHeart('blue');
-  const safe = 20, wb = B.h - safe - 4, by0 = B.y + (B.h - safe) / 2;
+  const safe = 22, wb = B.h - safe - 4, by0 = B.y + (B.h - safe) / 2;
   blaster(B.x + B.w + 130, by0, PI, { big: 2.6, charge: 2.0, fire: 1.8, width: wb, from: [LW + 300, by0 - 60], inT: 0.8, onCharge: b => { shake = Math.max(shake, 3 + 7 * clamp((b.t - 0.8) / 2, 0, 1)); } });
   camTo({ x: 380, y: by0, z: 1.3, rot: 0.2 }, 1.2).catch(swallow);
   await wait(0.8 + 2.0); G.glitch = 0.6; G.cyan = 0.2;
