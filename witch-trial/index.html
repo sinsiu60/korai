@@ -1055,12 +1055,18 @@ defEv('x_roll', '22시 출석판', '체육관 출석판. 22시, 꼬꼬의 점호
 function setup1() {
   PLAYER = 'siwoo'; VC.monitor = { who: 'kk', expr: 'normal' }; CAST.kk.home = 'monitor';
   defPr('p_siwoo', '신시우', '나. 「ㅌㅋㅌㅋ ㅌㅋㅌㅋ」 하면 기차가 움직인다.\n…왜인지는 나도 모른다.');
-  defPr('p_ch', '송창희', '멸치. 젓가락처럼 말랐지만 뚝심 하나는 최고.\n누가 지랄하면 참지 않고 욕부터 박는다.\n기흉을 조심해야 해서 가슴에 경보기를 붙이고 다닌다. 크게 웃으면 「삐익!」');
+  defPr('p_ch', '송창희', '멸치. 젓가락처럼 말랐지만 뚝심 하나는 최고.\n누가 지랄하면 참지 않고 욕부터 박는다.\n젓가락·기흉으로 놀리면 일단 팬다.\n기흉을 조심해야 해서 가슴에 경보기를 붙이고 다닌다. 크게 웃으면 「삐익!」');
   defPr('p_jh', '이재희', '「또아아아아아-!」\n어디 들어가기만 하면 「안녕하쎼요 이쨰희 이ㅃ니따!!」가 먼저 나오는 면접 인사의 달인. 우리를 하나로 묶는 녀석.');
   defPr('p_hy', '김현태', '볶음밥집 사장. 무에타이 고수.\n볶음밥은 2인분부터. 예.');
   defPr('p_sw', '진상욱', '국밥을 사랑하는 남자. 말끝에 ㄲㄲ.\n서명 대신 돼지코(🐽)를 그린다.');
   defPr('p_dy', '백도윤', '여기서 처음 만난 학생회장. 은발.\n「난 혼자 나간다」며 혼자 다녔다.');
   defPr('p_kk', '꼬꼬', '이 학교의 간수. 닭.\n한쪽 눈이 이상하다.');
+}
+// 창희: call him chopsticks or joke about his lungs and you get hit
+async function smack(who) {
+  if (TRIAL) await trialFocus(who);
+  audio.whoosh(); await wait(0.12); audio.slam(); audio.boom(); shake(26); flash(0.6, '#ffffff'); setChar(who, { expr: 'shock' });
+  await say(null, '퍽——!!', { name: '' });
 }
 const CH = [];
 const chap = (name, f) => CH.push({ name, f });
@@ -1076,7 +1082,13 @@ chap('프롤로그', async () => {
   await say('jh', '버릇이야. 어디 들어가면 이게 먼저 나와.', { expr: 'normal' });
   await say('ch', '2인분? ㅋ 껌이지. 젓가락이라고 무시하지 마라.');
   await say('sw', '🐽 멸치는 배가 아니라 폐가 터짐ㄲㄲ 🐽', { expr: 'smug' });
-  await say('ch', '아 ㅅㅂ 진상욱 또 시작이네. 그 입 좀 닥쳐라. …크큭, 아 웃기네 ㅅㅂ… 흐흡…', { expr: 'normal' });
+  await say('ch', '…야, 진상욱. 방금 뭐라 했냐?', { expr: 'normal' });
+  await say('sw', '🐽 폐 터짐ㄲ— 🐽', { expr: 'smug' });
+  await smack('sw');
+  await say('sw', '🐽 아야!! 🐽', { expr: 'shock' });
+  await say('ch', '기흉 갖고 한 번만 더 까불어 봐. 다음엔 니 폐가 터진다.');
+  setChar('sw', { expr: 'normal' });
+  await say('ch', '…크큭, 아 ㅅㅂ 근데 니 표정 웃기네… 흐흡…');
   setChar('ch', { beep: true }); audio.tone(1800, 0.12, 0.1, 'square'); audio.tone(1800, 0.12, 0.1, 'square', 0.18);
   await say('ch', '…삐익!', { shake: 6 });
   setChar('ch', { beep: false });
@@ -1277,12 +1289,18 @@ chap('재판 · 환기구', async () => {
         await say('siwoo', '그 환기구, 엄청 좁았지.');
         await say('jh', '응. 사람은 못 지나가. …아주 마른 사람이라면 모를까.'); } },
       { id: 4, who: 'sw', t: '🐽 그 좁은 환기구를 지나갈 수 있는 건 멸치 창희뿐임ㄲㄲ 🐽', o: { expr: 'smug' }, press: async () => {
-        await say('ch', '아 ㅅㅂ 뭐래! 증거 있냐, 증거! …흐, 흐읍…', { expr: 'normal' });
+        await say('ch', '…멸치? 야 진상욱, 이리 와 봐.', { expr: 'normal' });
+        await smack('sw');
+        await say('sw', '🐽 재판 중에 패는 게 어딨음!! 🐽', { expr: 'shock' });
+        await say('ch', '증거도 없이 멸치 타령하는 놈은 맞아도 돼. …흐, 흐읍…');
         setChar('ch', { beep: true }); audio.tone(1800, 0.12, 0.1); await say('ch', '삐익!', { shake: 6 }); setChar('ch', { beep: false, expr: 'normal' });
         await think('(창희는 숨만 크게 들이켜도 경보기가 울린다. 저 좁은 데를 기어서 지나갔다면…)'); } },
       { id: 5, who: 'hy', t: '창희는 젓가락입니다. 젓가락은 어디든 들어갑니다. 예.', press: async () => {
-        await say('ch', '사람이라고!! 한 대 맞을래?!', { expr: 'normal' });
-        await say('hy', '…사람 젓가락입니다.'); setChar('ch', { expr: 'normal' }); } },
+        await say('ch', '젓가락? 김현태, 너도 이리 와.', { expr: 'normal' });
+        await smack('hy');
+        await say('hy', '…아픕니다. 예.', { expr: 'shock' });
+        await say('ch', '한 번만 더 젓가락 소리 하면 니 웍 부러뜨린다.');
+        await say('hy', '…알겠씁니다. 사람입니다. 예.', { expr: 'sweat' }); setChar('hy', { expr: 'normal' }); setChar('sw', { expr: 'normal' }); } },
     ],
     ans: { at: [4], ev: ['x_vent', 'x_alarm'] },
     right: async () => {
