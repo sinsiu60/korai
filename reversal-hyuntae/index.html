@@ -77,6 +77,32 @@ body{background:var(--ink);color:var(--text);font-family:var(--f-text);margin:0;
 #toast canvas{width:clamp(36px,6vw,64px);height:clamp(36px,6vw,64px)}
 #toast[hidden]{display:none!important}
 #mute{position:absolute;top:2.5%;left:1.5%;font-size:13px;background:rgba(0,0,0,.5);color:#fff;border:2px solid #fff6;border-radius:8px;padding:4px 8px;cursor:pointer;font-family:var(--f-text);font-weight:800;z-index:2}
+#tx .hot{color:#ffcf3a;text-decoration:underline;text-decoration-thickness:2px;text-underline-offset:3px;cursor:pointer;border-radius:3px;padding:0 1px}
+#tx .hot:hover{background:rgba(255,207,58,.18)}
+#tx .hot.asked{color:#ff9a3a}
+#hotPop{position:absolute;left:50%;top:8%;transform:translateX(-50%);width:min(86%,560px);background:rgba(16,12,28,.97);border:3px solid #ffcf3a;border-radius:12px;padding:12px 14px;box-sizing:border-box;z-index:5;display:flex;flex-direction:column;gap:8px;box-shadow:0 10px 30px #000}
+#hotPop[hidden]{display:none!important}
+#hotPop .hp-ph{font-family:var(--f-shout);color:#ffcf3a;font-size:clamp(15px,2.3vw,24px)}
+#hotPop .hp-q{font-weight:800;font-size:clamp(13px,1.9vw,19px);color:#e9e4f7}
+#hotPop .hp-b{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+#hotPop .btn{min-height:42px;padding:.35em .9em;font-size:clamp(13px,1.9vw,18px)}
+#rotate{display:none}
+/* phones held upright: ask to turn sideways */
+@media (orientation:portrait) and (max-width:820px){
+  #rotate{display:flex;position:fixed;inset:0;z-index:50;background:#0d0b14;color:#fff;flex-direction:column;align-items:center;justify-content:center;gap:14px;text-align:center;padding:24px}
+  #rotate .rot-ic{font-size:64px;animation:turn 1.6s ease-in-out infinite}
+  #rotate .rot-t{font-family:var(--f-shout);font-size:26px;color:var(--gold)}
+  #rotate .rot-s{color:var(--muted);font-size:15px}
+}
+@keyframes turn{0%,20%{transform:rotate(0)}50%,70%{transform:rotate(90deg)}100%{transform:rotate(0)}}
+/* phones held sideways: the scene fills the height, buttons stack on the right */
+@media (orientation:landscape) and (max-height:560px){
+  #app{flex-direction:row;gap:6px;padding:max(4px,env(safe-area-inset-top,0px)) max(6px,env(safe-area-inset-right,0px)) max(4px,env(safe-area-inset-bottom,0px)) max(6px,env(safe-area-inset-left,0px))}
+  #stage{width:min(calc(100vw - 150px),calc((100dvh - 10px) * 16 / 9));border-radius:4px}
+  #ctl{width:130px;flex-direction:column;flex-wrap:nowrap;justify-content:center;padding:0;gap:6px;min-height:0}
+  #ctl .btn{min-height:40px;padding:.3em .4em;font-size:15px;min-width:0;width:100%}
+  #tb{font-size:clamp(12px,2.3vw,18px)}
+}
 @media (prefers-reduced-motion:reduce){#arrow{animation:none}.egg.hit{animation:none}}
 </style>
 <div id="app">
@@ -173,6 +199,17 @@ const audio = (() => {
   song('tension', 80, [
     { n: 'A2:8 Bb2:8 A2:8 G#2:8', w: 'triangle', v: 0.16 },
     { n: 'r:6 E5:1 r:1 r:8 r:6 F5:1 r:1 r:8', w: 'square', v: 0.025 }]);
+  song('dark', 70, [
+    { n: 'D2:8 Eb2:8 D2:8 C#2:8', w: 'triangle', v: 0.18 },
+    { n: 'r:4 A4:1 r:3 r:2 Bb4:1 r:5 r:4 A4:1 r:1 G#4:1 r:1 r:8', w: 'square', v: 0.03 },
+    { n: 'r:7 D6:1 r:8 r:6 Eb6:1 r:9 r:8', w: 'sine', v: 0.04 }]);
+  song('debate', 138, [
+    { n: 'E2:1 E3:1 E2:1 E3:1 F2:1 F3:1 F2:1 F3:1 E2:1 E3:1 E2:1 E3:1 D2:1 D3:1 D#2:1 D#3:1', w: 'triangle', v: 0.22 },
+    { n: 'B4:2 C5:1 B4:1 A4:2 G#4:2 B4:2 E5:2 D#5:4 B4:2 C5:1 D5:1 E5:2 F5:2 E5:3 D#5:1 B4:4', w: 'square', v: 0.065 },
+    { n: 'r:1 G#3:1 r:1 G#3:1 r:1 A3:1 r:1 A3:1 r:1 G#3:1 r:1 G#3:1 r:1 F#3:1 r:1 F#3:1', w: 'square', v: 0.025 }]);
+  song('exec', 96, [
+    { n: 'A2:2 E3:1 E3:1 G#2:2 E3:1 E3:1 G2:2 E3:1 E3:1 F#2:2 D#3:1 D#3:1', w: 'triangle', v: 0.2 },
+    { n: 'A4:3 C5:1 E5:2 D#5:3 F5:1 E5:2 C5:3 B4:1 A4:2 G#4:6', w: 'square', v: 0.06 }]);
   function sched() {
     if (!ac || !cur) return; const S = SONGS[cur], st = 60 / S.bpm / 2;
     while (seqT < ac.currentTime + 0.25) {
@@ -207,6 +244,7 @@ function fireAdvance() { const w = advWaiters; advWaiters = []; w.forEach(r => r
 const keyHandlers = {};
 addEventListener('keydown', e => { if (e.repeat) return; const h = keyHandlers[e.key.toLowerCase()] || keyHandlers[e.key]; if (h) { e.preventDefault(); h(); } });
 
+const XCHAR = {};
 /* ========= art: backgrounds, characters, evidence — all drawn in code ========= */
 const OL = '#1a1210';
 function fp(d, fill, lw = 4, stroke = OL) { const p = typeof d === 'string' ? new Path2D(d) : d; if (fill) { ctx.fillStyle = fill; ctx.fill(p); } if (lw) { ctx.lineWidth = lw; ctx.strokeStyle = stroke; ctx.lineJoin = 'round'; ctx.lineCap = 'round'; ctx.stroke(p); } }
@@ -316,6 +354,7 @@ function frontTorso(col, pose, s = 1, trim) {
   const bodyD = trim || col;
   if (pose === 'up') { arm(-150, -170, -210, -310, 44, bodyD); arm(150, -170, 210, -310, 44, bodyD); }
   else if (pose === 'slam') { arm(-150, -170, -120, -96, 44, bodyD); arm(150, -170, 120, -96, 44, bodyD); }
+  else if (pose === 'point') { arm(150, -170, 320, -250, 44, bodyD, true, true); }
   fp('M-180 140 L-168 -110 Q-160 -196 -70 -212 L70 -212 Q160 -196 168 -110 L180 140 Z', col, 5);
   if (pose === 'cross') { fp('M-160 -150 Q0 -86 162 -150 L164 -104 Q0 -48 -164 -104 Z', bodyD, 5); ell(150, -128, 16, 15, SKIN, 4); ell(-150, -128, 16, 15, SKIN, 4); }
   else if (pose === 'chin') { arm(150, -170, 120, -96, 44, bodyD, false); arm(120, -96, 60, -226, 40, bodyD); }
@@ -367,7 +406,7 @@ function photoHead(img, x, y, h, o = {}) {
 function sangwook(o) {
   const { pose = 'normal', expr = 'normal', talk } = o;
   const shocked = expr === 'shock' || expr === 'break', jit = shocked ? Math.sin(RT * 60) * 3 : 0;
-  frontTorso('#8f97a6', pose === 'up' ? 'up' : pose === 'slam' ? 'slam' : 'normal', 1, '#767e8d');
+  frontTorso('#8f97a6', ['up', 'slam', 'point', 'cross'].includes(pose) ? pose : 'normal', 1, '#767e8d');
   fp('M-60 -212 Q0 -150 60 -212', null, 5); ln(-26, -196, -30, -130, 4); ln(26, -196, 30, -130, 4);
   txt('국밥', 0, -120, 34, '#fff', { font: SHOUT_FONT, weight: 400, stroke: OL, sw: 6 });
   photoHead(shocked ? IMG.swB : IMG.swA, jit, -188, shocked ? 270 : 300, { talk, rot: expr === 'break' ? -0.25 : 0, grey: expr === 'break' });
@@ -475,13 +514,14 @@ const BG = {
 function drawChar(c, x, y, s, mirror) {
   if (!c || !c.who) return;
   ctx.save(); ctx.translate(x + (c.dx || 0), y + (c.dy || 0)); ctx.scale(s, s);
-  const o = { pose: c.pose, expr: c.expr, talk: c.talk, crack: c.crack, kk: c.kk, band: c.band, bowl: c.bowl };
+  const o = { pose: c.pose, expr: c.expr, talk: c.talk, crack: c.crack, kk: c.kk, band: c.band, bowl: c.bowl, beep: c.beep };
   if (c.who === 'alba') lawyer(Object.assign(o, { kind: 'alba' }));
   else if (c.who === 'na') lawyer(Object.assign(o, { kind: 'na' }));
   else if (c.who === 'judge') judge(o);
   else if (c.who === 'gb') gukbap(o);
   else if (c.who === 'sw') sangwook(o);
   else if (c.who === 'hy') hyuntae(o);
+  else if (XCHAR[c.who]) XCHAR[c.who](o);
   ctx.restore();
 }
 
@@ -545,9 +585,13 @@ const VC = {
 let VIEW = 'black', LOBBY = false;
 const FX = { shake: 0, flash: 0, flashCol: '#fff', focus: null, bubble: null, ev: null, fade: 0, big: null, conf: [], loc: null, slide: null, card: null, studio: 0 };
 const snapCv = document.createElement('canvas'); snapCv.width = W; snapCv.height = H;
+let TRIAL = false, PLAYER = 'alba'; const CHS = {};
+const trialChar = who => CHS[who] || (CHS[who] = { who, pose: 'normal', expr: 'normal' });
+const listMode = () => !!(VC[VIEW] && VC[VIEW].list);
 function charOf(who) {
   if (!who) return null;
-  if (LOBBY) return ((VC[VIEW] && VC[VIEW].list) || []).find(c => c.who === who) || null;
+  if (TRIAL && VIEW === 'trial') return CAST[who] && CAST[who].trial !== false ? trialChar(who) : null;
+  if (listMode()) return VC[VIEW].list.find(c => c.who === who) || null;
   const home = CAST[who] && CAST[who].home; if (!home) return null; const c = VC[home]; return c && c.who === who ? c : null;
 }
 function setChar(who, o) { const c = charOf(who); if (c) Object.assign(c, o); }
@@ -572,6 +616,7 @@ function render() {
   if (sl) { k = clamp((T - sl.t0) / sl.d, 0, 1); if (k >= 1) FX.slide = null; }
   if (sl && k < 1) { ctx.save(); ctx.translate(-sl.dir * k * W, 0); ctx.drawImage(snapCv, 0, 0, W, H); ctx.restore(); ctx.save(); ctx.translate(sl.dir * (1 - ezo(k)) * W, 0); }
   (BG[VIEW] || BG.black)(VC[VIEW]);
+  if (typeof drawInv === 'function') drawInv();
   if (sl && k < 1) { ctx.restore(); ctx.globalAlpha = 0.25 * (1 - k); for (let i = 0; i < 14; i++) { ctx.fillStyle = '#fff'; ctx.fillRect(0, (i * 41 + T * 900) % H, W, 2); } ctx.globalAlpha = 1; }
   ctx.restore();
   // evidence held up
@@ -605,12 +650,13 @@ const flash = (a = 1, col = '#fff') => { FX.flash = a; FX.flashCol = col; };
 async function fadeTo(a, d = 0.5) { const a0 = FX.fade; await tween(d, k => FX.fade = lerp(a0, a, k)); }
 async function card(a, b, d = 2.2) { FX.card = { a, b, t0: T, t1: T + d }; await wait(d); FX.card = null; }
 async function loc(lines) { FX.loc = { lines, t0: T }; await wait(lines.join('').length / 22 + 1.4); FX.loc = null; }
-async function shout(kind, who = 'alba') {
-  const K = { obj: ['이의 잇씁니다!', '#d8261a'], hold: ['잠깐!', '#2a5cd6'], take: ['이거나 받으씹시오!', '#d8261a'], naObj: ['이의 잇다!', '#d8261a'], gbObj: ['이의 있소!', '#7a4428'] }[kind];
+async function shout(kind, who = PLAYER) {
+  const K = { obj: [PLAYER === 'siwoo' ? '그건 틀렸어!' : '이의 잇씁니다!', '#d8261a'], ddoa: ['또아아아아아-!', '#1f8a3a'], agree: ['그 말이 맞아!', '#d89a10'], silence: ['조용히 해!', '#5a2ad6'], hold: ['잠깐!', '#2a5cd6'], take: ['이거나 받으씹시오!', '#d8261a'], naObj: ['이의 잇다!', '#d8261a'], gbObj: ['이의 있소!', '#7a4428'] }[kind];
   hideText(); audio.shout(); FX.bubble = { str: K[0], col: K[1], t0: RT }; flash(0.6); shake(12);
-  if (who === 'alba' || who === 'na') { const c = VC[CAST[who].home]; c.pose = 'point'; c.expr = 'normal'; }
+  if (TRIAL && who) { const c = trialChar(who); c.pose = 'point'; c.expr = 'normal'; }
+  else if (who === 'alba' || who === 'na') { const c = VC[CAST[who].home]; c.pose = 'point'; c.expr = 'normal'; }
   await wait(0.95); FX.bubble = null;
-  if (who) await goView(CAST[who].home, { pan: false });
+  if (who) { if (TRIAL) await trialFocus(who, false); else await goView(CAST[who].home, { pan: false }); }
 }
 async function hit(who, expr = 'shock') { setChar(who, { expr }); audio.damage(); shake(18); flash(0.7); await wait(0.5); }
 async function gavel(n = 3) { await goView('judge', { pan: false }); const c = VC.judge, keep = c.pose; c.pose = 'gavel'; for (let i = 0; i < n; i++) { audio.gavel(); shake(8); await wait(0.28); } c.pose = keep; await wait(0.3); }
@@ -621,35 +667,40 @@ async function big(str, col = '#d8261a', o = {}) { FX.big = { str, col, t0: T, b
 /* ---------- dialogue ---------- */
 const tb = $('#tb'), nm = $('#nm'), tx = $('#tx'), arrow = $('#arrow');
 function hideText() { tb.hidden = true; }
-function parseMark(s) { const out = []; let cls = ''; for (let i = 0; i < s.length; i++) { const c = s[i]; if (c === '[' && s[i + 2] === ']' && 'brgy'.includes(s[i + 1])) { cls = s[i + 1]; i += 2; continue; } if (c === '[' && s.slice(i, i + 3) === '[/]') { cls = ''; i += 2; continue; } if (c === '|') { out.push({ pause: 1 }); continue; } out.push({ c, cls }); } return out; }
+function parseMark(s) { const out = []; let cls = '', key = null; for (let i = 0; i < s.length; i++) { const c = s[i];
+    if (c === '{') { const j = s.indexOf('}', i), body = s.slice(i + 1, j), bar = body.lastIndexOf('|'); const ph = body.slice(0, bar), k = body.slice(bar + 1); for (const ch of ph) out.push({ c: ch, cls: 'hot', key: k }); i = j; continue; } if (c === '[' && s[i + 2] === ']' && 'brgy'.includes(s[i + 1])) { cls = s[i + 1]; i += 2; continue; } if (c === '[' && s.slice(i, i + 3) === '[/]') { cls = ''; i += 2; continue; } if (c === '|') { out.push({ pause: 1 }); continue; } out.push({ c, cls }); } return out; }
 const esc = c => c === '<' ? '&lt;' : c === '&' ? '&amp;' : c;
-function paint(seq, n) { let h = '', open = null; for (let i = 0, k = 0; i < seq.length && k < n; i++) { const s = seq[i]; if (s.pause) continue; k++; if (s.cls !== open) { if (open) h += '</span>'; if (s.cls) h += `<span class="${s.cls}">`; open = s.cls; } h += esc(s.c); } if (open) h += '</span>'; tx.innerHTML = h; }
+function paint(seq, n) { let h = '', open = null; for (let i = 0, k = 0; i < seq.length && k < n; i++) { const s = seq[i]; if (s.pause) continue; k++; const tag = s.cls === 'hot' ? 'hot:' + s.key : s.cls; if (tag !== open) { if (open) h += '</span>'; if (s.cls === 'hot') h += `<span class="hot${LIVE && LIVE.asked && LIVE.asked.has(s.key) ? ' asked' : ''}" data-k="${s.key}">`; else if (s.cls) h += `<span class="${s.cls}">`; open = tag; } h += esc(s.c); } if (open) h += '</span>'; tx.innerHTML = h; }
 let typing = false, skipType = false;
 async function typeText(text, o = {}) {
   const seq = parseMark(text), total = seq.filter(s => !s.pause).length; tb.hidden = false; arrow.hidden = true;
   nm.hidden = !o.name; nm.textContent = o.name || ''; typing = true; skipType = false;
   if (TEST) paint(seq, total);
-  else { let n = 0; for (const s of seq) { if (skipType) break; if (s.pause) { await wait(0.28); continue; } n++; paint(seq, n); if (o.blip && n % 2 === 0 && s.c !== ' ') audio.blip(o.blip); await wait(1 / 38); } paint(seq, total); }
+  else { let n = 0; for (const s of seq) { if (skipType) break; while (LIVE && LIVE.paused) await wait(0.05); if (s.pause) { await wait(0.28); continue; } n++; paint(seq, n); if (o.blip && n % 2 === 0 && s.c !== ' ') audio.blip(o.blip); await wait(1 / (o.cps || 38)); } paint(seq, total); }
   typing = false; arrow.hidden = false;
 }
 // who: cast key | null; o: {pose, expr, thought, stay, sfx, shake, flash, ev}
 async function say(who, text, o = {}) {
   const cast = CAST[who];
   if (o.view) await goView(o.view);
-  else if (cast && cast.home && !o.thought && !o.stay && !LOBBY) await goView(cast.home);
+  else if (TRIAL && cast && !o.thought && !o.stay && cast.trial !== false) await trialFocus(who);
+  else if (cast && cast.home && !o.thought && !o.stay && !listMode()) await goView(cast.home);
   const c = o.thought ? null : charOf(who);
   if (c) { if (o.pose) c.pose = o.pose; if (o.expr) c.expr = o.expr; }
   if (o.sfx) audio[o.sfx](); if (o.shake) shake(o.shake); if (o.flash) flash(o.flash);
   if (c) c.talk = true;
   const name = o.thought ? '' : o.name || (cast ? cast.name : '');
   const t = o.thought ? `[b]${text}[/]` : text;
-  await typeText(t, { name, blip: o.thought ? 0 : cast ? cast.blip : 400 });
+  await typeText(t, { name, blip: o.thought ? 0 : cast ? cast.blip : 400, cps: o.cps || (AUTOSAY ? 10 : 38) });
   if (c) c.talk = false;
   if (o.noWait) return;
+  if (AUTOSAY && !TEST) { const n = [...text].length; await Promise.race([advance(), (async () => { await wait(0.9 + n * 0.03); while (LIVE && LIVE.paused) await wait(0.05); })()]); return; }
   await advanceOrAuto();
 }
-const think = (t, o = {}) => say('alba', t, Object.assign({ thought: true }, o));
+const think = (t, o = {}) => say(PLAYER, t, Object.assign({ thought: true }, o));
 async function advanceOrAuto() { if (TEST) { await wait(0.02); return; } await advance(); }
+let AUTOSAY = false, LIVE = null;
+tx.addEventListener('click', e => { const h = e.target.closest('.hot'); if (h) { e.stopPropagation(); fireAction('hot:' + h.dataset.k); } });
 tb.addEventListener('click', () => { if (typing) skipType = true; else { fireAdvance(); fireAction('next'); } });
 for (const k of ['z', 'enter', ' ']) keyHandlers[k] = () => { if (!$('#rec').hidden) return; if (typing) skipType = true; else { fireAdvance(); fireAction('next'); } };
 
@@ -732,9 +783,9 @@ async function demand(prompt, ok, wrongLine, o = {}) {
     if (TEST) id = (window.__aa && __aa.wrongDemand && !__aa._wd) ? (__aa._wd = 1, '__wrong') : ok[0];
     else { for (;;) { const a = await nextAction(); if (a === 'present') { id = await openRecord('present', o.tab); if (id) break; } } }
     setCtl(CTL_TALK);
-    await shout(o.shout || 'take'); showEv(id === '__wrong' ? null : id, 'l');
+    if (o.shout !== null) await shout(o.shout || 'take'); showEv(id === '__wrong' ? null : id, 'l');
     if (ok.includes(id)) return id;
-    showEv(null); await say('judge', wrongLine || '…변호인. 그건 지금 이야기와 아무 상관이 없어 보입니다만.', { expr: 'angry' }); await penalty();
+    showEv(null); await say(o.who || 'judge', wrongLine || '…변호인. 그건 지금 이야기와 아무 상관이 없어 보입니다만.', { expr: 'angry' }); await penalty();
   }
 }
 
@@ -745,18 +796,20 @@ async function cross(def) {
   const S = def.stmts.map(s => Object.assign({ vis: !s.hidden }, s));
   audio.music(def.music || 'cross');
   // the testimony, once through
-  await goView('witness'); await card('~ 증언 개시 ~', def.title, 1.6);
-  for (const s of S.filter(s => s.vis)) await say(def.wit, `[g]${s.t}[/]`, s.o || {});
-  await say('judge', '그럼 변호인. 신문을 시작하십시오.');
-  if (!def.noTut && !cross.tut) { cross.tut = 1; await think('(수상한 증언은 「잠깐!」으로 추궁하자. 증거와 어긋나는 증언을 찾으면 그 증언에서 「증거 제시」다.)'); }
-  ceTag.hidden = false; ceTag.textContent = `~ 증인 신문 · ${def.title} ~`;
+  const WHO = st => st.who || def.wit, EVS = [].concat(def.ans.ev);
+  if (!TRIAL) await goView('witness'); await card(TRIAL ? '~ 논쟁 개시 ~' : '~ 증언 개시 ~', def.title, 1.6);
+  for (const s of S.filter(s => s.vis)) await say(WHO(s), `[g]${s.t}[/]`, s.o || {});
+  if (TRIAL) await say('kk', def.start || '그럼 논쟁 시작이다, 꼬꼬댁!'); else await say('judge', '그럼 변호인. 신문을 시작하십시오.');
+  if (TRIAL && !cross.ttut) { cross.ttut = 1; await think('(틀린 주장은 그 주장이 나올 때 「증거 제시」로 반박하자. 수상한 말은 「잠깐!」으로 캐묻자.)'); }
+  if (!TRIAL && !def.noTut && !cross.tut) { cross.tut = 1; await think('(수상한 증언은 「잠깐!」으로 추궁하자. 증거와 어긋나는 증언을 찾으면 그 증언에서 「증거 제시」다.)'); }
+  ceTag.hidden = false; ceTag.textContent = TRIAL ? `~ 마녀재판 · ${def.title} ~` : `~ 증인 신문 · ${def.title} ~`;
   let i = 0, pressed = new Set();
   const vis = () => S.filter(s => s.vis);
   try {
     for (;;) {
       const cur = vis()[i];
       setCtl([['◀', 'prev', 'dark'], ['잠깐!', 'press', 'blue'], ['증거 제시', 'present', 'red'], ['▶', 'next'], ['기록', 'record', 'dark']]);
-      await say(def.wit, `[g]${cur.t}[/]`, Object.assign({}, cur.o || {}, { noWait: true }));
+      await say(WHO(cur), `[g]${cur.t}[/]`, Object.assign({}, cur.o || {}, { noWait: true }));
       let a;
       if (TEST) {
         const want = vis().find(s => s.press && !pressed.has(s.id));
@@ -769,16 +822,16 @@ async function cross(def) {
       if (a === 'next') { i++; if (i >= vis().length) { i = 0; await card('~ 증언 처음으로 ~', '', 0.9); } continue; }
       if (a === 'prev') { i = Math.max(0, i - 1); continue; }
       if (a === 'press') {
-        pressed.add(cur.id); setCtl(CTL_TALK); await shout('hold'); await (cur.press || (async () => { await say(def.wit, '…그게 다요.'); }))();
-        if (cur.reveal) { const n = S.find(s => s.id === cur.reveal); if (n && !n.vis) { n.vis = true; await say('judge', '증인, 방금 그 말을 증언에 추가해 주십시오.'); i = vis().indexOf(n); continue; } }
+        pressed.add(cur.id); setCtl(CTL_TALK); await shout('hold'); await (cur.press || (async () => { await say(WHO(cur), '…그게 다야.'); }))();
+        if (cur.reveal) { const n = S.find(s => s.id === cur.reveal); if (n && !n.vis) { n.vis = true; if (TRIAL) await say('kk', '방금 그 말, 주장에 추가다 꼬꼬댁.'); else await say('judge', '증인, 방금 그 말을 증언에 추가해 주십시오.'); i = vis().indexOf(n); continue; } }
         continue;
       }
       if (a === 'present') {
         let ev;
-        if (TEST) { ev = cross.__forceWrong ? (cross.__forceWrong = 0, EV.find(e => e !== def.ans.ev)) : def.ans.ev; }
+        if (TEST) { ev = cross.__forceWrong ? (cross.__forceWrong = 0, EV.find(e => !EVS.includes(e))) : EVS[0]; }
         else { ev = await openRecord('present'); if (!ev) continue; }
         setCtl(CTL_TALK); await shout('obj'); showEv(ev, 'l');
-        if (def.ans.at.includes(cur.id) && ev === def.ans.ev) { ceTag.hidden = true; audio.music(null); await def.right(cur.id); showEv(null); return; }
+        if (def.ans.at.includes(cur.id) && EVS.includes(ev)) { ceTag.hidden = true; audio.music(null); await def.right(cur.id); showEv(null); return; }
         await (def.wrong ? def.wrong(cur, ev) : wrongDefault(def, cur, ev)); showEv(null);
         continue;
       }
@@ -787,8 +840,15 @@ async function cross(def) {
 }
 async function wrongDefault(def, cur, ev) {
   const d = EVDEF[ev] || PRDEF[ev];
-  await say('alba', `이 「${d.name}」을(를) 보십시오!`, { pose: 'point' });
-  await say(def.wit, def.wit === 'sw' ? '🐽 …그래서 뭐임? 🐽' : '…그래서 어쨌다는 거요?', { expr: 'normal' });
+  await say(PLAYER, TRIAL ? `이 「${d.name}」을 봐!` : `이 「${d.name}」을(를) 보십시오!`, { pose: 'point' });
+  const w = cur.who || def.wit;
+  if (TRIAL) {
+    await say(w, w === 'sw' ? '🐽 …그래서 뭐임? 🐽' : '…그게 뭐 어쨌다는 건데?', { expr: 'normal' });
+    await say(PLAYER, '어, 그게… 그러니까…', { expr: 'sweat' });
+    await say('kk', '꼬꼬댁꼬꼬댁! 헛소리는 벌점이다!', { expr: 'angry' });
+    await penalty(); setChar(PLAYER, { expr: 'normal' }); audio.music(def.music || 'cross'); return;
+  }
+  await say(w, w === 'sw' ? '🐽 …그래서 뭐임? 🐽' : '…그래서 어쨌다는 거요?', { expr: 'normal' });
   await say('na', '변호인. 그 증거와 지금 증언, 어디가 모순이라는 거지?', { pose: 'cross', expr: 'smug' });
   await say('alba', '어, 그게… 그러니까…', { pose: 'normal', expr: 'sweat' });
   await say('judge', '변호인, 근거 없는 이의는 감점입니다.', { expr: 'angry' });
@@ -1641,6 +1701,458 @@ function evAt2(i) {
 function prAt2(i) { const p = ['p_sw', 'p_hy', 'p_na', 'p_judge']; if (i >= 3) p.push('p_gb'); return p; }
 EPS[2] = { ch: CH2, evAt: evAt2, prAt: prAt2, setup: setup2, title: '제2화 · 역전의 와이크루', hpFrom: 3, hpTo: 7 };
 
+/* ========= 3장 systems: live testimony (tap the coloured words), scene investigation, landscape play ========= */
+// ---- live testimony ----
+// def: { title, wit, lines: [{id, who?, t, hidden?}], spots: { key: { q, ask: async () => 'reveal:<id>' | void, ans?: [evIds] } }, right: async (key, ev), wrong?: async }
+const hotPop = document.createElement('div'); hotPop.id = 'hotPop'; hotPop.hidden = true; $('#stage').appendChild(hotPop);
+function popAsk(key, sp) {
+  return new Promise(res => {
+    const ph = LIVE.phrase[key] || '';
+    hotPop.innerHTML = `<div class="hp-ph">「${ph}」</div><div class="hp-q">${sp.q}</div><div class="hp-b"><button type="button" class="btn blue" data-a="ask">질문한다</button><button type="button" class="btn red" data-a="obj">반론한다</button><button type="button" class="btn dark" data-a="close">닫기</button></div>`;
+    hotPop.hidden = false;
+    hotPop.querySelectorAll('button').forEach(b => b.onclick = e => { e.stopPropagation(); audio.select(); hotPop.hidden = true; res(b.dataset.a); });
+  });
+}
+async function live(def) {
+  const L = def.lines.map(l => Object.assign({ vis: !l.hidden }, l));
+  LIVE = { paused: false, asked: new Set(), phrase: {} };
+  for (const l of L) for (const m of l.t.matchAll(/\{([^|}]+)\|([^}]+)\}/g)) LIVE.phrase[m[2]] = m[1];
+  audio.music(def.music || 'cross'); ceTag.hidden = false; ceTag.textContent = `~ 증언 · ${def.title} ~`;
+  if (!TRIAL) await goView('witness'); await card('~ 증언 개시 ~', def.title, 1.4);
+  if (!live.tut) { live.tut = 1; await think('(증언은 말하는 속도로 흘러간다. [y]색이 다른 말[/]을 누르면 「질문」하거나 「반론」할 수 있다.)'); }
+  let i = 0, testIdx = 0; const vis = () => L.filter(l => l.vis);
+  const testPlan = TEST ? Object.keys(def.spots).filter(k => def.spots[k].ask) : [];
+  setCtl([['조사 수첩', 'record', 'dark']]);
+  try {
+    for (;;) {
+      const cur = vis()[i], who = cur.who || def.wit;
+      // the line plays; a tap on a coloured word interrupts it
+      const lineDone = (async () => { await say(who, cur.t, { noWait: true, cps: 10 }); if (!TEST) await wait(1.1 + [...cur.t].length * 0.02); else await wait(0.02); return 'next'; })();
+      let a;
+      if (TEST) {
+        await lineDone;
+        // the test asks every question once, then objects at the answer
+        const keysHere = [...cur.t.matchAll(/\{[^|}]+\|([^}]+)\}/g)].map(m => m[1]);
+        const askK = keysHere.find(k => testPlan.includes(k) && !LIVE.asked.has(k));
+        const ansK = keysHere.find(k => def.spots[k] && def.spots[k].ans);
+        const allAsked = testPlan.every(k => LIVE.asked.has(k) || !vis().some(l => l.t.includes('|' + k + '}')));
+        if (window.__aa && __aa.die && !window.__over && keysHere[0]) { a = 'hot:' + keysHere[0]; live.__forceWrong = 1; }
+        else if (window.__aa && __aa.wrongLive && !live['w' + def.title] && keysHere[0]) { live['w' + def.title] = 1; a = 'hot:' + keysHere[0]; live.__forceWrong = 1; }
+        else if (askK) a = 'hot:' + askK; else if (allAsked && ansK) a = 'hot:' + ansK; else a = 'next';
+      } else a = await Promise.race([lineDone, nextAction().then(x => x)]);
+      if (a === 'next') { skipType = false; i++; if (i >= vis().length) { i = 0; await card('~ 증언 처음부터 ~', '', 0.8); } continue; }
+      if (typeof a !== 'string' || !a.startsWith('hot:')) continue;
+      const key = a.slice(4), sp = def.spots[key]; if (!sp) continue;
+      LIVE.paused = true; skipType = true; await wait(0.05);
+      let act;
+      if (TEST) act = live.__forceWrong ? 'obj' : (sp.ans && !(sp.ask && !LIVE.asked.has(key)) ? 'obj' : 'ask');
+      else act = await popAsk(key, sp);
+      LIVE.paused = false;
+      if (act === 'close') { continue; }
+      if (act === 'ask') {
+        LIVE.asked.add(key); setCtl(CTL_TALK); await shout('hold');
+        await say(PLAYER, sp.q, {});
+        const r = sp.ask ? await sp.ask() : (await say(who, '…그 이상은 할 말 없소.'), null);
+        setCtl([['조사 수첩', 'record', 'dark']]);
+        if (typeof r === 'string' && r.startsWith('reveal:')) { const id = +r.slice(7), n = L.find(l => l.id === id); if (n && !n.vis) { n.vis = true; await say('judge', '방금 그 말, 증언에 추가해 주십시오.'); i = vis().indexOf(n); continue; } }
+        continue;
+      }
+      if (act === 'obj') {
+        let ev;
+        if (TEST) ev = live.__forceWrong ? (live.__forceWrong = 0, EV.find(e => !(sp.ans || []).includes(e))) : sp.ans[0];
+        else { ev = await openRecord('present'); if (!ev) continue; }
+        setCtl(CTL_TALK); await shout('obj'); showEv(ev, 'l');
+        if (sp.ans && sp.ans.includes(ev)) { ceTag.hidden = true; audio.music(null); LIVE = null; await def.right(key, ev); showEv(null); return; }
+        await (def.wrong ? def.wrong(key, ev) : liveWrong(def, who, ev)); showEv(null); setCtl([['조사 수첩', 'record', 'dark']]);
+      }
+    }
+  } finally { LIVE = null; ceTag.hidden = true; hotPop.hidden = true; setCtl(CTL_TALK); }
+}
+async function liveWrong(def, who, ev) {
+  const d = EVDEF[ev] || PRDEF[ev];
+  await say('alba', `이 「${d.name}」을(를) 보십시오!`, { pose: 'point' });
+  await say(who, who === 'sw' ? '🐽 …그래서 뭐임? 🐽' : '…그게 어쨌다는 거요?', { expr: 'normal' });
+  await say('na', '변호인. 그 말과 그 증거, 어디가 어긋난다는 거지?', { pose: 'cross', expr: 'smug' });
+  await say('judge', '근거 없는 반론은 감점입니다.', { expr: 'angry' });
+  await penalty(); setChar('alba', { expr: 'normal', pose: 'normal' }); audio.music(def.music || 'cross');
+}
+
+// ---- scene investigation (tap the scene) ----
+let INV = null;
+cv.addEventListener('click', e => {
+  if (!INV || INV.busy) return; const r = cv.getBoundingClientRect(), x = (e.clientX - r.left) / r.width * W, y = (e.clientY - r.top) / r.height * H;
+  const sp = INV.def.rooms[INV.ri].spots.find(s => x >= s.x && x <= s.x + s.w && y >= s.y && y <= s.y + s.h);
+  if (sp) fireAction('spot:' + sp.id);
+});
+cv.addEventListener('mousemove', e => {
+  if (!INV) { cv.style.cursor = ''; return; } const r = cv.getBoundingClientRect(), x = (e.clientX - r.left) / r.width * W, y = (e.clientY - r.top) / r.height * H;
+  cv.style.cursor = INV.def.rooms[INV.ri].spots.some(s => x >= s.x && x <= s.x + s.w && y >= s.y && y <= s.y + s.h) ? 'pointer' : '';
+});
+function drawInv() {
+  if (!INV || INV.busy) return; const room = INV.def.rooms[INV.ri];
+  for (const s of room.spots) { const cx = s.x + s.w / 2, cy = s.y + s.h / 2, p = 1 + 0.12 * Math.sin(RT * 5);
+    if (s.done) { ell(cx, cy, 13, 13, 'rgba(0,0,0,.55)', 2, '#888'); txt('✓', cx, cy, 16, '#9a9a9a'); }
+    else { ell(cx, cy, 18 * p, 18 * p, 'rgba(242,193,78,.92)', 3, '#2a1a06'); txt('?', cx, cy + 1, 22, '#2a1a06', { font: SHOUT_FONT, weight: 400 }); } }
+  const need = INV.def.need, got = need.filter(e => EV.includes(e)).length;
+  rr(16, 14, 340, 40, 10, 'rgba(0,0,0,.65)', 2, '#f2c14e'); txt(`현장 확인 · ${room.name} · 단서 ${got}/${need.length}`, 30, 34, 18, '#ffe08a', { align: 'left' });
+}
+async function investigate(def) {
+  INV = { def, ri: 0, busy: false };
+  const enter = i => { INV.ri = i; VIEW = def.rooms[i].view; };
+  enter(0); hideText();
+  if (def.intro) { INV.busy = true; await def.intro(); hideText(); INV.busy = false; }
+  try {
+    for (;;) {
+      const ready = def.need.every(e => EV.includes(e));
+      setCtl([...(def.rooms.length > 1 ? def.rooms.map((rm, i) => [rm.name, 'room' + i, i === INV.ri ? 'blue' : 'dark']) : []), ['조사 수첩', 'record', 'dark'], ...(ready ? [[def.goLabel || '조사 끝 ▶', 'go', 'red']] : [])]);
+      let a;
+      if (TEST) { await wait(0.02); const left = def.rooms.map((r, i) => [i, r.spots.find(s => !s.done)]).filter(x => x[1]); a = left.length ? (left[0][0] === INV.ri ? 'spot:' + left[0][1].id : 'room' + left[0][0]) : 'go'; }
+      else a = await nextAction();
+      if (a === 'go' && ready) break;
+      if (typeof a === 'string' && a.startsWith('room')) { enter(+a.slice(4)); audio.whoosh(); continue; }
+      if (typeof a === 'string' && a.startsWith('spot:')) {
+        const sp = def.rooms[INV.ri].spots.find(s => s.id === a.slice(5)); if (!sp) continue;
+        INV.busy = true; setCtl(CTL_TALK); await sp.f(); hideText(); sp.done = true; INV.busy = false; VIEW = def.rooms[INV.ri].view;
+        if (!ready && def.need.every(e => EV.includes(e))) { INV.busy = true; await think('(…필요한 건 다 본 것 같다. 「조사 끝」을 누르자.)'); hideText(); INV.busy = false; }
+      }
+    }
+  } finally { INV = null; cv.style.cursor = ''; setCtl(CTL_TALK); }
+}
+
+// ---- phones: play sideways ----
+const rot = document.createElement('div'); rot.id = 'rotate'; rot.innerHTML = '<div class="rot-ic">📱</div><div class="rot-t">휴대폰을 가로로 돌려 주세요</div><div class="rot-s">역전현태는 가로 화면에서 플레이합니다</div>'; document.body.appendChild(rot);
+addEventListener('pointerdown', () => { try { if (matchMedia('(pointer:coarse)').matches && screen.orientation && screen.orientation.lock) screen.orientation.lock('landscape').catch(() => {}); } catch (e) {} }, { once: true });
+
+/* ========= 제3화 「역전의 황금 계란」 — live testimony, a scene check, a doctored photo ========= */
+CAST.dg = { name: '독고혼', blip: 260, home: 'witness' };
+// 독고혼: a lone chef. broad shoulders, black coat, tall hat.
+XCHAR.dg = o => {
+  const { pose = 'cross', expr = 'normal', talk } = o, sh = expr === 'shock' || expr === 'break' ? Math.sin(RT * 60) * 3 : 0;
+  ctx.save(); ctx.translate(sh, 0); ctx.scale(1.12, 1);
+  frontTorso('#1c1c22', ['up', 'slam', 'point', 'cross'].includes(pose) ? pose : 'normal', 1, '#2a2a32');
+  ctx.restore();
+  fp('M-60 -212 L0 -150 L60 -212 Z', '#f4f1ea', 4); for (const y of [-170, -120, -70]) ell(0, y, 6, 6, '#c9a36a', 2);
+  if (pose !== 'cross') { rr(-150, -170, 70, 26, 4, '#f4f1ea', 3); txt('혼밥각', -115, -157, 14, '#c0281a', { font: SHOUT_FONT, weight: 400 }); }
+  fp('M-30 -232 L-28 -206 Q0 -196 28 -206 L30 -232 Z', SKIN2, 4);
+  ctx.save(); ctx.translate(sh, 0);
+  ell(0, -320, 78, 90, SKIN, 5); ell(-78, -316, 12, 18, SKIN, 4); ell(78, -316, 12, 18, SKIN, 4);
+  fp('M-80 -350 L-60 -392 L-30 -372 L0 -400 L30 -372 L60 -392 L80 -350 Q40 -370 0 -364 Q-40 -370 -80 -350 Z', '#15151a', 4);
+  const crack = expr === 'break';
+  ctx.save(); if (crack) { ctx.translate(30, -30); ctx.rotate(0.5); }
+  fp('M-64 -380 L-74 -500 Q-40 -540 0 -520 Q40 -540 74 -500 L64 -380 Q0 -366 -64 -380 Z', '#fbfaf6', 5); rr(-68, -392, 136, 20, 4, '#e8e4dc', 4);
+  ctx.restore();
+  face(0, -330, 1, expr === 'break' ? 'break' : expr, talk, 0);
+  fp('M-14 -262 Q0 -236 14 -262 Q8 -252 0 -250 Q-8 -252 -14 -262 Z', '#15151a', 3);
+  ctx.restore();
+  if (expr === 'sweat' || expr === 'shock') sweatDrops(80, -400, 1.2);
+};
+// the contest kitchen
+BG.arena = ch => {
+  const night = ch && ch.night;
+  const g = ctx.createLinearGradient(0, 0, 0, H); g.addColorStop(0, night ? '#141824' : '#e9e2d2'); g.addColorStop(1, night ? '#07080e' : '#b9ad96'); ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+  for (let x = 0; x < W; x += 60) ln(x, 0, x, 300, 1, night ? 'rgba(255,255,255,.04)' : 'rgba(0,0,0,.05)');
+  // east window
+  rr(40, 60, 150, 150, 4, night ? '#0a0e1e' : '#bfe4ff', 6, '#6a5a44'); ln(115, 60, 115, 210, 4, '#6a5a44'); ln(40, 135, 190, 135, 4, '#6a5a44'); if (night) ell(150, 96, 12, 12, '#f2f0d0', 0);
+  txt('동', 115, 44, 16, night ? '#888' : '#6a5a44');
+  // bulletin board
+  rr(220, 70, 130, 110, 4, '#c08548', 5); rr(232, 82, 106, 86, 2, '#fffbe8', 2); txt('일정표', 285, 98, 16, '#222', { font: SHOUT_FONT, weight: 400 }); for (let i = 0; i < 3; i++) ln(244, 118 + i * 16, 326, 118 + i * 16, 2, '#999');
+  // wall clock
+  ell(420, 70, 30, 30, '#fff', 4); ln(420, 70, 420, 50, 3); ln(420, 70, 434, 76, 3);
+  // the fridge
+  rr(470, 60, 180, 250, 8, '#d8dde4', 6); rr(482, 74, 156, 222, 4, night ? '#1a2a3a' : '#cfe8f4', 3); for (let r = 0; r < 3; r++) for (let c = 0; c < 5; c++) { const x = 500 + c * 30, y = 110 + r * 66; ell(x, y, 11, 14, '#f2c14e', 2); if (ch && ch.broken) { ln(x - 8, y - 4, x + 6, y + 6, 2, '#5a3a10'); ln(x + 6, y - 6, x - 2, y + 4, 2, '#5a3a10'); } }
+  txt('결승 재료', 560, 50, 14, night ? '#aaa' : '#444');
+  // CCTV
+  rr(690, 30, 50, 26, 4, '#2a2a30', 4); ell(732, 43, 7, 7, '#ff2a1a', 0); ln(700, 30, 690, 16, 4, '#555');
+  // back door + flour
+  rr(830, 90, 110, 240, 4, '#7a5636', 6); ell(920, 210, 7, 7, '#d9b25a', 3); txt('뒷문', 885, 76, 16, night ? '#aaa' : '#444');
+  ctx.fillStyle = night ? '#d8d8d0' : '#fbfaf4'; ctx.beginPath(); ctx.ellipse(870, 360, 110, 28, 0, 0, TAU); ctx.fill(); rr(940, 330, 30, 40, 6, '#e8dcc0', 3);
+  // two stations
+  rr(0, 330, 420, 40, 4, '#9aa0a8', 5); rr(0, 370, 420, 170, 0, '#6a7078', 5); txt('김현태', 210, 352, 18, '#222', { font: SHOUT_FONT, weight: 400 }); fp('M120 330 Q170 300 220 330 Z', '#3a3a42', 4); rr(215, 318, 60, 10, 4, '#5a3a22', 3);
+  rr(480, 330, 330, 40, 4, '#9aa0a8', 5); rr(480, 370, 330, 170, 0, '#6a7078', 5); txt('독고혼', 645, 352, 18, '#222', { font: SHOUT_FONT, weight: 400 }); rr(690, 300, 90, 30, 4, '#2a1a12', 4); rr(700, 292, 12, 18, 2, '#888', 2); rr(720, 292, 12, 18, 2, '#888', 2);
+  if (ch && ch.list) for (const c of ch.list) drawChar(c, c.x, c.y || 620, c.s || 0.7);
+  if (night) { ctx.fillStyle = 'rgba(0,0,20,.35)'; ctx.fillRect(0, 0, W, H); }
+};
+// evidence
+defEv('case3', '사건 기록 3', '11월 8일 밤, 전국 볶음밥 대회 결승 전날.\n대회장 냉장고의 결승 재료 「황금 계란」 30개가 전부 깨진 채 발견됐다.\n피고인: 김현태(재물손괴).', '결승은 무기한 연기됐다.\n이대로면 준결승 1위, 독고혼 셰프가 그대로 우승한다.');
+defEv('eggs', '깨진 황금 계란', '냉장고 안의 황금 계란 30개가 전부 깨졌다.\n황금빛 껍데기는 보통 계란보다 훨씬 두껍다.', '깨진 자리마다, 지름 1cm쯤 되는 동그랗고 움푹한 자국이 하나씩 있다.');
+defEv('flour', '뒷문 앞 밀가루', '뒷문 앞 바닥에 밀가루가 하얗게 깔려 있다.', '경비 일지: 「21:00 뒷문 앞 밀가루 포대 터짐. 내일 아침 청소 예정.」\n밀가루 위에 발자국은 하나도 없다.');
+defEv('knife', '독고혼의 칼집', '독고혼 셰프의 조리대에 있던 칼집. 중식도가 한 자루 들어 있다.', '중식도 손잡이 끝에 동그란 쇠구슬이 박혀 있다. 지름 1cm쯤.\n쇠구슬 틈에 금빛 가루가 아주 조금 끼어 있다.');
+defEv('sched', '대회 일정표', '결승 전날 일정.\n「09:00~09:30 결승 재료 확인 (참가자 냉장고 개방 가능)」\n「22:00 이후 대회장 출입 금지」', '재료 확인 시간에는 참가자들이 차례로 냉장고를 열어 재료를 확인했다.');
+defEv('cctv', 'CCTV 사진', '검찰이 제출한 사진. 화면 구석에 「11/08 22:14」.\n냉장고 문을 연 사장님이 찍혀 있다.', '냉장고 옆 창문으로 햇빛이 쏟아져, 바닥에 그림자가 길게 졌다.\n벽에 걸린 시계는 9시 10분쯤을 가리키고 있다.');
+defEv('reclog', '녹화기 기록지', '검찰이 제출한 대회장 CCTV 녹화 기록.', '11/08 녹화 구간\n· 09:00 ~ 09:40\n· 21:30 ~ 21:58\n「21:58 전원 차단」');
+Object.assign(EVDRAW, {
+  case3(big) { rr(-56, -70, 112, 140, 4, '#fff4d8', 5); txt('사건', 0, -40, 26, '#222', { font: SHOUT_FONT, weight: 400 }); txt('기록 3', 0, -8, 24, '#222', { font: SHOUT_FONT, weight: 400 }); ell(0, 36, 16, 20, '#f2c14e', 3); },
+  eggs(big) { for (let i = 0; i < 3; i++) { const x = -50 + i * 50; ell(x, 10, 22, 28, '#f2c14e', 4); ln(x - 14, 0, x + 8, 16, 3, '#5a3a10'); if (big) ell(x + 4, -4, 5, 5, '#5a3a10', 0); } },
+  flour(big) { ell(0, 20, 90, 36, '#fbfaf4', 4, '#bbb'); rr(40, -40, 40, 56, 6, '#e8dcc0', 3); txt('밀가루', 60, -14, 10, '#6a5a44'); if (big) { rr(-80, -70, 100, 50, 3, '#fffbe8', 2); txt('경비 일지', -30, -56, 11, '#222'); txt('21:00 포대 터짐', -30, -36, 10, '#222'); } },
+  knife(big) { rr(-90, -16, 130, 32, 4, '#c8ccd4', 4); rr(40, -9, 60, 18, 6, '#2a1a12', 4); ell(102, 0, 9, 9, '#888', 3); if (big) { ell(102, 0, 4, 4, '#f2c14e', 0); ln(110, -12, 140, -40, 2, '#ffd23a'); txt('금빛 가루', 150, -48, 12, '#ffd23a', { align: 'left' }); } },
+  sched(big) { rr(-60, -76, 120, 152, 4, '#fffbe8', 5); txt('결승 전날', 0, -56, 16, '#222', { font: SHOUT_FONT, weight: 400 }); txt('09:00 재료 확인', 0, -26, 12, '#c0281a'); txt('(냉장고 개방)', 0, -8, 11, '#c0281a'); txt('22:00 출입 금지', 0, 22, 12, '#222'); },
+  cctv(big) {
+    rr(-100, -72, 200, 144, 3, '#222', 5); rr(-92, -64, 184, 128, 0, '#cfe8f4', 0);
+    // the window's sunlight and the long shadow
+    ctx.globalAlpha = 0.5; fp('M-92 -64 L-60 -64 L20 64 L-92 64 Z', '#fff6c0', 0); ctx.globalAlpha = 1;
+    rr(-10, -50, 60, 100, 4, '#d8dde4', 3); for (let c = 0; c < 3; c++) ell(4 + c * 16, -20, 5, 7, '#f2c14e', 1.5);
+    photoHead(IMG.hy, -40, 4, 44); rr(-52, 4, 26, 40, 4, '#c08a6a', 0); ctx.globalAlpha = 0.35; fp('M-52 44 L-26 44 L30 64 L-10 64 Z', '#000', 0); ctx.globalAlpha = 1;
+    ell(66, -44, big ? 14 : 9, big ? 14 : 9, '#fff', 2); ln(66, -44, 60, -46, 2); ln(66, -44, 70, -40, 1.5);
+    txt('11/08 22:14', 60, 56, big ? 13 : 12, '#ff3a2a', { font: 'monospace', weight: 700 });
+  },
+  reclog(big) { rr(-62, -76, 124, 152, 4, '#f4f4f0', 5); txt('녹화 기록', 0, -56, 16, '#222', { font: SHOUT_FONT, weight: 400 }); txt('09:00-09:40', 0, -24, 13, '#222'); txt('21:30-21:58', 0, 0, 13, '#222'); if (big) txt('21:58 전원 차단', 0, 30, 13, '#c0281a'); },
+  p_dg() { ctx.save(); ctx.translate(0, 230); ctx.scale(0.4, 0.4); XCHAR.dg({ expr: 'smug' }); ctx.restore(); },
+});
+function setup3(i) {
+  AUTOSAY = true;
+  defPr('p_hy', '김현태', '피고인. 현태 볶음밥집 사장. 무에타이 고수.\n전국 볶음밥 대회 결승 진출자. 볶음밥은 2인분부터. 예.');
+  defPr('p_sw', '진상욱', '증인. 대회 보조 심사위원.\n결승 전날 밤, 대회장에 몰래 들어갔다.');
+  defPr('p_na', '나국밥', '검사. 이번엔 증거가 확실하다며 자신만만하다.');
+  defPr('p_judge', '재판장 김무태', '현태 사장님의 아버지. 집행유예로 복귀했다.\n이 법원 판사가 혼자뿐이라 아들 재판도 맡았다.');
+  defPr('p_dg', '독고혼', '1인분 전문점 「혼밥각」 셰프. 결승 상대.\n대회장 CCTV 관리자. 어깨가 떡 벌어졌다.\n「요리는 혼자 하는 거다.」');
+  Object.assign(CAST.sw, { home: 'witness' }); Object.assign(CAST.hy, { home: 'defendant' }); CAST.judge.home = 'judge';
+  VC.defendant = { who: 'hy', expr: 'normal' }; VC.judge = { who: 'judge', pose: 'normal', expr: 'normal' };
+  if (i === 4) setWitness('sw', { expr: 'normal' }); if (i >= 5) setWitness('dg', { pose: 'cross', expr: 'normal' });
+}
+const CH3 = [];
+const chap3 = (name, f) => CH3.push({ name, f });
+
+chap3('프롤로그', async () => {
+  VIEW = 'arena'; VC.arena = { night: true, broken: false }; FX.fade = 1; audio.music('tension');
+  await loc(['11월 8일 오후 10시 6분', '전국 볶음밥 대회장 주방']); await fadeTo(0.3, 1.0);
+  await say('q', '…2인분? 웃기는군.');
+  await say('q', '요리는 혼자 하는 거다. 밥도… 혼자 먹는 게 제일 편하지.');
+  for (let i = 0; i < 6; i++) { audio.tone(900 - i * 40, 0.05, 0.2, 'square'); shake(6); await wait(0.28); }
+  VC.arena.broken = true;
+  await say(null, '탁. 탁. 탁. 탁——');
+  await say('q', '이 대회의 우승은… [r]1인분[/]의 몫이다.');
+  hideText(); await fadeTo(1, 1.0); audio.music(null);
+  VIEW = 'title'; await fadeTo(0, 0.6); await card('제3화', '역전의 황금 계란', 2.4); await fadeTo(1, 0.6);
+});
+
+chap3('피고인 대기실', async () => {
+  LOBBY = true; VIEW = 'lobby'; VC.lobby = { list: [{ who: 'hy', x: 360, s: 0.9 }, { who: 'sw', x: 660, s: 0.84, expr: 'sweat' }] };
+  await loc(['11월 9일 오전 9시', '지방법원 피고인 제2대기실']); audio.music('lobby'); await fadeTo(0, 0.6);
+  await think('(사장님이 또 잡혀 왔다. 이번엔 전국 볶음밥 대회 결승 전날 밤이다.)');
+  await say('hy', '예.');
+  await say('alba', '사장님… 결승 재료를 깼다는 게 사실이에요?');
+  await say('hy', '계란은 요리할 때만 깹니다. 예.');
+  await getEv('case3');
+  await think('(대회장 냉장고의 「황금 계란」 30개가 전부 깨졌다. 이대로면 결승은 취소, 우승은 준결승 1위에게 간다.)');
+  await say('sw', '🐽 …나도 증인으로 불려 왔음ㄲ 🐽');
+  await say('alba', '상욱 씨가요? 왜요?');
+  await say('sw', '🐽 대회 보조 심사위원이라서ㄲㄲ 그날 밤 거기 있었음 🐽', { expr: 'smug' });
+  await say('alba', '밤에요? 22시 이후엔 출입 금지라고 들었는데.');
+  await say('sw', '🐽 ……재판에서 말하겠음 🐽', { expr: 'sweat' });
+  await say('guard', '변호인. 재판 전에 현장 확인 허가가 나왔습니다. 대회장으로 가 보시죠.');
+  await say('hy', '다녀오씹시오. 예.');
+  hideText(); await fadeTo(1, 0.5); audio.music(null);
+});
+
+chap3('현장 확인', async () => {
+  LOBBY = true; VIEW = 'arena'; VC.arena = { night: false, broken: true, list: [{ who: 'dg', x: 455, s: 0.55, y: 650, pose: 'cross', expr: 'smug' }] };
+  await loc(['11월 9일 오전 10시 30분', '전국 볶음밥 대회장 주방']); audio.music('cross'); await fadeTo(0, 0.5);
+  await investigate({
+    need: ['eggs', 'flour', 'knife', 'sched'], goLabel: '법정으로 ▶',
+    intro: async () => { await think('(현장 확인이다. 화면의 「?」를 눌러 살펴보자. 증언이 말하는 속도로 흘러가는 재판이니, 여기서 꼼꼼히 봐 둬야 한다.)'); },
+    rooms: [{ name: '대회장 주방', view: 'arena', spots: [
+      { id: 'fridge', x: 470, y: 60, w: 180, h: 160, f: async () => {
+        await think('(황금 계란이 전부 깨져 있다. 껍데기가 보통 계란보다 훨씬 두껍다.)');
+        await getEv('eggs');
+        await think('(깨진 자리마다 작고 동그란 자국이 하나씩… 뭔가 둥근 걸로 하나씩 내리쳤다.)'); } },
+      { id: 'door', x: 790, y: 300, w: 170, h: 90, f: async () => {
+        await think('(뒷문 앞에 밀가루가 하얗게 깔려 있다. 포대가 터졌나 보다.)');
+        await getEv('flour');
+        await think('(…발자국이 하나도 없다.)'); } },
+      { id: 'knife', x: 680, y: 280, w: 110, h: 50, f: async () => {
+        await think('(독고혼 셰프의 조리대. 칼집에 중식도가 꽂혀 있다.)');
+        await getEv('knife'); } },
+      { id: 'board', x: 220, y: 70, w: 130, h: 110, f: async () => {
+        await getEv('sched');
+        await think('(오전 9시부터 30분간은 참가자들이 냉장고를 열어도 되는 시간이었구나.)'); } },
+      { id: 'window', x: 40, y: 60, w: 150, h: 150, f: async () => {
+        await think('(동쪽 창문. 아침이면 햇빛이 정면으로 쏟아져서, 냉장고 앞까지 그림자가 길게 진다고 한다.)'); } },
+      { id: 'cctv', x: 680, y: 18, w: 70, h: 44, f: async () => {
+        await think('(CCTV. 냉장고 쪽을 비추고 있다. 녹화기는 잠겨 있고… 관리자는 독고혼 셰프라고 적혀 있다.)'); } },
+      { id: 'hystation', x: 100, y: 290, w: 200, h: 60, f: async () => {
+        await think('(사장님 조리대. 웍이 반짝반짝하다. 메모에 「결승: 2인분. 예.」)'); } },
+      { id: 'dg', x: 395, y: 345, w: 120, h: 190, f: async () => {
+        await say('dg', '…독고혼. 1인분 전문점 「혼밥각」의 셰프다. 결승 상대지.', { expr: 'normal' });
+        addProfile('p_dg');
+        await say('dg', '결승이 취소되면 준결승 점수로 우승이 정해진다. 그 녀석이 계란을 깼다면, 자업자득이지.');
+        await say('alba', '사장님은 그런 사람이 아니에요.');
+        await say('dg', '흥. 요리는 혼자 하는 거다. 누굴 믿는 순간 지는 거지.', { expr: 'smug' }); } },
+    ] }],
+  });
+  hideText(); await fadeTo(1, 0.5);
+});
+
+chap3('개정', async () => {
+  LOBBY = false; VIEW = 'wide'; FX.fade = 1;
+  await loc(['11월 9일 오후 1시', '지방법원 제3법정']); await fadeTo(0, 0.4); await gavel(3); audio.music('trial');
+  await say('judge', '김현태 씨의 「황금 계란 사건」 재판을 시작합니다.');
+  await say('alba', '재, 재판장님?! 복귀하셨어요?', { expr: 'shock' });
+  await say('judge', '집행유예입니다. …그리고 이 법원에 판사가 저 하나뿐이라서요.', { expr: 'sweat' });
+  await say('hy', '아버지. 예.');
+  await say('judge', '…법정에선 재판장이라고 하거라.', { expr: 'normal' });
+  await say('na', '검찰 측 준비 완료다. 이번 증거는 확실하다, 알바생.', { pose: 'cross', expr: 'smug' });
+  setChar('alba', { expr: 'normal' });
+  await say('na', '결승 전날 밤, 대회장 냉장고의 황금 계란 30개를 깬 건 피고인이다. 목격자를 부르지.');
+  audio.music(null); setWitness('sw', { expr: 'normal' }); await goView('witness');
+  await say('judge', '증인, 이름과 직업을.');
+  await say('sw', '🐽 진상욱. 전국 볶음밥 대회 보조 심사위원임ㄲㄲ 🐽', { expr: 'smug' });
+  await say('judge', '그럼 그날 밤 본 것을 증언하십시오.');
+});
+
+chap3('상욱의 증언', async () => {
+  setWitness('sw', { expr: 'normal' });
+  await live({
+    title: '그날 밤 들은 소리', wit: 'sw',
+    lines: [
+      { id: 1, t: '🐽 22시쯤, {몰래 결승 재료 맛보러|taste} 대회장에 갔음ㄲㄲ 🐽' },
+      { id: 2, t: '🐽 그런데 주방에서 {와장창 깨지는 소리|crash}가 들렸음 🐽' },
+      { id: 21, hidden: true, t: '🐽 탁, 탁, 탁… {뭔가 단단한 걸로|hardthing} 하나씩 내리치는 소리였음 🐽' },
+      { id: 3, t: '🐽 창문으로 보니까 {근육질 남자 실루엣|muscle}이 있었음 🐽' },
+      { id: 4, t: '🐽 그리고 그 남자는 {어디론가 사라졌음|vanish} 🐽' },
+      { id: 41, hidden: true, t: '🐽 그 남자, {뒷문으로 휙 나갔음|backdoor}. 확실함 🐽' },
+    ],
+    spots: {
+      taste: { q: '22시 이후엔 출입 금지인데, 왜 몰래 들어갔죠?', ask: async () => { await say('sw', '🐽 황금 계란… 날로 한 입만 먹어 보고 싶었음ㄲㄲ 🐽', { expr: 'smug' }); await say('judge', '…증인. 그것도 문제입니다만.', { expr: 'sweat' }); setChar('judge', { expr: 'normal' }); } },
+      crash: { q: '한 번에 와장창 깨졌나요?', ask: async () => { await say('sw', '🐽 아 아님. 탁, 탁, 탁… 하나씩이었음. 서른 번 🐽'); return 'reveal:21'; } },
+      hardthing: { q: '단단한 거라니, 웍 같은 거요?', ask: async () => { await say('sw', '🐽 웍이면 「깡」 하겠지. 그건 「탁」이었음. 작고 단단한 거 🐽'); await think('(작고 단단하고… 둥근 것.)'); } },
+      muscle: { q: '얼굴은 봤어요?', ask: async () => { await say('sw', '🐽 실루엣만. 근데 어깨가 현태급이었음 🐽'); await say('na', '피고인 말고 그런 어깨가 누가 있지?', { expr: 'smug' }); } },
+      vanish: { q: '어디로 사라졌는지 봤어요?', ask: async () => { await say('sw', '🐽 아 맞다. 뒷문으로 나갔음 🐽', { expr: 'normal' }); return 'reveal:41'; } },
+      backdoor: { q: '정말 뒷문으로 나간 게 확실해요?', ans: ['flour'], ask: async () => { await say('sw', '🐽 뒷문 쪽으로 간 건 확실함 🐽'); } },
+    },
+    right: async () => {
+      await say('alba', '뒷문 앞에는 밀가루가 하얗게 깔려 있었습니다.', { pose: 'normal' });
+      await say('alba', '경비 일지에 따르면 포대가 터진 건 [r]21시[/]. 사건보다 한 시간 전입니다.', { pose: 'point' });
+      await say('alba', '그런데 그 밀가루 위에, [r]발자국이 하나도 없습니다[/]!', { pose: 'slam', sfx: 'slam', shake: 14 });
+      await say('alba', '뒷문으로 나간 사람은 아무도 없어요!', { pose: 'point' });
+      await hit('sw'); await say('sw', '🐽 …그럼 그 남자는 어디로…? 🐽', { expr: 'shock' });
+      await say('judge', '범인은 다른 길로 나갔거나… 증인이 떠날 때까지 [r]안에 숨어 있었다[/]는 거군요.', { expr: 'normal' });
+      setChar('sw', { expr: 'sweat' }); audio.music('trial');
+      await say('na', '흥. 출구 따위는 상관없다. 결정적인 증거가 있으니까.', { pose: 'cross', expr: 'smug' });
+      await say('na', '대회장 CCTV에 찍힌 사진이다.', { pose: 'point' });
+      await getEv('cctv', '검찰이 「CCTV 사진」을 제출했다.');
+      await say('na', '「11/08 22:14」. 대회장 냉장고 앞. 냉장고 문을 연 사람은… 피고인이다!', { pose: 'slam', sfx: 'slam', shake: 10 });
+      await say('judge', '…확실히 현태… 아니, 피고인이군요.', { expr: 'sweat' });
+      await say('hy', '…저 맞씁니다. 예.', { expr: 'sweat' });
+      await say('alba', '사, 사장님?!', { expr: 'shock' });
+      await say('na', '이 사진을 제출한 대회장 CCTV 관리자를 증인으로 부르겠다.', { pose: 'cross', expr: 'smug' });
+      audio.music(null); setWitness('dg', { pose: 'cross', expr: 'normal' }); await goView('witness');
+      await say('dg', '독고혼. 1인분 전문점 「혼밥각」의 셰프다.');
+      setChar('alba', { expr: 'normal' }); setChar('hy', { expr: 'normal' });
+      await say('judge', '그럼 증인. 이 사진에 대해 증언하십시오.', { expr: 'normal' });
+    },
+  });
+});
+
+chap3('사진의 증언', async () => {
+  setWitness('dg', { pose: 'cross', expr: 'normal' });
+  await live({
+    title: 'CCTV는 거짓말을 하지 않는다', wit: 'dg',
+    lines: [
+      { id: 1, t: 'CCTV 관리는 내가 맡고 있다. {녹화기|recorder}는 나만 열 수 있지.' },
+      { id: 11, hidden: true, t: '원본 영상은 지웠다. 필요한 건 {사진 한 장|onlyone}이면 충분하니까.' },
+      { id: 2, t: '이 사진은 {22시 14분|time}, 냉장고 앞을 찍은 것이다.' },
+      { id: 3, t: '그 시각 {냉장고를 연 건|opened} 김현태뿐이다.' },
+      { id: 4, t: '결승 재료에 손댄 자가, {계란을 깬 범인|culprit}이다.' },
+    ],
+    spots: {
+      recorder: { q: '원본 영상은 어디 있죠?', ask: async () => {
+        await say('dg', '…용량 문제로 사진 한 장만 남기고 지웠다.', { expr: 'normal' });
+        await say('na', '녹화기라면 기록지도 있다. 검찰 측 증거로 추가 제출하지.', { pose: 'cross', expr: 'smug' });
+        await getEv('reclog', '검찰이 「녹화기 기록지」를 제출했다.');
+        await say('dg', '……', { expr: 'sweat' }); setChar('dg', { expr: 'normal' });
+        return 'reveal:11'; } },
+      onlyone: { q: '왜 하필 사진 한 장만 남겼죠?', ask: async () => { await say('dg', '혼자 일하다 보니, 정리가 습관이 됐을 뿐이다.'); } },
+      time: { q: '22시 14분이 확실한가요?', ans: ['cctv', 'reclog', 'sched'], ask: async () => { await say('dg', '화면 구석에 찍힌 숫자가 「22:14」다. 그 이상 무슨 설명이 필요하지?', { expr: 'smug' }); setChar('dg', { expr: 'normal' }); await think('(숫자 말고, 사진 속 [y]다른 곳[/]은 어떨까. 「자세히 보기」로 확인해 보자.)'); } },
+      opened: { q: '다른 사람은 정말 없었나요?', ask: async () => { await say('dg', '없다. …난 그 시각 숙소에 있었으니, 직접 본 건 아니지만.'); } },
+      culprit: { q: '냉장고를 열었다고 범인인가요?', ask: async () => { await say('na', '22시에 출입 금지된 대회장에서 결승 재료에 손을 댔다. 그걸로 충분하다!', { pose: 'point' }); } },
+    },
+    right: async (key, ev) => {
+      await say('alba', '이 사진이 22시 14분에 찍혔을 리 없습니다!', { pose: 'point' });
+      await say('alba', '사진 바닥을 보십시오. 창문으로 [r]햇빛[/]이 쏟아져서 그림자가 길게 졌습니다. 밤 10시에 해가 뜹니까?', { pose: 'normal' });
+      await say('alba', '벽시계도 [r]9시 10분[/]을 가리키고 있어요!');
+      await say('alba', '대회 일정표에 따르면 오전 9시부터 30분간은 [r]재료 확인 시간[/]. 참가자가 냉장고를 열어도 되는 시간입니다!', { pose: 'slam', sfx: 'slam', shake: 12 });
+      await say('alba', '게다가 녹화기 기록지! 그날 밤 녹화는 [r]21시 58분에 전원이 꺼졌습니다[/]. 22시 14분엔 아무것도 찍히지 않았어요!', { pose: 'point' });
+      await say('alba', '이건 아침 재료 확인 때의 사진에… [r]「22:14」라는 숫자만 덧붙인[/] 겁니다!', { pose: 'point', flash: 0.8, shake: 16 });
+      await hit('dg'); await say('dg', '……!!', { expr: 'shock' });
+      await say('na', '뭐…? 검찰이 손본 사진을 제출했다는 건가…?!', { pose: 'normal', expr: 'shock' });
+      await say('hy', '아침 9시 10분에 계란을 확인했씁니다. 30개. 전부 멀쩡햇씁니다. 예.');
+      audio.crowd(); await gavel(2);
+      await say('judge', '증인. 설명하십시오.', { expr: 'angry' });
+      await say('dg', '…착각이었다. 녹화기를 정리하다 숫자가 잘못 들어갔겠지.', { expr: 'sweat' });
+      await say('dg', '하지만 나와는 상관없다. 그 시각 나는 숙소에 있었고, 계란엔 손도 대지 않았다.', { expr: 'normal' });
+      await say('judge', '…그 부분을 증언하십시오.', { expr: 'normal' });
+    },
+  });
+});
+
+chap3('혼자의 밤', async () => {
+  setWitness('dg', { pose: 'cross', expr: 'normal' });
+  await live({
+    title: '혼자의 밤', wit: 'dg', music: 'pursuit',
+    lines: [
+      { id: 1, t: '22시엔 {숙소|hotel}에서 혼자 칼을 갈고 있었다.' },
+      { id: 2, t: '황금 계란에는 {손끝 하나 대지 않았다|touch}.' },
+      { id: 3, t: '애초에 황금 계란은 {껍데기가 단단하다|hard}.' },
+      { id: 31, hidden: true, t: '황금 계란은 {중식도 손잡이 끝으로 내리쳐야|knifebutt}만 깨진다.' },
+      { id: 4, t: '웍밖에 모르는 김현태라면, {웍으로 깼겠지|wok}.' },
+    ],
+    spots: {
+      hotel: { q: '그걸 본 사람은요?', ask: async () => { await say('dg', '혼자니까 없지. 혼자가 편하다.'); } },
+      touch: { q: '정말 한 번도요?', ask: async () => { await say('dg', '그렇다. 남의 재료엔 관심 없다.', { expr: 'smug' }); setChar('dg', { expr: 'normal' }); } },
+      hard: { q: '얼마나 단단한데요?', ask: async () => { await say('dg', '맨손이나 웍으로는 어림도 없다. 중식도 손잡이 끝으로 내리쳐야 겨우 깨지지.'); await think('(…왜 그렇게 잘 알지?)'); return 'reveal:31'; } },
+      knifebutt: { q: '깨는 방법을 왜 그렇게 잘 알죠?', ans: ['knife'], ask: async () => { await say('dg', '…요리사라면 당연히 아는 거다.', { expr: 'sweat' }); setChar('dg', { expr: 'normal' }); } },
+      wok: { q: '웍으로 깨면 어떻게 되죠?', ask: async () => { await say('hy', '웍은 볶는 데만 씁니다. 예.'); await say('sw', '🐽 웍이면 「깡」임. 그날은 「탁」이었음 🐽', { stay: true }); } },
+    },
+    right: async () => {
+      await say('alba', '당신 조리대의 칼집. 그 중식도 손잡이 끝에는 [r]동그란 쇠구슬[/]이 박혀 있었습니다.', { pose: 'normal' });
+      await say('alba', '깨진 황금 계란마다 남은 [r]지름 1cm의 동그란 자국[/]. 그 쇠구슬과 딱 맞습니다!', { pose: 'point' });
+      await say('alba', '그리고 쇠구슬 틈에 끼어 있던 [r]금빛 가루[/]… 황금 계란 껍데기 가루죠!', { pose: 'slam', sfx: 'slam', shake: 14 });
+      await say('alba', '손끝 하나 대지 않았다는 사람이, 깨는 방법은 왜 그렇게 자세히 압니까?!', { pose: 'point', flash: 0.8 });
+      audio.boom(); await hit('dg');
+      await say('dg', '크… 크윽……!!', { expr: 'break', shake: 24 });
+      audio.music('sad');
+      await say('dg', '…준결승 시식 때, 심사위원이 말했다.', { expr: 'sad' });
+      await say('dg', '「1인분은 맛있다. 그런데… 조금 외롭다.」');
+      await say('dg', '「저쪽 2인분은, 같이 먹고 싶어지는 맛이다.」');
+      await say('dg', '요리는 혼자 하는 거다. 밥도 혼자 먹는 게 제일 편하다. …그렇게 믿고 20년을 살았다.');
+      await say('dg', '그런데 그 녀석 볶음밥을 한 입 먹고… 혼자가 아니었으면, 하고 생각해 버렸다.', { expr: 'cry' });
+      await say('dg', '그게 무서웠다. 결승에서 지면, 내 20년이 전부 틀렸다는 게 될 테니까.');
+      await say('dg', '그래서 결승을 없애기로 했다. 계란을 하나씩 깨고, 그 꼬마가 갈 때까지 냉동고에 숨어 있었다.');
+      await say('dg', '아침에 찍힌 사진에 숫자만 바꾸면… 그 녀석이 범인이 될 줄 알았다.');
+      await say('hy', '……');
+      await say('na', '……검찰 측은 공소를 취하한다.', { pose: 'cross', expr: 'sweat' });
+      await say('na', '그리고… 검찰이 손본 증거를 그대로 믿은 건, 내 실수다.', { expr: 'sad' });
+    },
+  });
+});
+
+chap3('판결', async () => {
+  audio.music(null); await gavel(1);
+  await say('judge', '그럼 판결을 내리겠습니다. 피고인 김현태에게…', { expr: 'normal' });
+  hideText(); VIEW = 'black'; await wait(0.4);
+  audio.boom(); await big('무죄', '#2a5cd6', { bg: '#fff', hold: 0.6, keep: true }); confetti(160); audio.music('win'); await wait(2.4);
+  FX.big = null; FX.conf = [];
+  LOBBY = true; VIEW = 'arena'; VC.arena = { night: false, broken: false, list: [{ who: 'hy', x: 260, s: 0.62, y: 640 }, { who: 'dg', x: 640, s: 0.6, y: 640, pose: 'normal', expr: 'sad' }, { who: 'sw', x: 860, s: 0.55, y: 640, expr: 'smug' }] };
+  await loc(['11월 15일 오후 2시', '전국 볶음밥 대회장 · 다시 열린 결승']); audio.music('lobby');
+  await say('hy', '독고혼 셰프.');
+  await say('dg', '…무슨 낯으로 날 부른 거지.');
+  await say('hy', '결승은 2인분으로 하겟씁니다.');
+  await say('dg', '2인분은… 혼자서는 못 만든다.');
+  await say('hy', '그러니까 같이 만듭니다. 예.');
+  await say('dg', '……!', { expr: 'cry' });
+  await say('sw', '🐽 심사는 내가 함ㄲㄲ 두 그릇 다 먹을 거임 🐽', { expr: 'smug' });
+  await think('(그날 결승의 우승 메뉴는, 이름이 붙지 않은 볶음밥 2인분이었다.)');
+  hideText(); await fadeTo(1, 1.0); LOBBY = false;
+  VIEW = 'title'; await fadeTo(0, 0.6); await card('역전현태 제3화', '역전의 황금 계란 — 끝', 3.2);
+});
+
+function evAt3(i) {
+  const s = ['badge', 'case3', 'eggs', 'flour', 'knife', 'sched'];
+  if (i <= 1) return ['badge']; if (i === 2) return ['badge', 'case3']; if (i <= 4) return s.slice(); if (i === 5) return [...s, 'cctv']; return [...s, 'cctv', 'reclog'];
+}
+function prAt3(i) { const p = ['p_hy', 'p_sw', 'p_na', 'p_judge']; if (i >= 3) p.push('p_dg'); return p; }
+EPS[3] = { ch: CH3, evAt: evAt3, prAt: prAt3, setup: setup3, title: '제3화 · 역전의 황금 계란', hpFrom: 4, hpTo: 6 };
+
 /* ---------- flow: studio → title → episode chapters → game over / ending ---------- */
 let TITLE = true, EP = 1;
 const SAVEKEY = 'reversal-hyuntae-2';
@@ -1682,11 +2194,12 @@ async function runFrom(ep, i) {
 function resetCast() {
   VC.defense = { who: 'alba', pose: 'normal', expr: 'normal' }; VC.prosecution = { who: 'na', pose: 'cross', expr: 'smug' };
   VC.judge = { who: 'judge', pose: 'normal', expr: 'normal' }; VC.defendant = { who: 'hy', expr: 'normal' };
+  PLAYER = 'alba'; TRIAL = false; AUTOSAY = false; LIVE = null; INV = null;
   FX.fade = 0; FX.big = null; FX.conf = []; FX.ev = null; LOBBY = false;
 }
 async function titleScreen() {
   TITLE = true; resetCast(); VIEW = 'title'; setCtl([]); hideText(); $('#hp').hidden = true; audio.music(null);
-  const s = loadSave(), list = [['제1화 · 역전의 1인분', [1, 0]], [`제2화 · 역전의 와이크루${cleared(1) ? '' : ' (1화 먼저 추천)'}`, [2, 0], 'red']];
+  const s = loadSave(), list = [['제1화 · 역전의 1인분', [1, 0]], [`제2화 · 역전의 와이크루`, [2, 0], 'red'], ['제3화 · 역전의 황금 계란', [3, 0], 'blue']];
   if (s && EPS[s.ep] && s.i > 0 && s.i < EPS[s.ep].ch.length) list.unshift([`이어하기 · ${s.ep}화 ${EPS[s.ep].ch[s.i].name}`, [s.ep, s.i], 'blue']);
   const v = await ovButtons(list);
   return runFrom(v[0], v[1]);
