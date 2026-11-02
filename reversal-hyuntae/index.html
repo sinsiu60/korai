@@ -675,7 +675,7 @@ let typing = false, skipType = false;
 async function typeText(text, o = {}) {
   const seq = parseMark(text), total = seq.filter(s => !s.pause).length; tb.hidden = false; arrow.hidden = true;
   nm.hidden = !o.name; nm.textContent = o.name || ''; typing = true; skipType = false;
-  if (TEST) paint(seq, total);
+  if (TEST || o.instant) { paint(seq, total); if (o.instant && o.blip && !TEST) audio.blip(o.blip); }
   else { let n = 0; for (const s of seq) { if (skipType) break; while (LIVE && LIVE.paused) await wait(0.05); if (s.pause) { await wait(0.28); continue; } n++; paint(seq, n); if (o.blip && n % 2 === 0 && s.c !== ' ') audio.blip(o.blip); await wait(1 / (o.cps || 38)); } paint(seq, total); }
   typing = false; arrow.hidden = false;
 }
@@ -691,15 +691,17 @@ async function say(who, text, o = {}) {
   if (c) c.talk = true;
   const name = o.thought ? '' : o.name || (cast ? cast.name : '');
   const t = o.thought ? `[b]${text}[/]` : text;
-  await typeText(t, { name, blip: o.thought ? 0 : cast ? cast.blip : 400, cps: o.cps || (AUTOSAY || LIVE ? 10 : 38) });
+  await typeText(t, { name, blip: o.thought ? 0 : cast ? cast.blip : 400, cps: o.cps || 38, instant: !!(LIVE || AUTOSAY) });
   if (c) c.talk = false;
   if (o.noWait) return;
-  if ((AUTOSAY || LIVE) && !TEST) { const n = [...text].length; await Promise.race([advance(), (async () => { await wait(0.9 + n * 0.03); while (LIVE && LIVE.paused) await wait(0.05); })()]); return; }
+  if ((AUTOSAY || LIVE) && !TEST) { const n = [...text].length; await Promise.race([advance(), (async () => { await wait(speakTime(text)); while (LIVE && LIVE.paused) await wait(0.05); })()]); return; }
   await advanceOrAuto();
 }
 const think = (t, o = {}) => say(PLAYER, t, Object.assign({ thought: true }, o));
 async function advanceOrAuto() { if (TEST) { await wait(0.02); return; } await advance(); }
 let AUTOSAY = false, LIVE = null;
+// how long it takes to actually say a line out loud (~7 syllables a second, plus a breath)
+const speakTime = t => 0.7 + [...t.replace(/\{([^|}]+)\|[^}]+\}/g, '$1').replace(/\[.\]|\[\/\]|🐽|\s/g, '')].length / 7;
 tx.addEventListener('click', e => { const h = e.target.closest('.hot'); if (h) { e.stopPropagation(); fireAction('hot:' + h.dataset.k); } });
 tb.addEventListener('click', () => { if (typing) skipType = true; else { fireAdvance(); fireAction('next'); } });
 for (const k of ['z', 'enter', ' ']) keyHandlers[k] = () => { if (!$('#rec').hidden) return; if (typing) skipType = true; else { fireAdvance(); fireAction('next'); } };
@@ -1715,11 +1717,11 @@ function popAsk(key, sp) {
 }
 async function live(def) {
   const L = def.lines.map(l => Object.assign({ vis: !l.hidden }, l));
+  if (!live.tut) { live.tut = 1; await think('(증언은 말하는 속도로 흘러간다. [y]색이 다른 말[/]을 누르면 「질문」하거나 「반론」할 수 있다.)'); }
   LIVE = { paused: false, asked: new Set(), phrase: {} };
   for (const l of L) for (const m of l.t.matchAll(/\{([^|}]+)\|([^}]+)\}/g)) LIVE.phrase[m[2]] = m[1];
   audio.music(def.music || 'cross'); ceTag.hidden = false; ceTag.textContent = `~ 증언 · ${def.title} ~`;
   if (!TRIAL) await goView('witness'); await card('~ 증언 개시 ~', def.title, 1.4);
-  if (!live.tut) { live.tut = 1; await think('(증언은 말하는 속도로 흘러간다. [y]색이 다른 말[/]을 누르면 「질문」하거나 「반론」할 수 있다.)'); }
   let i = 0, testIdx = 0; const vis = () => L.filter(l => l.vis);
   const testPlan = TEST ? Object.keys(def.spots).filter(k => def.spots[k].ask) : [];
   setCtl([['조사 수첩', 'record', 'dark']]);
@@ -1727,7 +1729,7 @@ async function live(def) {
     for (;;) {
       const cur = vis()[i], who = cur.who || def.wit;
       // the line plays; a tap on a coloured word interrupts it
-      const lineDone = (async () => { await say(who, cur.t, { noWait: true, cps: 10 }); if (!TEST) await wait(1.1 + [...cur.t].length * 0.02); else await wait(0.02); return 'next'; })();
+      const lineDone = (async () => { await say(who, cur.t, { noWait: true }); if (!TEST) { const t0 = T, d = speakTime(cur.t); while (T - t0 < d || (LIVE && LIVE.paused)) await wait(0.05); } else await wait(0.02); return 'next'; })();
       let a;
       if (TEST) {
         await lineDone;
