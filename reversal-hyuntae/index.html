@@ -691,10 +691,10 @@ async function say(who, text, o = {}) {
   if (c) c.talk = true;
   const name = o.thought ? '' : o.name || (cast ? cast.name : '');
   const t = o.thought ? `[b]${text}[/]` : text;
-  await typeText(t, { name, blip: o.thought ? 0 : cast ? cast.blip : 400, cps: o.cps || (AUTOSAY ? 10 : 38) });
+  await typeText(t, { name, blip: o.thought ? 0 : cast ? cast.blip : 400, cps: o.cps || (AUTOSAY || LIVE ? 10 : 38) });
   if (c) c.talk = false;
   if (o.noWait) return;
-  if (AUTOSAY && !TEST) { const n = [...text].length; await Promise.race([advance(), (async () => { await wait(0.9 + n * 0.03); while (LIVE && LIVE.paused) await wait(0.05); })()]); return; }
+  if ((AUTOSAY || LIVE) && !TEST) { const n = [...text].length; await Promise.race([advance(), (async () => { await wait(0.9 + n * 0.03); while (LIVE && LIVE.paused) await wait(0.05); })()]); return; }
   await advanceOrAuto();
 }
 const think = (t, o = {}) => say(PLAYER, t, Object.assign({ thought: true }, o));
@@ -1899,7 +1899,7 @@ Object.assign(EVDRAW, {
   p_dg() { ctx.save(); ctx.translate(0, 230); ctx.scale(0.4, 0.4); XCHAR.dg({ expr: 'smug' }); ctx.restore(); },
 });
 function setup3(i) {
-  AUTOSAY = true;
+  AUTOSAY = false;  // only live testimony (and the questions asked inside it) runs by itself
   defPr('p_hy', '김현태', '피고인. 현태 볶음밥집 사장. 무에타이 고수.\n전국 볶음밥 대회 결승 진출자. 볶음밥은 2인분부터. 예.');
   defPr('p_sw', '진상욱', '증인. 대회 보조 심사위원.\n결승 전날 밤, 대회장에 몰래 들어갔다.');
   defPr('p_na', '나국밥', '검사. 이번엔 증거가 확실하다며 자신만만하다.');
@@ -1949,7 +1949,7 @@ chap3('현장 확인', async () => {
   await loc(['11월 9일 오전 10시 30분', '전국 볶음밥 대회장 주방']); audio.music('cross'); await fadeTo(0, 0.5);
   await investigate({
     need: ['eggs', 'flour', 'knife', 'sched'], goLabel: '법정으로 ▶',
-    intro: async () => { await think('(현장 확인이다. 화면의 「?」를 눌러 살펴보자. 증언이 말하는 속도로 흘러가는 재판이니, 여기서 꼼꼼히 봐 둬야 한다.)'); },
+    intro: async () => { await think('(현장 확인이다. 화면의 「?」를 눌러 살펴보자. 재판의 증언은 말하는 속도로 흘러가니, 여기서 꼼꼼히 봐 둬야 한다.)'); },
     rooms: [{ name: '대회장 주방', view: 'arena', spots: [
       { id: 'fridge', x: 470, y: 60, w: 180, h: 160, f: async () => {
         await think('(황금 계란이 전부 깨져 있다. 껍데기가 보통 계란보다 훨씬 두껍다.)');
