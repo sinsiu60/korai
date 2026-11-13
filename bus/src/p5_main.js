@@ -100,14 +100,12 @@ addEventListener('keydown', e => {
 });
 function menuPad() {
   if (menu.hidden) return; const b = btns(); if (!b.length) return;
-  if (took('gearD') || took('indL')) { FOCUS = (FOCUS - 1 + b.length) % b.length; focusBtn(); audio.select(); }
-  if (took('gearR') || took('indR')) { FOCUS = (FOCUS + 1) % b.length; focusBtn(); audio.select(); }
-  if (took('gearN')) { FOCUS = (FOCUS - 1 + b.length) % b.length; focusBtn(); }
-  if (took('hazard')) { FOCUS = (FOCUS + 1) % b.length; focusBtn(); }
+  if (took('hazard') || took('indL')) { FOCUS = (FOCUS - 1 + b.length) % b.length; focusBtn(); audio.select(); }
+  if (took('kneel') || took('indR')) { FOCUS = (FOCUS + 1) % b.length; focusBtn(); audio.select(); }
   if (took('doorF')) { const x = b[FOCUS]; if (x) x.click(); }
   took('ok'); IN.pressed.clear();
 }
-const KEYHELP = [['가속 / 브레이크', 'W · S (↑ ↓)', 'RT · LT'], ['핸들', 'A · D (← →)', '왼쪽 스틱'], ['시동', 'I', 'View(뒤로)'], ['기어 D · N · R', '1 · 2 · 3', '십자 ↑ · ← · ↓'], ['주차 브레이크', 'Space', 'X'], ['앞문 / 뒷문', 'F / G', 'A / B'], ['깜빡이 왼 / 오', 'Q / E', 'LB / RB'], ['비상등', 'H', '십자 →'], ['전조등', 'L', 'R3'], ['와이퍼', 'K', '—'], ['경적', 'B', 'L3'], ['무릎 꿇기(저상)', 'N', '—'], ['카메라 전환', 'C', 'Y'], ['둘러보기', '마우스 드래그', '오른쪽 스틱'], ['후방 카메라 켜기/끄기', 'M', '—'], ['일시정지', 'Esc / P', 'Start'], ['소리 끄기', 'J', '—']];
+const KEYHELP = [['가속 / 브레이크', 'W · S (↑ ↓)', 'RT · LT'], ['핸들', 'A · D (← →)', '왼쪽 스틱'], ['시동', 'I', 'View(뒤로)'], ['기어 올림 / 내림 (R↔N↔D)', '1 · 2 · 3 (D·N·R)', 'LB 누른 채 오른쪽 스틱 ↑ / ↓'], ['주차 브레이크', 'Space', 'RB'], ['앞문 / 뒷문', 'F / G', 'A / B'], ['깜빡이 왼 / 오', 'Q / E', '십자 ← / →'], ['비상등', 'H', '십자 ↑'], ['전조등', 'L', 'X'], ['와이퍼', 'K', 'R3'], ['경적', 'B', 'L3'], ['무릎 꿇기(저상)', 'N', '십자 ↓'], ['카메라 전환', 'C', 'Y'], ['둘러보기', '마우스 드래그', '오른쪽 스틱'], ['후방 카메라 켜기/끄기', 'M', '—'], ['일시정지', 'Esc / P', 'Start'], ['소리 끄기', 'J', '—']];
 const keysHtml = () => `<div class="keys">${KEYHELP.map(([a, b, c]) => `<div><span>${a}</span><span><kbd>${b}</kbd> · <kbd>${c}</kbd></span></div>`).join('')}</div>`;
 async function studio() { MODE = 'menu'; show(`<div style="text-align:center"><div style="font-family:var(--f-shout);font-size:64px">시우 공방</div><div style="font-family:var(--f-led);color:var(--amber);letter-spacing:4px">SIWOO WORKSHOP</div></div>`); await sleep(TEST ? 10 : 1600); titleScreen(); }
 const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -156,7 +154,7 @@ function drive(route) {
   makeBus(SAVE.active, SAVE.owned[SAVE.active].paint); startTrip(route); SV.docked = false; SV.busy = 0;
   CAM.mode = 0; CAM.yaw = 0; CAM.pitch = -0.05;
   banner(`${route.no}번 ${route.name} · 첫 정류장 ${RT.stops[0].name}`, 6);
-  $('#hint').innerHTML = `시동 <kbd>I</kbd> → 주차 브레이크 해제 <kbd>Space</kbd> → 기어 D <kbd>1</kbd> → 가속 <kbd>W</kbd><br>정류장에서 멈추고 앞문 <kbd>F</kbd> · 뒷문 <kbd>G</kbd> · 카메라 <kbd>C</kbd> · 일시정지 <kbd>Esc</kbd>`;
+  $('#hint').innerHTML = IN.pad ? `시동 <kbd>View</kbd> → 주차 브레이크 해제 <kbd>RB</kbd> → 기어 올림 <kbd>LB</kbd>+<kbd>RS↑</kbd> 두 번(N→D) → 가속 <kbd>RT</kbd><br>앞문 <kbd>A</kbd> · 뒷문 <kbd>B</kbd> · 전조등 <kbd>X</kbd> · 깜빡이 <kbd>십자 ←→</kbd> · 카메라 <kbd>Y</kbd>` : `시동 <kbd>I</kbd> → 주차 브레이크 해제 <kbd>Space</kbd> → 기어 D <kbd>1</kbd> → 가속 <kbd>W</kbd><br>정류장에서 멈추고 앞문 <kbd>F</kbd> · 뒷문 <kbd>G</kbd> · 카메라 <kbd>C</kbd> · 일시정지 <kbd>Esc</kbd>`;
   if (TRIP.rain) toast('비가 온다. 와이퍼(K)를 켜자', ''); if (route.night) toast('밤길이다. 전조등(L)을 켜고 가자', '');
 }
 function pauseMenu() {
@@ -187,8 +185,10 @@ function actions() {
   if (PAUSED) { menuPad(); return; }
   if (took('mute')) toast(audio.toggle() ? '소리 끔' : '소리 켬');
   if (took('engine')) { if (!BUS.engine) { BUS.engine = true; audio.start(); toast(BUS.spec.electric ? '전원 ON 🔋' : '부르릉… 시동 ON', 'good'); } else if (Math.abs(BUS.v) < 0.5) { BUS.engine = false; toast('시동 OFF'); } }
+  if (took('gearUp')) IN.pressed.add(BUS.gear === 'R' ? 'gearN' : 'gearD');
+  if (took('gearDown')) IN.pressed.add(BUS.gear === 'D' ? 'gearN' : 'gearR');
   if (took('gearD')) { if (Math.abs(BUS.v) < 1 || BUS.gear !== 'R') { BUS.gear = 'D'; BUS.g = 1; } else toast('멈춘 다음 바꾸씹시오'); }
-  if (took('gearN')) BUS.gear = 'N';
+  if (took('gearN')) { BUS.gear = 'N'; }
   if (took('gearR')) { if (Math.abs(BUS.v) < 0.5) { BUS.gear = 'R'; audio.reverse(); } else toast('멈춘 다음 후진 기어'); }
   if (took('park')) { BUS.park = !BUS.park; audio.noise(0.25, 0.2, 700, 0, 'lowpass'); }
   if (took('doorF')) { if (Math.abs(BUS.v) < 0.6) { BUS.doorT.F = BUS.doorT.F ? 0 : 1; audio.door(); } else toast('달리는 중엔 문을 못 엽니다'); }

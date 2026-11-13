@@ -82,7 +82,9 @@ addEventListener('keydown', e => {
 addEventListener('keyup', e => KEYS.delete(e.key.toLowerCase()));
 addEventListener('blur', () => KEYS.clear());
 let kSteer = 0;
-const PADMAP = { 0: 'doorF', 1: 'doorR', 2: 'park', 3: 'cam', 4: 'indL', 5: 'indR', 8: 'engine', 9: 'pause', 10: 'horn', 11: 'lights', 12: 'gearD', 13: 'gearR', 14: 'gearN', 15: 'hazard' };
+// LB(4) is a modifier: LB + right stick up/down shifts the gear
+const PADMAP = { 0: 'doorF', 1: 'doorR', 2: 'lights', 3: 'cam', 5: 'park', 8: 'engine', 9: 'pause', 10: 'horn', 11: 'wiper', 12: 'hazard', 13: 'kneel', 14: 'indL', 15: 'indR' };
+let shiftArm = true, padSteer = 0;
 const padPrev = {};
 function pollInput(dt) {
   const up = KEYS.has('w') || KEYS.has('arrowup'), dn = KEYS.has('s') || KEYS.has('arrowdown');
@@ -95,8 +97,14 @@ function pollInput(dt) {
   for (const p of pads) {
     if (!p) continue; IN.pad = true; IN.padName = p.id;
     const dz = v => Math.abs(v) < 0.12 ? 0 : (v - Math.sign(v) * 0.12) / 0.88;
-    const sx = dz(p.axes[0] || 0); if (sx) steer = Math.sign(sx) * Math.pow(Math.abs(sx), 1.6);
+    // the stick is smoothed a little and curved, so small moves make small corrections
+    const sx = dz(p.axes[0] || 0), curved = Math.sign(sx) * (0.45 * Math.abs(sx) + 0.55 * Math.pow(Math.abs(sx), 2.4));
+    padSteer += (curved - padSteer) * Math.min(1, dt * 9); if (Math.abs(padSteer) > 0.004 || sx) steer = padSteer;
     lx = dz(p.axes[2] || 0); ly = dz(p.axes[3] || 0);
+    if (p.buttons[4] && p.buttons[4].pressed) {
+      const ry = p.axes[3] || 0; if (shiftArm && ry < -0.6) { IN.pressed.add('gearUp'); shiftArm = false; } else if (shiftArm && ry > 0.6) { IN.pressed.add('gearDown'); shiftArm = false; } else if (Math.abs(ry) < 0.3) shiftArm = true;
+      lx = ly = 0;
+    } else shiftArm = true;
     const rtv = p.buttons[7] ? p.buttons[7].value : 0, ltv = p.buttons[6] ? p.buttons[6].value : 0;
     thr = Math.max(thr, rtv); brk = Math.max(brk, ltv);
     for (const [bi, act] of Object.entries(PADMAP)) { const b = p.buttons[bi], now = !!(b && b.pressed), key = p.index + ':' + bi; if (now && !padPrev[key]) IN.pressed.add(act); padPrev[key] = now; }

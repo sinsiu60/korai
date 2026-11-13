@@ -192,7 +192,9 @@ addEventListener('keydown', e => {
 addEventListener('keyup', e => KEYS.delete(e.key.toLowerCase()));
 addEventListener('blur', () => KEYS.clear());
 let kSteer = 0;
-const PADMAP = { 0: 'doorF', 1: 'doorR', 2: 'park', 3: 'cam', 4: 'indL', 5: 'indR', 8: 'engine', 9: 'pause', 10: 'horn', 11: 'lights', 12: 'gearD', 13: 'gearR', 14: 'gearN', 15: 'hazard' };
+// LB(4) is a modifier: LB + right stick up/down shifts the gear
+const PADMAP = { 0: 'doorF', 1: 'doorR', 2: 'lights', 3: 'cam', 5: 'park', 8: 'engine', 9: 'pause', 10: 'horn', 11: 'wiper', 12: 'hazard', 13: 'kneel', 14: 'indL', 15: 'indR' };
+let shiftArm = true, padSteer = 0;
 const padPrev = {};
 function pollInput(dt) {
   const up = KEYS.has('w') || KEYS.has('arrowup'), dn = KEYS.has('s') || KEYS.has('arrowdown');
@@ -205,8 +207,14 @@ function pollInput(dt) {
   for (const p of pads) {
     if (!p) continue; IN.pad = true; IN.padName = p.id;
     const dz = v => Math.abs(v) < 0.12 ? 0 : (v - Math.sign(v) * 0.12) / 0.88;
-    const sx = dz(p.axes[0] || 0); if (sx) steer = Math.sign(sx) * Math.pow(Math.abs(sx), 1.6);
+    // the stick is smoothed a little and curved, so small moves make small corrections
+    const sx = dz(p.axes[0] || 0), curved = Math.sign(sx) * (0.45 * Math.abs(sx) + 0.55 * Math.pow(Math.abs(sx), 2.4));
+    padSteer += (curved - padSteer) * Math.min(1, dt * 9); if (Math.abs(padSteer) > 0.004 || sx) steer = padSteer;
     lx = dz(p.axes[2] || 0); ly = dz(p.axes[3] || 0);
+    if (p.buttons[4] && p.buttons[4].pressed) {
+      const ry = p.axes[3] || 0; if (shiftArm && ry < -0.6) { IN.pressed.add('gearUp'); shiftArm = false; } else if (shiftArm && ry > 0.6) { IN.pressed.add('gearDown'); shiftArm = false; } else if (Math.abs(ry) < 0.3) shiftArm = true;
+      lx = ly = 0;
+    } else shiftArm = true;
     const rtv = p.buttons[7] ? p.buttons[7].value : 0, ltv = p.buttons[6] ? p.buttons[6].value : 0;
     thr = Math.max(thr, rtv); brk = Math.max(brk, ltv);
     for (const [bi, act] of Object.entries(PADMAP)) { const b = p.buttons[bi], now = !!(b && b.pressed), key = p.index + ':' + bi; if (now && !padPrev[key]) IN.pressed.add(act); padPrev[key] = now; }
@@ -597,10 +605,12 @@ function busStep(dt) {
   let v = BUS.v + (a - resist) * dt;
   if (brake > 0) { const dv = brake * dt; v = Math.abs(v) <= dv ? 0 : v - Math.sign(v) * dv; }
   if (sgn !== 0 && Math.sign(v) !== sgn && a * sgn <= 0) v = 0; // resistances never push backwards
-  BUS.a = (v - BUS.v) / dt; BUS.v = v;
+  BUS.a = (v - BUS.v) / dt; BUS.aS = (BUS.aS || 0) + (BUS.a - (BUS.aS || 0)) * Math.min(1, dt * 5); BUS.v = v;
   // steering (the wheel turns less at speed)
-  const maxS = lerp(0.62, 0.2, clamp(kmh / 70, 0, 1)), target = IN.steer * maxS;
-  BUS.steer += clamp(target - BUS.steer, -1.4 * dt, 1.4 * dt);
+  const maxS = lerp(0.62, 0.1, Math.pow(clamp(kmh / 85, 0, 1), 0.7)), target = IN.steer * maxS;
+  // the wheel is heavy: it winds on slowly and runs back to centre faster once rolling
+  const back = Math.abs(target) < Math.abs(BUS.steer) || target * BUS.steer < 0, rate = back ? 0.9 + Math.min(1, kmh / 30) * 0.6 : lerp(0.75, 0.4, clamp(kmh / 70, 0, 1));
+  BUS.steer += clamp(target - BUS.steer, -rate * dt, rate * dt);
   const yawRate = BUS.v * Math.tan(BUS.steer) / S.wb; BUS.yaw -= yawRate * dt; BUS.alat = BUS.v * yawRate;
   const f = fwd(); BUS.pos.addScaledVector(f, BUS.v * dt); BUS.odo += Math.abs(BUS.v) * dt;
   // doors and kneeling
@@ -633,7 +643,7 @@ function busVisual(dt, t) {
   const S = BUS.spec, root = BUS.root;
   root.position.copy(BUS.pos); root.rotation.y = BUS.yaw;
   // body pitch and roll from the forces (and the kneel)
-  const pitch = clamp(-BUS.a * 0.006, -0.03, 0.03), roll = clamp(BUS.alat * 0.008, -0.04, 0.04), rumble = BUS.engine ? Math.sin(t * 40) * 0.003 * (S.electric ? 0.2 : 1) + (BUS.offroad ? Math.sin(t * 17) * 0.012 * Math.min(1, Math.abs(BUS.v) / 5) : 0) : 0;
+  const pitch = clamp(-(BUS.aS || 0) * 0.006, -0.03, 0.03), roll = clamp(BUS.alat * 0.008, -0.04, 0.04), rumble = BUS.engine ? Math.sin(t * 40) * 0.0012 * (S.electric ? 0.2 : 1) * Math.max(0, 1 - Math.abs(BUS.v) / 4) + (BUS.offroad ? Math.sin(t * 17) * 0.012 * Math.min(1, Math.abs(BUS.v) / 5) : 0) : 0;
   BUS.body.rotation.x = lerp(BUS.body.rotation.x, pitch, dt * 4); BUS.body.rotation.z = lerp(BUS.body.rotation.z, roll + BUS.kneel * 0.035, dt * 4); BUS.body.position.y = rumble - BUS.kneel * 0.08;
   for (const w of BUS.wheels) { w.w.children[0].rotation.x += BUS.v * dt / 0.5; w.w.children[1].rotation.x = w.w.children[0].rotation.x; if (w.front) w.w.rotation.y = -BUS.steer; }
   BUS.sw.rotation.z = BUS.steer * 7;
@@ -664,7 +674,7 @@ function camStep(dt) {
   if (Math.abs(IN.lookX) + Math.abs(IN.lookY) > 0) { if (CAM.mode === 0) { CAM.yaw = clamp(CAM.yaw - IN.lookX * dt * 2, -2.4, 2.4); CAM.pitch = clamp(CAM.pitch - IN.lookY * dt * 1.5, -0.8, 0.5); } else { CAM.cyaw -= IN.lookX * dt * 2; CAM.cpitch = clamp(CAM.cpitch + IN.lookY * dt, 0.05, 1.2); } }
   else if (CAM.mode === 0 && !drag && CAM.autoCenter) { CAM.yaw *= 1 - dt * 2; }
   if (CAM.mode === 0) {
-    body.updateMatrixWorld(); const eye = BUS.eye.clone(); eye.z -= clamp(BUS.a * 0.012, -0.06, 0.06); eye.x += clamp(BUS.alat * 0.01, -0.05, 0.05);
+    BUS.root.updateMatrixWorld(true); const eye = BUS.eye.clone(); eye.z -= clamp((BUS.aS || 0) * 0.012, -0.06, 0.06); eye.x += clamp(BUS.alat * 0.01, -0.05, 0.05);
     camera.position.copy(eye.applyMatrix4(body.matrixWorld));
     const yaw = BUS.yaw + CAM.yaw, d = new THREE.Vector3(Math.sin(yaw) * Math.cos(CAM.pitch), Math.sin(CAM.pitch), Math.cos(yaw) * Math.cos(CAM.pitch));
     camera.up.set(Math.sin(BUS.body.rotation.z) * 0.3, 1, 0); camera.lookAt(camera.position.clone().add(d)); camera.fov = 66;
@@ -672,12 +682,12 @@ function camStep(dt) {
     const yaw = BUS.yaw + Math.PI + CAM.cyaw, want = BUS.pos.clone().add(new THREE.Vector3(Math.sin(yaw) * Math.cos(CAM.cpitch), Math.sin(CAM.cpitch), Math.cos(yaw) * Math.cos(CAM.cpitch)).multiplyScalar(CAM.dist)); want.y += 1.5;
     camera.position.lerp(want, 1 - Math.exp(-dt * 6)); camera.up.set(0, 1, 0); camera.lookAt(BUS.pos.clone().add(new THREE.Vector3(0, 2, 0)).addScaledVector(f, 2)); camera.fov = 58;
   } else {
-    body.updateMatrixWorld(); const p = new THREE.Vector3(-(BUS.spec.wid / 2 + 1.2), 2.6, BUS.spec.len / 2 + 0.6).applyMatrix4(body.matrixWorld); camera.position.copy(p); camera.up.set(0, 1, 0);
+    BUS.root.updateMatrixWorld(true); const p = new THREE.Vector3(-(BUS.spec.wid / 2 + 1.2), 2.6, BUS.spec.len / 2 + 0.6).applyMatrix4(body.matrixWorld); camera.position.copy(p); camera.up.set(0, 1, 0);
     camera.lookAt(new THREE.Vector3(-(BUS.spec.wid / 2 + 0.2), 0.8, -BUS.spec.len / 2 - 4).applyMatrix4(body.matrixWorld)); camera.fov = 70;
   }
   camera.updateProjectionMatrix();
   // the right mirror sees backwards along the side
-  body.updateMatrixWorld(); mirrorCam.position.copy(new THREE.Vector3(-(BUS.spec.wid / 2 + 0.6), BUS.spec.h - 0.85, BUS.spec.len / 2 + 0.4).applyMatrix4(body.matrixWorld));
+  BUS.root.updateMatrixWorld(true); mirrorCam.position.copy(new THREE.Vector3(-(BUS.spec.wid / 2 + 0.6), BUS.spec.h - 0.85, BUS.spec.len / 2 + 0.4).applyMatrix4(body.matrixWorld));
   mirrorCam.lookAt(new THREE.Vector3(-(BUS.spec.wid / 2 + 2.2), 0.6, -BUS.spec.len / 2 - 14).applyMatrix4(body.matrixWorld));
   // the sun's shadow box follows the bus
   sun.position.set(BUS.pos.x + 120, 200, BUS.pos.z + 80); sun.target.position.copy(BUS.pos);
@@ -989,14 +999,12 @@ addEventListener('keydown', e => {
 });
 function menuPad() {
   if (menu.hidden) return; const b = btns(); if (!b.length) return;
-  if (took('gearD') || took('indL')) { FOCUS = (FOCUS - 1 + b.length) % b.length; focusBtn(); audio.select(); }
-  if (took('gearR') || took('indR')) { FOCUS = (FOCUS + 1) % b.length; focusBtn(); audio.select(); }
-  if (took('gearN')) { FOCUS = (FOCUS - 1 + b.length) % b.length; focusBtn(); }
-  if (took('hazard')) { FOCUS = (FOCUS + 1) % b.length; focusBtn(); }
+  if (took('hazard') || took('indL')) { FOCUS = (FOCUS - 1 + b.length) % b.length; focusBtn(); audio.select(); }
+  if (took('kneel') || took('indR')) { FOCUS = (FOCUS + 1) % b.length; focusBtn(); audio.select(); }
   if (took('doorF')) { const x = b[FOCUS]; if (x) x.click(); }
   took('ok'); IN.pressed.clear();
 }
-const KEYHELP = [['가속 / 브레이크', 'W · S (↑ ↓)', 'RT · LT'], ['핸들', 'A · D (← →)', '왼쪽 스틱'], ['시동', 'I', 'View(뒤로)'], ['기어 D · N · R', '1 · 2 · 3', '십자 ↑ · ← · ↓'], ['주차 브레이크', 'Space', 'X'], ['앞문 / 뒷문', 'F / G', 'A / B'], ['깜빡이 왼 / 오', 'Q / E', 'LB / RB'], ['비상등', 'H', '십자 →'], ['전조등', 'L', 'R3'], ['와이퍼', 'K', '—'], ['경적', 'B', 'L3'], ['무릎 꿇기(저상)', 'N', '—'], ['카메라 전환', 'C', 'Y'], ['둘러보기', '마우스 드래그', '오른쪽 스틱'], ['후방 카메라 켜기/끄기', 'M', '—'], ['일시정지', 'Esc / P', 'Start'], ['소리 끄기', 'J', '—']];
+const KEYHELP = [['가속 / 브레이크', 'W · S (↑ ↓)', 'RT · LT'], ['핸들', 'A · D (← →)', '왼쪽 스틱'], ['시동', 'I', 'View(뒤로)'], ['기어 올림 / 내림 (R↔N↔D)', '1 · 2 · 3 (D·N·R)', 'LB 누른 채 오른쪽 스틱 ↑ / ↓'], ['주차 브레이크', 'Space', 'RB'], ['앞문 / 뒷문', 'F / G', 'A / B'], ['깜빡이 왼 / 오', 'Q / E', '십자 ← / →'], ['비상등', 'H', '십자 ↑'], ['전조등', 'L', 'X'], ['와이퍼', 'K', 'R3'], ['경적', 'B', 'L3'], ['무릎 꿇기(저상)', 'N', '십자 ↓'], ['카메라 전환', 'C', 'Y'], ['둘러보기', '마우스 드래그', '오른쪽 스틱'], ['후방 카메라 켜기/끄기', 'M', '—'], ['일시정지', 'Esc / P', 'Start'], ['소리 끄기', 'J', '—']];
 const keysHtml = () => `<div class="keys">${KEYHELP.map(([a, b, c]) => `<div><span>${a}</span><span><kbd>${b}</kbd> · <kbd>${c}</kbd></span></div>`).join('')}</div>`;
 async function studio() { MODE = 'menu'; show(`<div style="text-align:center"><div style="font-family:var(--f-shout);font-size:64px">시우 공방</div><div style="font-family:var(--f-led);color:var(--amber);letter-spacing:4px">SIWOO WORKSHOP</div></div>`); await sleep(TEST ? 10 : 1600); titleScreen(); }
 const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -1045,7 +1053,7 @@ function drive(route) {
   makeBus(SAVE.active, SAVE.owned[SAVE.active].paint); startTrip(route); SV.docked = false; SV.busy = 0;
   CAM.mode = 0; CAM.yaw = 0; CAM.pitch = -0.05;
   banner(`${route.no}번 ${route.name} · 첫 정류장 ${RT.stops[0].name}`, 6);
-  $('#hint').innerHTML = `시동 <kbd>I</kbd> → 주차 브레이크 해제 <kbd>Space</kbd> → 기어 D <kbd>1</kbd> → 가속 <kbd>W</kbd><br>정류장에서 멈추고 앞문 <kbd>F</kbd> · 뒷문 <kbd>G</kbd> · 카메라 <kbd>C</kbd> · 일시정지 <kbd>Esc</kbd>`;
+  $('#hint').innerHTML = IN.pad ? `시동 <kbd>View</kbd> → 주차 브레이크 해제 <kbd>RB</kbd> → 기어 올림 <kbd>LB</kbd>+<kbd>RS↑</kbd> 두 번(N→D) → 가속 <kbd>RT</kbd><br>앞문 <kbd>A</kbd> · 뒷문 <kbd>B</kbd> · 전조등 <kbd>X</kbd> · 깜빡이 <kbd>십자 ←→</kbd> · 카메라 <kbd>Y</kbd>` : `시동 <kbd>I</kbd> → 주차 브레이크 해제 <kbd>Space</kbd> → 기어 D <kbd>1</kbd> → 가속 <kbd>W</kbd><br>정류장에서 멈추고 앞문 <kbd>F</kbd> · 뒷문 <kbd>G</kbd> · 카메라 <kbd>C</kbd> · 일시정지 <kbd>Esc</kbd>`;
   if (TRIP.rain) toast('비가 온다. 와이퍼(K)를 켜자', ''); if (route.night) toast('밤길이다. 전조등(L)을 켜고 가자', '');
 }
 function pauseMenu() {
@@ -1076,8 +1084,10 @@ function actions() {
   if (PAUSED) { menuPad(); return; }
   if (took('mute')) toast(audio.toggle() ? '소리 끔' : '소리 켬');
   if (took('engine')) { if (!BUS.engine) { BUS.engine = true; audio.start(); toast(BUS.spec.electric ? '전원 ON 🔋' : '부르릉… 시동 ON', 'good'); } else if (Math.abs(BUS.v) < 0.5) { BUS.engine = false; toast('시동 OFF'); } }
+  if (took('gearUp')) IN.pressed.add(BUS.gear === 'R' ? 'gearN' : 'gearD');
+  if (took('gearDown')) IN.pressed.add(BUS.gear === 'D' ? 'gearN' : 'gearR');
   if (took('gearD')) { if (Math.abs(BUS.v) < 1 || BUS.gear !== 'R') { BUS.gear = 'D'; BUS.g = 1; } else toast('멈춘 다음 바꾸씹시오'); }
-  if (took('gearN')) BUS.gear = 'N';
+  if (took('gearN')) { BUS.gear = 'N'; }
   if (took('gearR')) { if (Math.abs(BUS.v) < 0.5) { BUS.gear = 'R'; audio.reverse(); } else toast('멈춘 다음 후진 기어'); }
   if (took('park')) { BUS.park = !BUS.park; audio.noise(0.25, 0.2, 700, 0, 'lowpass'); }
   if (took('doorF')) { if (Math.abs(BUS.v) < 0.6) { BUS.doorT.F = BUS.doorT.F ? 0 : 1; audio.door(); } else toast('달리는 중엔 문을 못 엽니다'); }

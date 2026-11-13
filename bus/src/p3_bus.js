@@ -93,10 +93,12 @@ function busStep(dt) {
   let v = BUS.v + (a - resist) * dt;
   if (brake > 0) { const dv = brake * dt; v = Math.abs(v) <= dv ? 0 : v - Math.sign(v) * dv; }
   if (sgn !== 0 && Math.sign(v) !== sgn && a * sgn <= 0) v = 0; // resistances never push backwards
-  BUS.a = (v - BUS.v) / dt; BUS.v = v;
+  BUS.a = (v - BUS.v) / dt; BUS.aS = (BUS.aS || 0) + (BUS.a - (BUS.aS || 0)) * Math.min(1, dt * 5); BUS.v = v;
   // steering (the wheel turns less at speed)
-  const maxS = lerp(0.62, 0.2, clamp(kmh / 70, 0, 1)), target = IN.steer * maxS;
-  BUS.steer += clamp(target - BUS.steer, -1.4 * dt, 1.4 * dt);
+  const maxS = lerp(0.62, 0.1, Math.pow(clamp(kmh / 85, 0, 1), 0.7)), target = IN.steer * maxS;
+  // the wheel is heavy: it winds on slowly and runs back to centre faster once rolling
+  const back = Math.abs(target) < Math.abs(BUS.steer) || target * BUS.steer < 0, rate = back ? 0.9 + Math.min(1, kmh / 30) * 0.6 : lerp(0.75, 0.4, clamp(kmh / 70, 0, 1));
+  BUS.steer += clamp(target - BUS.steer, -rate * dt, rate * dt);
   const yawRate = BUS.v * Math.tan(BUS.steer) / S.wb; BUS.yaw -= yawRate * dt; BUS.alat = BUS.v * yawRate;
   const f = fwd(); BUS.pos.addScaledVector(f, BUS.v * dt); BUS.odo += Math.abs(BUS.v) * dt;
   // doors and kneeling
@@ -129,7 +131,7 @@ function busVisual(dt, t) {
   const S = BUS.spec, root = BUS.root;
   root.position.copy(BUS.pos); root.rotation.y = BUS.yaw;
   // body pitch and roll from the forces (and the kneel)
-  const pitch = clamp(-BUS.a * 0.006, -0.03, 0.03), roll = clamp(BUS.alat * 0.008, -0.04, 0.04), rumble = BUS.engine ? Math.sin(t * 40) * 0.003 * (S.electric ? 0.2 : 1) + (BUS.offroad ? Math.sin(t * 17) * 0.012 * Math.min(1, Math.abs(BUS.v) / 5) : 0) : 0;
+  const pitch = clamp(-(BUS.aS || 0) * 0.006, -0.03, 0.03), roll = clamp(BUS.alat * 0.008, -0.04, 0.04), rumble = BUS.engine ? Math.sin(t * 40) * 0.0012 * (S.electric ? 0.2 : 1) * Math.max(0, 1 - Math.abs(BUS.v) / 4) + (BUS.offroad ? Math.sin(t * 17) * 0.012 * Math.min(1, Math.abs(BUS.v) / 5) : 0) : 0;
   BUS.body.rotation.x = lerp(BUS.body.rotation.x, pitch, dt * 4); BUS.body.rotation.z = lerp(BUS.body.rotation.z, roll + BUS.kneel * 0.035, dt * 4); BUS.body.position.y = rumble - BUS.kneel * 0.08;
   for (const w of BUS.wheels) { w.w.children[0].rotation.x += BUS.v * dt / 0.5; w.w.children[1].rotation.x = w.w.children[0].rotation.x; if (w.front) w.w.rotation.y = -BUS.steer; }
   BUS.sw.rotation.z = BUS.steer * 7;
@@ -160,7 +162,7 @@ function camStep(dt) {
   if (Math.abs(IN.lookX) + Math.abs(IN.lookY) > 0) { if (CAM.mode === 0) { CAM.yaw = clamp(CAM.yaw - IN.lookX * dt * 2, -2.4, 2.4); CAM.pitch = clamp(CAM.pitch - IN.lookY * dt * 1.5, -0.8, 0.5); } else { CAM.cyaw -= IN.lookX * dt * 2; CAM.cpitch = clamp(CAM.cpitch + IN.lookY * dt, 0.05, 1.2); } }
   else if (CAM.mode === 0 && !drag && CAM.autoCenter) { CAM.yaw *= 1 - dt * 2; }
   if (CAM.mode === 0) {
-    body.updateMatrixWorld(); const eye = BUS.eye.clone(); eye.z -= clamp(BUS.a * 0.012, -0.06, 0.06); eye.x += clamp(BUS.alat * 0.01, -0.05, 0.05);
+    BUS.root.updateMatrixWorld(true); const eye = BUS.eye.clone(); eye.z -= clamp((BUS.aS || 0) * 0.012, -0.06, 0.06); eye.x += clamp(BUS.alat * 0.01, -0.05, 0.05);
     camera.position.copy(eye.applyMatrix4(body.matrixWorld));
     const yaw = BUS.yaw + CAM.yaw, d = new THREE.Vector3(Math.sin(yaw) * Math.cos(CAM.pitch), Math.sin(CAM.pitch), Math.cos(yaw) * Math.cos(CAM.pitch));
     camera.up.set(Math.sin(BUS.body.rotation.z) * 0.3, 1, 0); camera.lookAt(camera.position.clone().add(d)); camera.fov = 66;
@@ -168,12 +170,12 @@ function camStep(dt) {
     const yaw = BUS.yaw + Math.PI + CAM.cyaw, want = BUS.pos.clone().add(new THREE.Vector3(Math.sin(yaw) * Math.cos(CAM.cpitch), Math.sin(CAM.cpitch), Math.cos(yaw) * Math.cos(CAM.cpitch)).multiplyScalar(CAM.dist)); want.y += 1.5;
     camera.position.lerp(want, 1 - Math.exp(-dt * 6)); camera.up.set(0, 1, 0); camera.lookAt(BUS.pos.clone().add(new THREE.Vector3(0, 2, 0)).addScaledVector(f, 2)); camera.fov = 58;
   } else {
-    body.updateMatrixWorld(); const p = new THREE.Vector3(-(BUS.spec.wid / 2 + 1.2), 2.6, BUS.spec.len / 2 + 0.6).applyMatrix4(body.matrixWorld); camera.position.copy(p); camera.up.set(0, 1, 0);
+    BUS.root.updateMatrixWorld(true); const p = new THREE.Vector3(-(BUS.spec.wid / 2 + 1.2), 2.6, BUS.spec.len / 2 + 0.6).applyMatrix4(body.matrixWorld); camera.position.copy(p); camera.up.set(0, 1, 0);
     camera.lookAt(new THREE.Vector3(-(BUS.spec.wid / 2 + 0.2), 0.8, -BUS.spec.len / 2 - 4).applyMatrix4(body.matrixWorld)); camera.fov = 70;
   }
   camera.updateProjectionMatrix();
   // the right mirror sees backwards along the side
-  body.updateMatrixWorld(); mirrorCam.position.copy(new THREE.Vector3(-(BUS.spec.wid / 2 + 0.6), BUS.spec.h - 0.85, BUS.spec.len / 2 + 0.4).applyMatrix4(body.matrixWorld));
+  BUS.root.updateMatrixWorld(true); mirrorCam.position.copy(new THREE.Vector3(-(BUS.spec.wid / 2 + 0.6), BUS.spec.h - 0.85, BUS.spec.len / 2 + 0.4).applyMatrix4(body.matrixWorld));
   mirrorCam.lookAt(new THREE.Vector3(-(BUS.spec.wid / 2 + 2.2), 0.6, -BUS.spec.len / 2 - 14).applyMatrix4(body.matrixWorld));
   // the sun's shadow box follows the bus
   sun.position.set(BUS.pos.x + 120, 200, BUS.pos.z + 80); sun.target.position.copy(BUS.pos);
